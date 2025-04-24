@@ -7032,7 +7032,7 @@ function user_loaded_source(model, from2) {
       _record.location,
       _record.buy_orders,
       _record.buy_orders_status,
-      _record.sell_orders,
+      toList([]),
       new Loading()
     );
   })();
@@ -7046,7 +7046,7 @@ function user_loaded_source(model, from2) {
           throw makeError(
             "panic",
             "mvu/update/systems",
-            191,
+            192,
             "",
             "did not find system " + from2,
             {}
@@ -7080,7 +7080,7 @@ function user_loaded_destination(model, to) {
     throw makeError(
       "let_assert",
       "mvu/update/systems",
-      202,
+      203,
       "user_loaded_destination",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7096,7 +7096,7 @@ function user_loaded_destination(model, to) {
     let _record = system;
     return new System(
       _record.location,
-      _record.buy_orders,
+      toList([]),
       new Loading(),
       _record.sell_orders,
       _record.sell_orders_status
@@ -7112,7 +7112,7 @@ function user_loaded_destination(model, to) {
           throw makeError(
             "panic",
             "mvu/update/systems",
-            209,
+            211,
             "",
             "did not find system " + to,
             {}

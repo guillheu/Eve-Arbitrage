@@ -184,7 +184,8 @@ pub fn user_loaded_source(
   let assert Ok(system) = dict.get(model.systems, from)
   let side_effect =
     fetch_orders.get_query_sell_orders_side_effect(system.location, from, 1)
-  let system = mvu.System(..system, sell_orders_status: mvu.Loading)
+  let system =
+    mvu.System(..system, sell_orders_status: mvu.Loading, sell_orders: [])
   let systems =
     dict.upsert(model.systems, from, fn(found) {
       option.lazy_unwrap(found, fn() {
@@ -202,7 +203,8 @@ pub fn user_loaded_destination(
   let assert Ok(system) = dict.get(model.systems, to)
   let side_effect =
     fetch_orders.get_query_buy_orders_side_effect(system.location, to, 1)
-  let system = mvu.System(..system, buy_orders_status: mvu.Loading)
+  let system =
+    mvu.System(..system, buy_orders_status: mvu.Loading, buy_orders: [])
   let systems =
     dict.upsert(model.systems, to, fn(found) {
       option.lazy_unwrap(found, fn() {
