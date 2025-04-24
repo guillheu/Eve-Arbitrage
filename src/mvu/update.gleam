@@ -22,6 +22,6 @@ pub fn run(
       systems.user_loaded_destination(model, destination)
     mvu.UserLoadedSource(source) -> systems.user_loaded_source(model, source)
     mvu.UserClickedCopyMultibuy(multibuy) ->
-      multibuys.user_clicked_copy_multibuy(multibuy)
+      multibuys.user_clicked_copy_multibuy(model, multibuy)
   }
 }

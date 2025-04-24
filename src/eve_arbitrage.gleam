@@ -27,7 +27,10 @@ fn init(_args) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
     dict.insert(systems, name, system)
   }
   let debug_multibuys = [
-    [arbitrage.new_purchase("Heavy Water", 112_764, 120.8)]
+    [
+      arbitrage.new_purchase("Heavy Water", 112_764, 120.8),
+      arbitrage.new_purchase("Iteron Mark V Lodestrike SKIN", 1, 86_500.0),
+    ]
       |> arbitrage.multibuy_from_purchases,
     [arbitrage.new_purchase("Heavy Water", 112_764, 120.8)]
       |> arbitrage.multibuy_from_purchases,

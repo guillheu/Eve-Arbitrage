@@ -25,7 +25,7 @@ pub fn price_to_human_string(from: Float) -> String {
 
 fn int_to_segments(acc: List(Int), from: Int) -> List(Int) {
   case from / 1000 {
-    x if x > 0 -> int_to_segments([from % 1000, ..acc], echo x)
+    x if x > 0 -> int_to_segments([from % 1000, ..acc], x)
     _x -> [from, ..acc] |> list.reverse
   }
 }
