@@ -5,7 +5,7 @@ import gleam/http/response
 import gleam/int
 import gleam/io
 import gleam/list
-import gleam/option.{Some}
+import gleam/option.{None, Some}
 import gleam/string
 import gleam/time/timestamp
 import lustre/effect
@@ -193,6 +193,11 @@ pub fn user_loaded_source(
       })
       system
     })
+  let model = case model.source {
+    Some(current_source) if current_source == from ->
+      mvu.Model(..model, source: None)
+    _ -> model
+  }
   #(mvu.Model(..model, systems: systems), side_effect)
 }
 
@@ -212,5 +217,10 @@ pub fn user_loaded_destination(
       })
       system
     })
+  let model = case model.destination {
+    Some(current_destination) if current_destination == to ->
+      mvu.Model(..model, destination: None)
+    _ -> model
+  }
   #(mvu.Model(..model, systems: systems), side_effect)
 }

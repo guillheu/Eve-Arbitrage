@@ -1,16 +1,6 @@
-import config/esi
-import config/sde
-import gleam/dict
-import gleam/http/response
-import gleam/int
-import gleam/io
-import gleam/list
-import gleam/option.{Some}
-import gleam/string
 import lustre/effect
 import mvu
 import mvu/update/systems
-import rsvp
 
 pub fn run(
   model: mvu.Model,

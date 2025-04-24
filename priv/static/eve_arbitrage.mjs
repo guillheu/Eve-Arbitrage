@@ -7056,9 +7056,29 @@ function user_loaded_source(model, from2) {
       return system$1;
     }
   );
+  let model$1 = (() => {
+    let $1 = model.source;
+    if ($1 instanceof Some && $1[0] === from2) {
+      let current_source = $1[0];
+      let _record = model;
+      return new Model(
+        _record.ships,
+        _record.current_ship,
+        _record.systems,
+        new None(),
+        _record.destination,
+        _record.accounting_level,
+        _record.language,
+        _record.sidebar_expanded,
+        _record.collateral
+      );
+    } else {
+      return model;
+    }
+  })();
   return [
     (() => {
-      let _record = model;
+      let _record = model$1;
       return new Model(
         _record.ships,
         _record.current_ship,
@@ -7080,7 +7100,7 @@ function user_loaded_destination(model, to) {
     throw makeError(
       "let_assert",
       "mvu/update/systems",
-      203,
+      208,
       "user_loaded_destination",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7112,7 +7132,7 @@ function user_loaded_destination(model, to) {
           throw makeError(
             "panic",
             "mvu/update/systems",
-            211,
+            216,
             "",
             "did not find system " + to,
             {}
@@ -7122,9 +7142,29 @@ function user_loaded_destination(model, to) {
       return system$1;
     }
   );
+  let model$1 = (() => {
+    let $1 = model.destination;
+    if ($1 instanceof Some && $1[0] === to) {
+      let current_destination = $1[0];
+      let _record = model;
+      return new Model(
+        _record.ships,
+        _record.current_ship,
+        _record.systems,
+        _record.source,
+        new None(),
+        _record.accounting_level,
+        _record.language,
+        _record.sidebar_expanded,
+        _record.collateral
+      );
+    } else {
+      return model;
+    }
+  })();
   return [
     (() => {
-      let _record = model;
+      let _record = model$1;
       return new Model(
         _record.ships,
         _record.current_ship,
