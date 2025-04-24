@@ -54,4 +54,7 @@ pub type Msg {
     page: Int,
   )
   UserClickedCopyMultibuy(multibuy: arbitrage.Multibuy)
+  UserClickedExpandSidebar
+  UserClickedCollapseSidebar
+  UserUpdatedCollateral(value: Float)
 }

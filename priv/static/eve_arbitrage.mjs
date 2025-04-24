@@ -2,7 +2,7 @@
 var CustomType = class {
   withFields(fields) {
     let properties = Object.keys(this).map(
-      (label) => label in fields ? fields[label] : this[label]
+      (label2) => label2 in fields ? fields[label2] : this[label2]
     );
     return new this.constructor(...properties);
   }
@@ -263,14 +263,285 @@ var UtfCodepoint = class {
   }
 };
 var isBitArrayDeprecationMessagePrinted = {};
-function bitArrayPrintDeprecationWarning(name, message) {
-  if (isBitArrayDeprecationMessagePrinted[name]) {
+function bitArrayPrintDeprecationWarning(name2, message) {
+  if (isBitArrayDeprecationMessagePrinted[name2]) {
     return;
   }
   console.warn(
-    `Deprecated BitArray.${name} property used in JavaScript FFI code. ${message}.`
+    `Deprecated BitArray.${name2} property used in JavaScript FFI code. ${message}.`
   );
-  isBitArrayDeprecationMessagePrinted[name] = true;
+  isBitArrayDeprecationMessagePrinted[name2] = true;
+}
+function bitArraySlice(bitArray, start4, end) {
+  end ??= bitArray.bitSize;
+  bitArrayValidateRange(bitArray, start4, end);
+  if (start4 === end) {
+    return new BitArray(new Uint8Array());
+  }
+  if (start4 === 0 && end === bitArray.bitSize) {
+    return bitArray;
+  }
+  start4 += bitArray.bitOffset;
+  end += bitArray.bitOffset;
+  const startByteIndex = Math.trunc(start4 / 8);
+  const endByteIndex = Math.trunc((end + 7) / 8);
+  const byteLength = endByteIndex - startByteIndex;
+  let buffer;
+  if (startByteIndex === 0 && byteLength === bitArray.rawBuffer.byteLength) {
+    buffer = bitArray.rawBuffer;
+  } else {
+    buffer = new Uint8Array(
+      bitArray.rawBuffer.buffer,
+      bitArray.rawBuffer.byteOffset + startByteIndex,
+      byteLength
+    );
+  }
+  return new BitArray(buffer, end - start4, start4 % 8);
+}
+function bitArraySliceToInt(bitArray, start4, end, isBigEndian, isSigned) {
+  bitArrayValidateRange(bitArray, start4, end);
+  if (start4 === end) {
+    return 0;
+  }
+  start4 += bitArray.bitOffset;
+  end += bitArray.bitOffset;
+  const isStartByteAligned = start4 % 8 === 0;
+  const isEndByteAligned = end % 8 === 0;
+  if (isStartByteAligned && isEndByteAligned) {
+    return intFromAlignedSlice(
+      bitArray,
+      start4 / 8,
+      end / 8,
+      isBigEndian,
+      isSigned
+    );
+  }
+  const size2 = end - start4;
+  const startByteIndex = Math.trunc(start4 / 8);
+  const endByteIndex = Math.trunc((end - 1) / 8);
+  if (startByteIndex == endByteIndex) {
+    const mask2 = 255 >> start4 % 8;
+    const unusedLowBitCount = (8 - end % 8) % 8;
+    let value = (bitArray.rawBuffer[startByteIndex] & mask2) >> unusedLowBitCount;
+    if (isSigned) {
+      const highBit = 2 ** (size2 - 1);
+      if (value >= highBit) {
+        value -= highBit * 2;
+      }
+    }
+    return value;
+  }
+  if (size2 <= 53) {
+    return intFromUnalignedSliceUsingNumber(
+      bitArray.rawBuffer,
+      start4,
+      end,
+      isBigEndian,
+      isSigned
+    );
+  } else {
+    return intFromUnalignedSliceUsingBigInt(
+      bitArray.rawBuffer,
+      start4,
+      end,
+      isBigEndian,
+      isSigned
+    );
+  }
+}
+function intFromAlignedSlice(bitArray, start4, end, isBigEndian, isSigned) {
+  const byteSize = end - start4;
+  if (byteSize <= 6) {
+    return intFromAlignedSliceUsingNumber(
+      bitArray.rawBuffer,
+      start4,
+      end,
+      isBigEndian,
+      isSigned
+    );
+  } else {
+    return intFromAlignedSliceUsingBigInt(
+      bitArray.rawBuffer,
+      start4,
+      end,
+      isBigEndian,
+      isSigned
+    );
+  }
+}
+function intFromAlignedSliceUsingNumber(buffer, start4, end, isBigEndian, isSigned) {
+  const byteSize = end - start4;
+  let value = 0;
+  if (isBigEndian) {
+    for (let i = start4; i < end; i++) {
+      value *= 256;
+      value += buffer[i];
+    }
+  } else {
+    for (let i = end - 1; i >= start4; i--) {
+      value *= 256;
+      value += buffer[i];
+    }
+  }
+  if (isSigned) {
+    const highBit = 2 ** (byteSize * 8 - 1);
+    if (value >= highBit) {
+      value -= highBit * 2;
+    }
+  }
+  return value;
+}
+function intFromAlignedSliceUsingBigInt(buffer, start4, end, isBigEndian, isSigned) {
+  const byteSize = end - start4;
+  let value = 0n;
+  if (isBigEndian) {
+    for (let i = start4; i < end; i++) {
+      value *= 256n;
+      value += BigInt(buffer[i]);
+    }
+  } else {
+    for (let i = end - 1; i >= start4; i--) {
+      value *= 256n;
+      value += BigInt(buffer[i]);
+    }
+  }
+  if (isSigned) {
+    const highBit = 1n << BigInt(byteSize * 8 - 1);
+    if (value >= highBit) {
+      value -= highBit * 2n;
+    }
+  }
+  return Number(value);
+}
+function intFromUnalignedSliceUsingNumber(buffer, start4, end, isBigEndian, isSigned) {
+  const isStartByteAligned = start4 % 8 === 0;
+  let size2 = end - start4;
+  let byteIndex = Math.trunc(start4 / 8);
+  let value = 0;
+  if (isBigEndian) {
+    if (!isStartByteAligned) {
+      const leadingBitsCount = 8 - start4 % 8;
+      value = buffer[byteIndex++] & (1 << leadingBitsCount) - 1;
+      size2 -= leadingBitsCount;
+    }
+    while (size2 >= 8) {
+      value *= 256;
+      value += buffer[byteIndex++];
+      size2 -= 8;
+    }
+    if (size2 > 0) {
+      value *= 2 ** size2;
+      value += buffer[byteIndex] >> 8 - size2;
+    }
+  } else {
+    if (isStartByteAligned) {
+      let size3 = end - start4;
+      let scale = 1;
+      while (size3 >= 8) {
+        value += buffer[byteIndex++] * scale;
+        scale *= 256;
+        size3 -= 8;
+      }
+      value += (buffer[byteIndex] >> 8 - size3) * scale;
+    } else {
+      const highBitsCount = start4 % 8;
+      const lowBitsCount = 8 - highBitsCount;
+      let size3 = end - start4;
+      let scale = 1;
+      while (size3 >= 8) {
+        const byte = buffer[byteIndex] << highBitsCount | buffer[byteIndex + 1] >> lowBitsCount;
+        value += (byte & 255) * scale;
+        scale *= 256;
+        size3 -= 8;
+        byteIndex++;
+      }
+      if (size3 > 0) {
+        const lowBitsUsed = size3 - Math.max(0, size3 - lowBitsCount);
+        let trailingByte = (buffer[byteIndex] & (1 << lowBitsCount) - 1) >> lowBitsCount - lowBitsUsed;
+        size3 -= lowBitsUsed;
+        if (size3 > 0) {
+          trailingByte *= 2 ** size3;
+          trailingByte += buffer[byteIndex + 1] >> 8 - size3;
+        }
+        value += trailingByte * scale;
+      }
+    }
+  }
+  if (isSigned) {
+    const highBit = 2 ** (end - start4 - 1);
+    if (value >= highBit) {
+      value -= highBit * 2;
+    }
+  }
+  return value;
+}
+function intFromUnalignedSliceUsingBigInt(buffer, start4, end, isBigEndian, isSigned) {
+  const isStartByteAligned = start4 % 8 === 0;
+  let size2 = end - start4;
+  let byteIndex = Math.trunc(start4 / 8);
+  let value = 0n;
+  if (isBigEndian) {
+    if (!isStartByteAligned) {
+      const leadingBitsCount = 8 - start4 % 8;
+      value = BigInt(buffer[byteIndex++] & (1 << leadingBitsCount) - 1);
+      size2 -= leadingBitsCount;
+    }
+    while (size2 >= 8) {
+      value *= 256n;
+      value += BigInt(buffer[byteIndex++]);
+      size2 -= 8;
+    }
+    if (size2 > 0) {
+      value <<= BigInt(size2);
+      value += BigInt(buffer[byteIndex] >> 8 - size2);
+    }
+  } else {
+    if (isStartByteAligned) {
+      let size3 = end - start4;
+      let shift = 0n;
+      while (size3 >= 8) {
+        value += BigInt(buffer[byteIndex++]) << shift;
+        shift += 8n;
+        size3 -= 8;
+      }
+      value += BigInt(buffer[byteIndex] >> 8 - size3) << shift;
+    } else {
+      const highBitsCount = start4 % 8;
+      const lowBitsCount = 8 - highBitsCount;
+      let size3 = end - start4;
+      let shift = 0n;
+      while (size3 >= 8) {
+        const byte = buffer[byteIndex] << highBitsCount | buffer[byteIndex + 1] >> lowBitsCount;
+        value += BigInt(byte & 255) << shift;
+        shift += 8n;
+        size3 -= 8;
+        byteIndex++;
+      }
+      if (size3 > 0) {
+        const lowBitsUsed = size3 - Math.max(0, size3 - lowBitsCount);
+        let trailingByte = (buffer[byteIndex] & (1 << lowBitsCount) - 1) >> lowBitsCount - lowBitsUsed;
+        size3 -= lowBitsUsed;
+        if (size3 > 0) {
+          trailingByte <<= size3;
+          trailingByte += buffer[byteIndex + 1] >> 8 - size3;
+        }
+        value += BigInt(trailingByte) << shift;
+      }
+    }
+  }
+  if (isSigned) {
+    const highBit = 2n ** BigInt(end - start4 - 1);
+    if (value >= highBit) {
+      value -= highBit * 2n;
+    }
+  }
+  return Number(value);
+}
+function bitArrayValidateRange(bitArray, start4, end) {
+  if (start4 < 0 || start4 > bitArray.bitSize || end < start4 || end > bitArray.bitSize) {
+    const msg = `Invalid bit array slice: start = ${start4}, end = ${end}, bit size = ${bitArray.bitSize}`;
+    throw new globalThis.Error(msg);
+  }
 }
 var Result = class _Result extends CustomType {
   // @internal
@@ -989,6 +1260,13 @@ function unwrap_both(result) {
   } else {
     let a2 = result[0];
     return a2;
+  }
+}
+function lazy_or(first, second) {
+  if (first.isOk()) {
+    return first;
+  } else {
+    return second();
   }
 }
 function replace_error(result, error) {
@@ -1710,6 +1988,20 @@ var NOT_FOUND = {};
 function identity(x) {
   return x;
 }
+function parse_int(value) {
+  if (/^[-+]?(\d+)$/.test(value)) {
+    return new Ok(parseInt(value));
+  } else {
+    return new Error(Nil);
+  }
+}
+function parse_float(value) {
+  if (/^[-+]?(\d+)\.(\d+)([eE][-+]?\d+)?$/.test(value)) {
+    return new Ok(parseFloat(value));
+  } else {
+    return new Error(Nil);
+  }
+}
 function to_string(term) {
   return term.toString();
 }
@@ -1940,19 +2232,19 @@ function inspectDict(map6) {
   return body + "])";
 }
 function inspectObject(v) {
-  const name = Object.getPrototypeOf(v)?.constructor?.name || "Object";
+  const name2 = Object.getPrototypeOf(v)?.constructor?.name || "Object";
   const props = [];
   for (const k of Object.keys(v)) {
     props.push(`${inspect(k)}: ${inspect(v[k])}`);
   }
   const body = props.length ? " " + props.join(", ") + " " : "";
-  const head = name === "Object" ? "" : name + " ";
+  const head = name2 === "Object" ? "" : name2 + " ";
   return `//js(${head}{${body}})`;
 }
 function inspectCustomType(record) {
-  const props = Object.keys(record).map((label) => {
-    const value = inspect(record[label]);
-    return isNaN(parseInt(label)) ? `${label}: ${value}` : value;
+  const props = Object.keys(record).map((label2) => {
+    const value = inspect(record[label2]);
+    return isNaN(parseInt(label2)) ? `${label2}: ${value}` : value;
   }).join(", ");
   return props ? `${record.constructor.name}(${props})` : record.constructor.name;
 }
@@ -2191,7 +2483,7 @@ function decode_error(expected, found) {
     new DecodeError2(expected, classify_dynamic(found), toList([]))
   ]);
 }
-function run_dynamic_function(data, name, f) {
+function run_dynamic_function(data, name2, f) {
   let $ = f(data);
   if ($.isOk()) {
     let data$1 = $[0];
@@ -2200,7 +2492,7 @@ function run_dynamic_function(data, name, f) {
     let zero = $[0];
     return [
       zero,
-      toList([new DecodeError2(name, classify_dynamic(data), toList([]))])
+      toList([new DecodeError2(name2, classify_dynamic(data), toList([]))])
     ];
   }
 }
@@ -2538,26 +2830,26 @@ function compare3(a2, b) {
 
 // build/dev/javascript/lustre/lustre/vdom/vattr.mjs
 var Attribute = class extends CustomType {
-  constructor(kind, name, value) {
+  constructor(kind, name2, value) {
     super();
     this.kind = kind;
-    this.name = name;
+    this.name = name2;
     this.value = value;
   }
 };
 var Property = class extends CustomType {
-  constructor(kind, name, value) {
+  constructor(kind, name2, value) {
     super();
     this.kind = kind;
-    this.name = name;
+    this.name = name2;
     this.value = value;
   }
 };
 var Event2 = class extends CustomType {
-  constructor(kind, name, handler, include, prevent_default, stop_propagation, immediate2, limit) {
+  constructor(kind, name2, handler, include, prevent_default, stop_propagation, immediate2, limit) {
     super();
     this.kind = kind;
-    this.name = name;
+    this.name = name2;
     this.handler = handler;
     this.include = include;
     this.prevent_default = prevent_default;
@@ -2647,15 +2939,15 @@ function prepare(attributes) {
   }
 }
 var attribute_kind = 0;
-function attribute(name, value) {
-  return new Attribute(attribute_kind, name, value);
+function attribute(name2, value) {
+  return new Attribute(attribute_kind, name2, value);
 }
 var property_kind = 1;
 var event_kind = 2;
-function event(name, handler, include, prevent_default, stop_propagation, immediate2, limit) {
+function event(name2, handler, include, prevent_default, stop_propagation, immediate2, limit) {
   return new Event2(
     event_kind,
-    name,
+    name2,
     handler,
     include,
     prevent_default,
@@ -2668,14 +2960,29 @@ var debounce_kind = 1;
 var throttle_kind = 2;
 
 // build/dev/javascript/lustre/lustre/attribute.mjs
-function attribute2(name, value) {
-  return attribute(name, value);
+function attribute2(name2, value) {
+  return attribute(name2, value);
 }
-function class$(name) {
-  return attribute2("class", name);
+function class$(name2) {
+  return attribute2("class", name2);
+}
+function id(value) {
+  return attribute2("id", value);
 }
 function href(url) {
   return attribute2("href", url);
+}
+function for$(id2) {
+  return attribute2("for", id2);
+}
+function name(element_name) {
+  return attribute2("name", element_name);
+}
+function placeholder(text4) {
+  return attribute2("placeholder", text4);
+}
+function type_(control_type) {
+  return attribute2("type", control_type);
 }
 
 // build/dev/javascript/lustre/lustre/effect.mjs
@@ -3211,10 +3518,10 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
       return new AttributeChange(added, removed, events);
     } else if (old.atLeastLength(1) && old.head instanceof Event2 && new$8.hasLength(0)) {
       let prev = old.head;
-      let name = old.head.name;
+      let name2 = old.head.name;
       let old$1 = old.tail;
       let removed$1 = prepend(prev, removed);
-      let events$1 = remove_event(events, path2, name);
+      let events$1 = remove_event(events, path2, name2);
       loop$controlled = controlled;
       loop$path = path2;
       loop$mapper = mapper;
@@ -3237,11 +3544,11 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
       loop$removed = removed$1;
     } else if (old.hasLength(0) && new$8.atLeastLength(1) && new$8.head instanceof Event2) {
       let next = new$8.head;
-      let name = new$8.head.name;
+      let name2 = new$8.head.name;
       let handler = new$8.head.handler;
       let new$1 = new$8.tail;
       let added$1 = prepend(next, added);
-      let events$1 = add_event(events, mapper, path2, name, handler);
+      let events$1 = add_event(events, mapper, path2, name2, handler);
       loop$controlled = controlled;
       loop$path = path2;
       loop$mapper = mapper;
@@ -3329,7 +3636,7 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
         loop$added = added$1;
         loop$removed = removed;
       } else if (prev instanceof Event2 && $ instanceof Eq && next instanceof Event2) {
-        let name = next.name;
+        let name2 = next.name;
         let handler = next.handler;
         let has_changes = prev.prevent_default !== next.prevent_default || prev.stop_propagation !== next.stop_propagation || prev.immediate !== next.immediate || !limit_equals(
           prev.limit,
@@ -3342,7 +3649,7 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
             return added;
           }
         })();
-        let events$1 = add_event(events, mapper, path2, name, handler);
+        let events$1 = add_event(events, mapper, path2, name2, handler);
         loop$controlled = controlled;
         loop$path = path2;
         loop$mapper = mapper;
@@ -3352,10 +3659,10 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
         loop$added = added$1;
         loop$removed = removed;
       } else if (prev instanceof Event2 && $ instanceof Eq) {
-        let name = prev.name;
+        let name2 = prev.name;
         let added$1 = prepend(next, added);
         let removed$1 = prepend(prev, removed);
-        let events$1 = remove_event(events, path2, name);
+        let events$1 = remove_event(events, path2, name2);
         loop$controlled = controlled;
         loop$path = path2;
         loop$mapper = mapper;
@@ -3365,11 +3672,11 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
         loop$added = added$1;
         loop$removed = removed$1;
       } else if ($ instanceof Eq && next instanceof Event2) {
-        let name = next.name;
+        let name2 = next.name;
         let handler = next.handler;
         let added$1 = prepend(next, added);
         let removed$1 = prepend(prev, removed);
-        let events$1 = add_event(events, mapper, path2, name, handler);
+        let events$1 = add_event(events, mapper, path2, name2, handler);
         loop$controlled = controlled;
         loop$path = path2;
         loop$mapper = mapper;
@@ -3390,10 +3697,10 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
         loop$added = added$1;
         loop$removed = removed$1;
       } else if ($ instanceof Gt && next instanceof Event2) {
-        let name = next.name;
+        let name2 = next.name;
         let handler = next.handler;
         let added$1 = prepend(next, added);
-        let events$1 = add_event(events, mapper, path2, name, handler);
+        let events$1 = add_event(events, mapper, path2, name2, handler);
         loop$controlled = controlled;
         loop$path = path2;
         loop$mapper = mapper;
@@ -3413,9 +3720,9 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
         loop$added = added$1;
         loop$removed = removed;
       } else if (prev instanceof Event2 && $ instanceof Lt) {
-        let name = prev.name;
+        let name2 = prev.name;
         let removed$1 = prepend(prev, removed);
-        let events$1 = remove_event(events, path2, name);
+        let events$1 = remove_event(events, path2, name2);
         loop$controlled = controlled;
         loop$path = path2;
         loop$mapper = mapper;
@@ -4022,20 +4329,20 @@ var Reconciler = class {
   }
   #update(node, added, removed) {
     iterate(removed, (attribute3) => {
-      const name = attribute3.name;
-      if (node[meta].handlers.has(name)) {
-        node.removeEventListener(name, handleEvent);
-        node[meta].handlers.delete(name);
-        if (node[meta].throttles.has(name)) {
-          node[meta].throttles.delete(name);
+      const name2 = attribute3.name;
+      if (node[meta].handlers.has(name2)) {
+        node.removeEventListener(name2, handleEvent);
+        node[meta].handlers.delete(name2);
+        if (node[meta].throttles.has(name2)) {
+          node[meta].throttles.delete(name2);
         }
-        if (node[meta].debouncers.has(name)) {
-          clearTimeout(node[meta].debouncers.get(name).timeout);
-          node[meta].debouncers.delete(name);
+        if (node[meta].debouncers.has(name2)) {
+          clearTimeout(node[meta].debouncers.get(name2).timeout);
+          node[meta].debouncers.delete(name2);
         }
       } else {
-        node.removeAttribute(name);
-        ATTRIBUTE_HOOKS[name]?.removed?.(node, name);
+        node.removeAttribute(name2);
+        ATTRIBUTE_HOOKS[name2]?.removed?.(node, name2);
       }
     });
     iterate(added, (attribute3) => {
@@ -4081,12 +4388,12 @@ var Reconciler = class {
     const nodeMeta = node[meta];
     switch (attribute3.kind) {
       case attribute_kind: {
-        const name = attribute3.name;
+        const name2 = attribute3.name;
         const value = attribute3.value ?? "";
-        if (value !== node.getAttribute(name)) {
-          node.setAttribute(name, value);
+        if (value !== node.getAttribute(name2)) {
+          node.setAttribute(name2, value);
         }
-        ATTRIBUTE_HOOKS[name]?.added?.(node, value);
+        ATTRIBUTE_HOOKS[name2]?.added?.(node, value);
         break;
       }
       case property_kind:
@@ -4235,31 +4542,31 @@ var createServerEvent = (event4, include = []) => {
   }
   for (const property2 of include) {
     const path2 = property2.split(".");
-    for (let i = 0, input = event4, output = data; i < path2.length; i++) {
+    for (let i = 0, input2 = event4, output = data; i < path2.length; i++) {
       if (i === path2.length - 1) {
-        output[path2[i]] = input[path2[i]];
+        output[path2[i]] = input2[path2[i]];
         break;
       }
       output = output[path2[i]] ??= {};
-      input = input[path2[i]];
+      input2 = input2[path2[i]];
     }
   }
   return data;
 };
-var syncedBooleanAttribute = (name) => {
+var syncedBooleanAttribute = (name2) => {
   return {
     added(node) {
-      node[name] = true;
+      node[name2] = true;
     },
     removed(node) {
-      node[name] = false;
+      node[name2] = false;
     }
   };
 };
-var syncedAttribute = (name) => {
+var syncedAttribute = (name2) => {
   return {
     added(node, value) {
-      node[name] = value;
+      node[name2] = value;
     }
   };
 };
@@ -4376,9 +4683,9 @@ var virtualise_attributes = (node) => {
   return attributes;
 };
 var virtualise_attribute = (attr) => {
-  const name = attr.localName;
+  const name2 = attr.localName;
   const value = attr.value;
-  return attribute2(name, value);
+  return attribute2(name2, value);
 };
 
 // build/dev/javascript/lustre/lustre/runtime/client/runtime.ffi.mjs
@@ -4390,8 +4697,8 @@ var Runtime = class {
     this.#model = model;
     this.#view = view;
     this.#update = update2;
-    this.#reconciler = new Reconciler(this.root, (event4, path2, name) => {
-      const [events, msg] = handle(this.#events, path2, name, event4);
+    this.#reconciler = new Reconciler(this.root, (event4, path2, name2) => {
+      const [events, msg] = handle(this.#events, path2, name2, event4);
       this.#events = events;
       if (msg.isOk()) {
         this.dispatch(msg[0], false);
@@ -4537,11 +4844,11 @@ function tick(events) {
     empty_list
   );
 }
-function do_remove_event(handlers, path2, name) {
-  return remove(handlers, event2(path2, name));
+function do_remove_event(handlers, path2, name2) {
+  return remove(handlers, event2(path2, name2));
 }
-function remove_event(events, path2, name) {
-  let handlers = do_remove_event(events.handlers, path2, name);
+function remove_event(events, path2, name2) {
+  let handlers = do_remove_event(events.handlers, path2, name2);
   let _record = events;
   return new Events(
     handlers,
@@ -4555,15 +4862,15 @@ function remove_attributes(handlers, path2, attributes) {
     handlers,
     (events, attribute3) => {
       if (attribute3 instanceof Event2) {
-        let name = attribute3.name;
-        return do_remove_event(events, path2, name);
+        let name2 = attribute3.name;
+        return do_remove_event(events, path2, name2);
       } else {
         return events;
       }
     }
   );
 }
-function handle(events, path2, name, event4) {
+function handle(events, path2, name2, event4) {
   let next_dispatched_paths = prepend(path2, events.next_dispatched_paths);
   let events$1 = (() => {
     let _record = events;
@@ -4575,7 +4882,7 @@ function handle(events, path2, name, event4) {
   })();
   let $ = get(
     events$1.handlers,
-    path2 + separator_event + name
+    path2 + separator_event + name2
   );
   if ($.isOk()) {
     let handler = $[0];
@@ -4587,15 +4894,15 @@ function handle(events, path2, name, event4) {
 function has_dispatched_events(events, path2) {
   return matches(path2, events.dispatched_paths);
 }
-function do_add_event(handlers, mapper, path2, name, handler) {
+function do_add_event(handlers, mapper, path2, name2, handler) {
   return insert3(
     handlers,
-    event2(path2, name),
+    event2(path2, name2),
     map3(handler, identity2(mapper))
   );
 }
-function add_event(events, mapper, path2, name, handler) {
-  let handlers = do_add_event(events.handlers, mapper, path2, name, handler);
+function add_event(events, mapper, path2, name2, handler) {
+  let handlers = do_add_event(events.handlers, mapper, path2, name2, handler);
   let _record = events;
   return new Events(
     handlers,
@@ -4609,9 +4916,9 @@ function add_attributes(handlers, mapper, path2, attributes) {
     handlers,
     (events, attribute3) => {
       if (attribute3 instanceof Event2) {
-        let name = attribute3.name;
+        let name2 = attribute3.name;
         let handler = attribute3.handler;
-        return do_add_event(events, mapper, path2, name, handler);
+        return do_add_event(events, mapper, path2, name2, handler);
       } else {
         return events;
       }
@@ -4820,6 +5127,9 @@ function fragment2(children) {
 function text3(content) {
   return text2(content);
 }
+function aside(attrs, children) {
+  return element2("aside", attrs, children);
+}
 function h2(attrs, children) {
   return element2("h2", attrs, children);
 }
@@ -4850,6 +5160,12 @@ function span(attrs, children) {
 function button(attrs, children) {
   return element2("button", attrs, children);
 }
+function input(attrs) {
+  return element2("input", attrs, empty_list);
+}
+function label(attrs, children) {
+  return element2("label", attrs, children);
+}
 
 // build/dev/javascript/lustre/lustre/runtime/server/runtime.mjs
 var EffectDispatchedMessage = class extends CustomType {
@@ -4859,9 +5175,9 @@ var EffectDispatchedMessage = class extends CustomType {
   }
 };
 var EffectEmitEvent = class extends CustomType {
-  constructor(name, data) {
+  constructor(name2, data) {
     super();
-    this.name = name;
+    this.name = name2;
     this.data = data;
   }
 };
@@ -4970,9 +5286,9 @@ function start3(app, selector, start_args) {
 
 // build/dev/javascript/eve_arbitrage/config/sde.mjs
 var Location = class extends CustomType {
-  constructor(name, stations, system, region, contraband) {
+  constructor(name2, stations, system, region, contraband) {
     super();
-    this.name = name;
+    this.name = name2;
     this.stations = stations;
     this.system = system;
     this.region = region;
@@ -5077,9 +5393,9 @@ function multibuy_from_purchases(purchases) {
     )
   );
 }
-function new_purchase(name, amount, unit_price) {
+function new_purchase(name2, amount, unit_price) {
   return new Purchase(
-    name,
+    name2,
     amount,
     unit_price,
     unit_price * (() => {
@@ -6774,6 +7090,16 @@ var UserClickedCopyMultibuy = class extends CustomType {
     this.multibuy = multibuy;
   }
 };
+var UserClickedExpandSidebar = class extends CustomType {
+};
+var UserClickedCollapseSidebar = class extends CustomType {
+};
+var UserUpdatedCollateral = class extends CustomType {
+  constructor(value) {
+    super();
+    this.value = value;
+  }
+};
 
 // build/dev/javascript/eve_arbitrage/clipboard_ffi.mjs
 async function writeText(clipText) {
@@ -6805,6 +7131,183 @@ function user_clicked_copy_multibuy(model, multibuy) {
   let side_effect = write(multibuy_text);
   console_log("Multibuy copied to clipboard");
   return [model, side_effect];
+}
+
+// build/dev/javascript/eve_arbitrage/mvu/update/sidebar.mjs
+function user_clicked_collapse_sidebar(model) {
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      _record.ships,
+      _record.current_ship,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      false,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
+}
+function user_clicked_expand_sidebar(model) {
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      _record.ships,
+      _record.current_ship,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      true,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
+}
+function user_updated_collateral(model, value) {
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      _record.ships,
+      _record.current_ship,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      echo(new Some(value), "src/mvu/update/sidebar.gleam", 23),
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
+}
+function echo(value, file, line) {
+  const grey = "\x1B[90m";
+  const reset_color = "\x1B[39m";
+  const file_line = `${file}:${line}`;
+  const string_value = echo$inspect(value);
+  if (typeof process === "object" && process.stderr?.write) {
+    const string5 = `${grey}${file_line}${reset_color}
+${string_value}
+`;
+    process.stderr.write(string5);
+  } else if (typeof Deno === "object") {
+    const string5 = `${grey}${file_line}${reset_color}
+${string_value}
+`;
+    Deno.stderr.writeSync(new TextEncoder().encode(string5));
+  } else {
+    const string5 = `${file_line}
+${string_value}`;
+    console.log(string5);
+  }
+  return value;
+}
+function echo$inspectString(str) {
+  let new_str = '"';
+  for (let i = 0; i < str.length; i++) {
+    let char = str[i];
+    if (char == "\n") new_str += "\\n";
+    else if (char == "\r") new_str += "\\r";
+    else if (char == "	") new_str += "\\t";
+    else if (char == "\f") new_str += "\\f";
+    else if (char == "\\") new_str += "\\\\";
+    else if (char == '"') new_str += '\\"';
+    else if (char < " " || char > "~" && char < "\xA0") {
+      new_str += "\\u{" + char.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0") + "}";
+    } else {
+      new_str += char;
+    }
+  }
+  new_str += '"';
+  return new_str;
+}
+function echo$inspectDict(map6) {
+  let body = "dict.from_list([";
+  let first = true;
+  let key_value_pairs = [];
+  map6.forEach((value, key) => {
+    key_value_pairs.push([key, value]);
+  });
+  key_value_pairs.sort();
+  key_value_pairs.forEach(([key, value]) => {
+    if (!first) body = body + ", ";
+    body = body + "#(" + echo$inspect(key) + ", " + echo$inspect(value) + ")";
+    first = false;
+  });
+  return body + "])";
+}
+function echo$inspectCustomType(record) {
+  const props = Object.keys(record).map((label2) => {
+    const value = echo$inspect(record[label2]);
+    return isNaN(parseInt(label2)) ? `${label2}: ${value}` : value;
+  }).join(", ");
+  return props ? `${record.constructor.name}(${props})` : record.constructor.name;
+}
+function echo$inspectObject(v) {
+  const name2 = Object.getPrototypeOf(v)?.constructor?.name || "Object";
+  const props = [];
+  for (const k of Object.keys(v)) {
+    props.push(`${echo$inspect(k)}: ${echo$inspect(v[k])}`);
+  }
+  const body = props.length ? " " + props.join(", ") + " " : "";
+  const head = name2 === "Object" ? "" : name2 + " ";
+  return `//js(${head}{${body}})`;
+}
+function echo$inspect(v) {
+  const t = typeof v;
+  if (v === true) return "True";
+  if (v === false) return "False";
+  if (v === null) return "//js(null)";
+  if (v === void 0) return "Nil";
+  if (t === "string") return echo$inspectString(v);
+  if (t === "bigint" || t === "number") return v.toString();
+  if (Array.isArray(v)) return `#(${v.map(echo$inspect).join(", ")})`;
+  if (v instanceof List) return `[${v.toArray().map(echo$inspect).join(", ")}]`;
+  if (v instanceof UtfCodepoint) return `//utfcodepoint(${String.fromCodePoint(v.value)})`;
+  if (v instanceof BitArray) return echo$inspectBitArray(v);
+  if (v instanceof CustomType) return echo$inspectCustomType(v);
+  if (echo$isDict(v)) return echo$inspectDict(v);
+  if (v instanceof Set) return `//js(Set(${[...v].map(echo$inspect).join(", ")}))`;
+  if (v instanceof RegExp) return `//js(${v})`;
+  if (v instanceof Date) return `//js(Date("${v.toISOString()}"))`;
+  if (v instanceof Function) {
+    const args = [];
+    for (const i of Array(v.length).keys()) args.push(String.fromCharCode(i + 97));
+    return `//fn(${args.join(", ")}) { ... }`;
+  }
+  return echo$inspectObject(v);
+}
+function echo$inspectBitArray(bitArray) {
+  let endOfAlignedBytes = bitArray.bitOffset + 8 * Math.trunc(bitArray.bitSize / 8);
+  let alignedBytes = bitArraySlice(bitArray, bitArray.bitOffset, endOfAlignedBytes);
+  let remainingUnalignedBits = bitArray.bitSize % 8;
+  if (remainingUnalignedBits > 0) {
+    let remainingBits = bitArraySliceToInt(bitArray, endOfAlignedBytes, bitArray.bitSize, false, false);
+    let alignedBytesArray = Array.from(alignedBytes.rawBuffer);
+    let suffix = `${remainingBits}:size(${remainingUnalignedBits})`;
+    if (alignedBytesArray.length === 0) {
+      return `<<${suffix}>>`;
+    } else {
+      return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}, ${suffix}>>`;
+    }
+  } else {
+    return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}>>`;
+  }
+}
+function echo$isDict(value) {
+  try {
+    return value instanceof Dict;
+  } catch {
+    return false;
+  }
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/update/side_effects/fetch_orders.mjs
@@ -7419,45 +7922,17 @@ function run2(model, msg) {
   } else if (msg instanceof UserLoadedSource) {
     let source = msg.source;
     return user_loaded_source(model, source);
-  } else {
+  } else if (msg instanceof UserClickedCopyMultibuy) {
     let multibuy = msg.multibuy;
     return user_clicked_copy_multibuy(model, multibuy);
-  }
-}
-
-// build/dev/javascript/lustre/lustre/event.mjs
-function is_immediate_event(name) {
-  if (name === "input") {
-    return true;
-  } else if (name === "change") {
-    return true;
-  } else if (name === "focus") {
-    return true;
-  } else if (name === "focusin") {
-    return true;
-  } else if (name === "focusout") {
-    return true;
-  } else if (name === "blur") {
-    return true;
-  } else if (name === "select") {
-    return true;
+  } else if (msg instanceof UserClickedCollapseSidebar) {
+    return user_clicked_collapse_sidebar(model);
+  } else if (msg instanceof UserClickedExpandSidebar) {
+    return user_clicked_expand_sidebar(model);
   } else {
-    return false;
+    let value = msg.value;
+    return user_updated_collateral(model, value);
   }
-}
-function on(name, handler) {
-  return event(
-    name,
-    handler,
-    empty_list,
-    false,
-    false,
-    is_immediate_event(name),
-    new NoLimit(0)
-  );
-}
-function on_click(msg) {
-  return on("click", success(msg));
 }
 
 // build/dev/javascript/lustre/lustre/element/svg.mjs
@@ -7467,6 +7942,53 @@ function svg(attrs, children) {
 }
 function path(attrs) {
   return namespaced(namespace, "path", attrs, empty_list);
+}
+
+// build/dev/javascript/lustre/lustre/event.mjs
+function is_immediate_event(name2) {
+  if (name2 === "input") {
+    return true;
+  } else if (name2 === "change") {
+    return true;
+  } else if (name2 === "focus") {
+    return true;
+  } else if (name2 === "focusin") {
+    return true;
+  } else if (name2 === "focusout") {
+    return true;
+  } else if (name2 === "blur") {
+    return true;
+  } else if (name2 === "select") {
+    return true;
+  } else {
+    return false;
+  }
+}
+function on(name2, handler) {
+  return event(
+    name2,
+    handler,
+    empty_list,
+    false,
+    false,
+    is_immediate_event(name2),
+    new NoLimit(0)
+  );
+}
+function on_click(msg) {
+  return on("click", success(msg));
+}
+function on_input(msg) {
+  return on(
+    "input",
+    subfield(
+      toList(["target", "value"]),
+      string2,
+      (value) => {
+        return success(msg(value));
+      }
+    )
+  );
 }
 
 // build/dev/javascript/eve_arbitrage/util/numbers.mjs
@@ -7620,8 +8142,210 @@ function get_section(model) {
   );
 }
 
+// build/dev/javascript/eve_arbitrage/mvu/view/sidebar/collateral.mjs
+function get_section2(collateral) {
+  return div(
+    toList([class$("p-4 border-b border-gray-200")]),
+    toList([
+      label(
+        toList([
+          class$("block text-sm font-medium text-gray-700 mb-1"),
+          for$("max-collateral")
+        ]),
+        toList([text3("Max Collateral")])
+      ),
+      div(
+        toList([class$("relative rounded-md shadow-sm")]),
+        toList([
+          div(
+            toList([
+              class$(
+                "absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+              )
+            ]),
+            toList([
+              span(
+                toList([class$("text-gray-500 sm:text-sm")]),
+                toList([text3("ISK")])
+              )
+            ])
+          ),
+          input(
+            toList([
+              placeholder("0.00"),
+              class$(
+                "focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-12 pr-12 sm:text-sm border-gray-300 rounded-md p-2 border"
+              ),
+              id("max-collateral"),
+              name("max-collateral"),
+              type_("number"),
+              on_input(
+                (input2) => {
+                  let $ = (() => {
+                    let _pipe = parse_float(input2);
+                    return lazy_or(
+                      _pipe,
+                      () => {
+                        return map2(
+                          parse_int(input2),
+                          (value2) => {
+                            return identity(value2);
+                          }
+                        );
+                      }
+                    );
+                  })();
+                  if (!$.isOk()) {
+                    throw makeError(
+                      "let_assert",
+                      "mvu/view/sidebar/collateral",
+                      43,
+                      "",
+                      "Pattern match failed, no pattern matched the value.",
+                      { value: $ }
+                    );
+                  }
+                  let value = $[0];
+                  return new UserUpdatedCollateral(value);
+                }
+              )
+            ])
+          ),
+          div(
+            toList([
+              class$(
+                "absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"
+              )
+            ]),
+            toList([
+              span(
+                toList([class$("text-gray-500 sm:text-sm")]),
+                toList([text3("million")])
+              )
+            ])
+          )
+        ])
+      )
+    ])
+  );
+}
+
+// build/dev/javascript/eve_arbitrage/mvu/view/sidebar.mjs
+function get_expanded_sidebar(model) {
+  return aside(
+    toList([
+      class$(
+        "w-80 bg-white shadow-lg h-screen overflow-y-auto flex-shrink-0 border-r border-gray-200"
+      )
+    ]),
+    toList([
+      div(
+        toList([
+          class$(
+            "p-4 border-b border-gray-200 flex justify-between items-center"
+          )
+        ]),
+        toList([
+          h2(
+            toList([class$("text-lg font-bold")]),
+            toList([text3("Configuration")])
+          ),
+          button(
+            toList([
+              attribute2("title", "Toggle Sidebar"),
+              class$("p-1 rounded-md hover:bg-gray-100"),
+              on_click(new UserClickedCollapseSidebar())
+            ]),
+            toList([
+              svg(
+                toList([
+                  attribute2("stroke", "currentColor"),
+                  attribute2("viewBox", "0 0 24 24"),
+                  attribute2("fill", "none"),
+                  class$("h-6 w-6"),
+                  attribute2("xmlns", "http://www.w3.org/2000/svg")
+                ]),
+                toList([
+                  path(
+                    toList([
+                      attribute2("d", "M11 19l-7-7 7-7m8 14l-7-7 7-7"),
+                      attribute2("stroke-width", "2"),
+                      attribute2("stroke-linejoin", "round"),
+                      attribute2("stroke-linecap", "round")
+                    ])
+                  )
+                ])
+              )
+            ])
+          )
+        ])
+      ),
+      get_section2(model.collateral)
+    ])
+  );
+}
+function get_collapsed_sidebar(_) {
+  return aside(
+    toList([
+      class$(
+        "w-12 bg-white shadow-lg h-screen flex-shrink-0 border-r border-gray-200 flex flex-col items-center"
+      )
+    ]),
+    toList([
+      div(
+        toList([
+          class$(
+            "p-3 border-b border-gray-200 w-full flex justify-center"
+          )
+        ]),
+        toList([
+          button(
+            toList([
+              attribute2("title", "Expand Sidebar"),
+              class$("p-1 rounded-md hover:bg-gray-100 tooltip"),
+              id("toggle-sidebar"),
+              on_click(new UserClickedExpandSidebar())
+            ]),
+            toList([
+              svg(
+                toList([
+                  attribute2("stroke", "currentColor"),
+                  attribute2("viewBox", "0 0 24 24"),
+                  attribute2("fill", "none"),
+                  class$("h-6 w-6 text-gray-600"),
+                  attribute2("xmlns", "http://www.w3.org/2000/svg")
+                ]),
+                toList([
+                  path(
+                    toList([
+                      attribute2("d", "M13 5l7 7-7 7M5 5l7 7-7 7"),
+                      attribute2("stroke-width", "2"),
+                      attribute2("stroke-linejoin", "round"),
+                      attribute2("stroke-linecap", "round")
+                    ])
+                  )
+                ])
+              )
+            ])
+          )
+        ])
+      )
+    ])
+  );
+}
+function get_section3(model) {
+  return (() => {
+    let $ = model.sidebar_expanded;
+    if (!$) {
+      return get_collapsed_sidebar;
+    } else {
+      return get_expanded_sidebar;
+    }
+  })()(model);
+}
+
 // build/dev/javascript/eve_arbitrage/mvu/view/systems_lists.mjs
-function get_refresh_button(name, is_source_system) {
+function get_refresh_button(name2, is_source_system) {
   let msg = (() => {
     if (!is_source_system) {
       return (var0) => {
@@ -7637,7 +8361,7 @@ function get_refresh_button(name, is_source_system) {
     toList([
       attribute2("title", "Reload item"),
       class$("p-1 hover:bg-gray-200 rounded"),
-      on_click(msg(name))
+      on_click(msg(name2))
     ]),
     toList([
       svg(
@@ -7665,7 +8389,7 @@ function get_refresh_button(name, is_source_system) {
     ])
   );
 }
-function get_download_button(name, is_source_system) {
+function get_download_button(name2, is_source_system) {
   let msg = (() => {
     if (!is_source_system) {
       return (var0) => {
@@ -7681,7 +8405,7 @@ function get_download_button(name, is_source_system) {
     toList([
       attribute2("title", "Download data"),
       class$("p-1 hover:bg-gray-200 rounded"),
-      on_click(msg(name))
+      on_click(msg(name2))
     ]),
     toList([
       svg(
@@ -7709,7 +8433,7 @@ function get_download_button(name, is_source_system) {
     ])
   );
 }
-function get_empty_system(name, system, is_source_system) {
+function get_empty_system(name2, system, is_source_system) {
   return li(
     toList([class$("p-4 border-b hover:bg-gray-50")]),
     toList([
@@ -7720,7 +8444,7 @@ function get_empty_system(name, system, is_source_system) {
             toList([class$("text-gray-400")]),
             toList([text3(system.location.name)])
           ),
-          get_download_button(name, is_source_system)
+          get_download_button(name2, is_source_system)
         ])
       )
     ])
@@ -7777,14 +8501,14 @@ function get_orders_tag(amount, is_source_system, in_selected_system) {
     toList([text3(orders_string)])
   );
 }
-function get_selected_system(name, system, is_source_system) {
+function get_selected_system(name2, system, is_source_system) {
   let button2 = (() => {
     let $ = system.buy_orders_status;
     let $1 = system.sell_orders_status;
     if (is_source_system && $1 instanceof Loading) {
       return get_loading_button();
     } else if (is_source_system && $1 instanceof Loaded) {
-      return get_refresh_button(name, is_source_system);
+      return get_refresh_button(name2, is_source_system);
     } else if (is_source_system && $1 instanceof Empty2) {
       throw makeError(
         "panic",
@@ -7797,7 +8521,7 @@ function get_selected_system(name, system, is_source_system) {
     } else if (!is_source_system && $ instanceof Loading) {
       return get_loading_button();
     } else if (!is_source_system && $ instanceof Loaded) {
-      return get_refresh_button(name, is_source_system);
+      return get_refresh_button(name2, is_source_system);
     } else {
       throw makeError(
         "panic",
@@ -7846,7 +8570,7 @@ function get_selected_system(name, system, is_source_system) {
     ])
   );
 }
-function get_loaded_system(name, system, is_source_system) {
+function get_loaded_system(name2, system, is_source_system) {
   let msg = (() => {
     if (!is_source_system) {
       return (var0) => {
@@ -7872,7 +8596,7 @@ function get_loaded_system(name, system, is_source_system) {
   return li(
     toList([
       class$("p-4 border-b hover:bg-gray-50 cursor-pointer"),
-      on_click(msg(name))
+      on_click(msg(name2))
     ]),
     toList([
       div(
@@ -7890,7 +8614,7 @@ function get_loaded_system(name, system, is_source_system) {
               )
             ])
           ),
-          get_refresh_button(name, is_source_system)
+          get_refresh_button(name2, is_source_system)
         ])
       )
     ])
@@ -7899,10 +8623,10 @@ function get_loaded_system(name, system, is_source_system) {
 function get_source_systems(systems, selected) {
   let _pipe = map_values(
     systems,
-    (name, system) => {
+    (name2, system) => {
       return (() => {
         let $ = system.sell_orders_status;
-        if (selected instanceof Some && selected[0] === name) {
+        if (selected instanceof Some && selected[0] === name2) {
           let selected_system = selected[0];
           return get_selected_system;
         } else if ($ instanceof Empty2) {
@@ -7912,7 +8636,7 @@ function get_source_systems(systems, selected) {
         } else {
           return get_loaded_system;
         }
-      })()(name, system, true);
+      })()(name2, system, true);
     }
   );
   return values(_pipe);
@@ -7936,10 +8660,10 @@ function get_from_list(systems, selected) {
 function get_destination_systems(systems, selected) {
   let _pipe = map_values(
     systems,
-    (name, system) => {
+    (name2, system) => {
       return (() => {
         let $ = system.buy_orders_status;
-        if (selected instanceof Some && selected[0] === name) {
+        if (selected instanceof Some && selected[0] === name2) {
           let selected_system = selected[0];
           return get_selected_system;
         } else if ($ instanceof Empty2) {
@@ -7949,7 +8673,7 @@ function get_destination_systems(systems, selected) {
         } else {
           return get_loaded_system;
         }
-      })()(name, system, false);
+      })()(name2, system, false);
     }
   );
   return values(_pipe);
@@ -7970,7 +8694,7 @@ function get_to_list(systems, selected) {
     ])
   );
 }
-function get_section2(model) {
+function get_section4(model) {
   let from_list2 = get_from_list(model.systems, model.source);
   let to_list2 = get_to_list(model.systems, model.destination);
   return section(
@@ -7990,12 +8714,22 @@ function get_section2(model) {
 
 // build/dev/javascript/eve_arbitrage/mvu/view.mjs
 function run3(model) {
-  let systems_lists = get_section2(model);
+  let sidebar = get_section3(model);
+  let systems_lists = get_section4(model);
   let multibuys = get_section(model);
   let page_contents = toList([systems_lists, multibuys]);
+  let page = div(
+    toList([class$("flex-1 overflow-auto")]),
+    toList([
+      div(
+        toList([class$("max-w-6xl mx-auto p-8")]),
+        page_contents
+      )
+    ])
+  );
   return div(
-    toList([class$("max-w-6xl mx-auto")]),
-    page_contents
+    toList([class$("min-h-screen flex")]),
+    toList([sidebar, page])
   );
 }
 
@@ -8007,7 +8741,7 @@ function init(_) {
     locations,
     new_map(),
     (systems2, _use1) => {
-      let name = _use1[0];
+      let name2 = _use1[0];
       let location = _use1[1];
       let system = new System(
         location,
@@ -8016,7 +8750,7 @@ function init(_) {
         toList([]),
         new Empty2()
       );
-      return insert(systems2, name, system);
+      return insert(systems2, name2, system);
     }
   );
   let debug_multibuys = toList([

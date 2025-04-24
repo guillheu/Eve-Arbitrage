@@ -1,6 +1,7 @@
 import lustre/effect
 import mvu
 import mvu/update/multibuys
+import mvu/update/sidebar
 import mvu/update/systems
 
 pub fn run(
@@ -23,5 +24,10 @@ pub fn run(
     mvu.UserLoadedSource(source) -> systems.user_loaded_source(model, source)
     mvu.UserClickedCopyMultibuy(multibuy) ->
       multibuys.user_clicked_copy_multibuy(model, multibuy)
+    mvu.UserClickedCollapseSidebar ->
+      sidebar.user_clicked_collapse_sidebar(model)
+    mvu.UserClickedExpandSidebar -> sidebar.user_clicked_expand_sidebar(model)
+    mvu.UserUpdatedCollateral(value) ->
+      sidebar.user_updated_collateral(model, value)
   }
 }
