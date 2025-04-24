@@ -1,4 +1,6 @@
 import gleam/dict.{type Dict}
+import gleam/int
+import gleam/list
 import gleam/option.{type Option}
 import lustre/attribute.{attribute}
 import lustre/element
@@ -6,6 +8,7 @@ import lustre/element/html
 import lustre/element/svg
 import lustre/event
 import mvu
+import util/numbers
 
 pub fn get_section(model: mvu.Model) -> element.Element(mvu.Msg) {
   let from_list = get_from_list(model.systems, model.source)
@@ -90,9 +93,25 @@ fn get_selected_system(
   {
     True, _, mvu.Loading -> get_loading_button()
     True, _, mvu.Loaded(_) -> get_refresh_button(name, is_source_system)
-    True, _, mvu.Empty -> todo
-    False, _, _ -> todo
+    True, _, mvu.Empty ->
+      panic as "should not be able to select an empty system"
+    False, mvu.Loading, _ -> get_loading_button()
+    False, mvu.Loaded(_), _ -> get_refresh_button(name, is_source_system)
+    False, mvu.Empty, _ ->
+      panic as "should not be able to select an empty system"
   }
+
+  let orders_tag = case is_source_system {
+    False ->
+      system.buy_orders
+      |> list.length
+      |> get_orders_tag(is_source_system, True)
+    True ->
+      system.sell_orders
+      |> list.length
+      |> get_orders_tag(is_source_system, True)
+  }
+
   html.li(
     [
       attribute.class(
@@ -101,8 +120,11 @@ fn get_selected_system(
     ],
     [
       html.div([attribute.class("flex justify-between items-center")], [
-        html.span([attribute.class("text-selected font-medium")], [
-          html.text(system.location.name),
+        html.div([attribute.class("flex items-center")], [
+          html.span([attribute.class("text-selected font-medium")], [
+            html.text(system.location.name),
+          ]),
+          orders_tag,
         ]),
         button,
       ]),
@@ -149,6 +171,16 @@ fn get_loaded_system(
     False -> mvu.UserSelectedDestination
     True -> mvu.UserSelectedSource
   }
+  let orders_tag = case is_source_system {
+    False ->
+      system.buy_orders
+      |> list.length
+      |> get_orders_tag(is_source_system, False)
+    True ->
+      system.sell_orders
+      |> list.length
+      |> get_orders_tag(is_source_system, False)
+  }
   html.li(
     [
       attribute.class("p-4 border-b hover:bg-gray-50 cursor-pointer"),
@@ -156,8 +188,11 @@ fn get_loaded_system(
     ],
     [
       html.div([attribute.class("flex justify-between items-center")], [
-        html.a([attribute.class("block text-gray-800"), attribute.href("#")], [
-          html.text(system.location.name),
+        html.div([attribute.class("flex items-center")], [
+          html.a([attribute.class("block text-gray-800"), attribute.href("#")], [
+            html.text(system.location.name),
+            orders_tag,
+          ]),
         ]),
         get_refresh_button(name, is_source_system),
       ]),
@@ -252,5 +287,24 @@ fn get_loading_button() -> element.Element(mvu.Msg) {
       ),
     ],
     [],
+  )
+}
+
+fn get_orders_tag(
+  amount: Int,
+  is_source_system: Bool,
+  in_selected_system: Bool,
+) -> element.Element(mvu.Msg) {
+  let orders_string = case is_source_system {
+    False -> numbers.int_to_human_string(amount) <> " buy orders"
+    True -> numbers.int_to_human_string(amount) <> " sell orders"
+  }
+  let colors_classes = case in_selected_system {
+    False -> "bg-gray-200 text-gray-700 "
+    True -> "bg-selected text-white "
+  }
+  html.span(
+    [attribute.class(colors_classes <> "ml-2 text-xs px-2 py-0.5 rounded-full")],
+    [html.text(orders_string)],
   )
 }

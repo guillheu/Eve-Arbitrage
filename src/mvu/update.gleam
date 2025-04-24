@@ -16,7 +16,7 @@ pub fn run(
   model: mvu.Model,
   msg: mvu.Msg,
 ) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
-  case echo msg {
+  case msg {
     mvu.UserSelectedDestination(new_destination) ->
       systems.user_selected_destination(new_destination, model)
     mvu.UserSelectedSource(new_source) ->
