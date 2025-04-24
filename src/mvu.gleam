@@ -1,3 +1,4 @@
+import arbitrage
 import config/esi
 import config/sde
 import gleam/dict.{type Dict}
@@ -16,6 +17,7 @@ pub type Model {
     language: String,
     sidebar_expanded: Bool,
     collateral: Option(Float),
+    multibuys: List(arbitrage.Multibuy),
   )
 }
 
@@ -51,4 +53,5 @@ pub type Msg {
     location: String,
     page: Int,
   )
+  UserClickedCopyMultibuy(multibuy: arbitrage.Multibuy)
 }

@@ -1,9 +1,8 @@
-import config/esi
+import arbitrage
 import config/sde
 import gleam/dict
 import gleam/list
-import gleam/option.{type Option, None, Some}
-import gleam/time/timestamp
+import gleam/option.{None}
 import lustre
 import lustre/effect
 import mvu
@@ -27,6 +26,14 @@ fn init(_args) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
     let system = mvu.System(location, [], mvu.Empty, [], mvu.Empty)
     dict.insert(systems, name, system)
   }
+  let debug_multibuys = [
+    [arbitrage.new_purchase("Heavy Water", 112_764, 120.8)]
+      |> arbitrage.multibuy_from_purchases,
+    [arbitrage.new_purchase("Heavy Water", 112_764, 120.8)]
+      |> arbitrage.multibuy_from_purchases,
+    [arbitrage.new_purchase("Heavy Water", 112_764, 120.8)]
+      |> arbitrage.multibuy_from_purchases,
+  ]
   #(
     mvu.Model(
       ships: dict.new(),
@@ -38,6 +45,7 @@ fn init(_args) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
       language: default_language,
       sidebar_expanded: False,
       collateral: None,
+      multibuys: debug_multibuys,
     ),
     effect.none(),
   )

@@ -1,5 +1,6 @@
 import lustre/effect
 import mvu
+import mvu/update/multibuys
 import mvu/update/systems
 
 pub fn run(
@@ -20,5 +21,7 @@ pub fn run(
     mvu.UserLoadedDestination(destination) ->
       systems.user_loaded_destination(model, destination)
     mvu.UserLoadedSource(source) -> systems.user_loaded_source(model, source)
+    mvu.UserClickedCopyMultibuy(multibuy) ->
+      multibuys.user_clicked_copy_multibuy(multibuy)
   }
 }
