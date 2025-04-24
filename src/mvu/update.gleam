@@ -29,5 +29,7 @@ pub fn run(
     mvu.UserClickedExpandSidebar -> sidebar.user_clicked_expand_sidebar(model)
     mvu.UserUpdatedCollateral(value) ->
       sidebar.user_updated_collateral(model, value)
+    mvu.UserUpdatedAccountingLevel(level) ->
+      sidebar.user_updated_accounting_level(model, level)
   }
 }

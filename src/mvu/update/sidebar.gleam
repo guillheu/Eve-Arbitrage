@@ -1,4 +1,4 @@
-import gleam/option.{Some}
+import gleam/option.{type Option}
 import lustre/effect
 import mvu
 
@@ -18,8 +18,16 @@ pub fn user_clicked_expand_sidebar(
 
 pub fn user_updated_collateral(
   model: mvu.Model,
-  value: Float,
+  value: Option(Float),
 ) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
-  let model = mvu.Model(..model, collateral: echo Some(value))
+  let model = mvu.Model(..model, collateral: value)
+  #(model, effect.none())
+}
+
+pub fn user_updated_accounting_level(
+  model: mvu.Model,
+  level: Int,
+) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
+  let model = mvu.Model(..model, accounting_level: level)
   #(model, effect.none())
 }

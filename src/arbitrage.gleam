@@ -4,6 +4,10 @@ import gleam/int
 import gleam/list
 import gleam/string
 
+const base_tax_rate = 7.5
+
+const tax_reduction_per_accounting_level = 11.0
+
 pub type Item {
   Item(id: sde.Id, name: String, m3: Float)
 }
@@ -71,4 +75,16 @@ pub fn multibuy_to_string(multibuy: Multibuy) -> String {
   })
   |> string.concat
   |> string.drop_end(1)
+}
+
+pub fn tax_percent_from_accounting_level(accounting_level: Int) -> Float {
+  // 55.0 at level 5 accounting, 11% per level
+  let accounting_tax_percent_reduction = {
+    { accounting_level |> int.to_float } *. tax_reduction_per_accounting_level
+  }
+  // 0.45 at level 5 accounting
+  let remaining_tax_ratio = 1.0 -. { accounting_tax_percent_reduction /. 100.0 }
+  // 0.45 * 7.5% = 3.375%
+  let effective_tax_rate = base_tax_rate *. remaining_tax_ratio
+  effective_tax_rate
 }

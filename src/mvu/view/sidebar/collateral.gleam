@@ -40,12 +40,13 @@ pub fn get_section(collateral: Option(Float)) -> element.Element(mvu.Msg) {
         attribute.name("max-collateral"),
         attribute.type_("number"),
         event.on_input(fn(input) {
-          let assert Ok(value) =
+          let value =
             float.parse(input)
             |> result.lazy_or(fn() {
               use value <- result.map(int.parse(input))
               int.to_float(value)
             })
+            |> option.from_result
           mvu.UserUpdatedCollateral(value)
         }),
       ]),

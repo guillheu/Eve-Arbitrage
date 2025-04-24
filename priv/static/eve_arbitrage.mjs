@@ -258,8 +258,8 @@ function bitArrayByteAt(buffer, bitOffset, index5) {
   }
 }
 var UtfCodepoint = class {
-  constructor(value) {
-    this.value = value;
+  constructor(value2) {
+    this.value = value2;
   }
 };
 var isBitArrayDeprecationMessagePrinted = {};
@@ -272,277 +272,6 @@ function bitArrayPrintDeprecationWarning(name2, message) {
   );
   isBitArrayDeprecationMessagePrinted[name2] = true;
 }
-function bitArraySlice(bitArray, start4, end) {
-  end ??= bitArray.bitSize;
-  bitArrayValidateRange(bitArray, start4, end);
-  if (start4 === end) {
-    return new BitArray(new Uint8Array());
-  }
-  if (start4 === 0 && end === bitArray.bitSize) {
-    return bitArray;
-  }
-  start4 += bitArray.bitOffset;
-  end += bitArray.bitOffset;
-  const startByteIndex = Math.trunc(start4 / 8);
-  const endByteIndex = Math.trunc((end + 7) / 8);
-  const byteLength = endByteIndex - startByteIndex;
-  let buffer;
-  if (startByteIndex === 0 && byteLength === bitArray.rawBuffer.byteLength) {
-    buffer = bitArray.rawBuffer;
-  } else {
-    buffer = new Uint8Array(
-      bitArray.rawBuffer.buffer,
-      bitArray.rawBuffer.byteOffset + startByteIndex,
-      byteLength
-    );
-  }
-  return new BitArray(buffer, end - start4, start4 % 8);
-}
-function bitArraySliceToInt(bitArray, start4, end, isBigEndian, isSigned) {
-  bitArrayValidateRange(bitArray, start4, end);
-  if (start4 === end) {
-    return 0;
-  }
-  start4 += bitArray.bitOffset;
-  end += bitArray.bitOffset;
-  const isStartByteAligned = start4 % 8 === 0;
-  const isEndByteAligned = end % 8 === 0;
-  if (isStartByteAligned && isEndByteAligned) {
-    return intFromAlignedSlice(
-      bitArray,
-      start4 / 8,
-      end / 8,
-      isBigEndian,
-      isSigned
-    );
-  }
-  const size2 = end - start4;
-  const startByteIndex = Math.trunc(start4 / 8);
-  const endByteIndex = Math.trunc((end - 1) / 8);
-  if (startByteIndex == endByteIndex) {
-    const mask2 = 255 >> start4 % 8;
-    const unusedLowBitCount = (8 - end % 8) % 8;
-    let value = (bitArray.rawBuffer[startByteIndex] & mask2) >> unusedLowBitCount;
-    if (isSigned) {
-      const highBit = 2 ** (size2 - 1);
-      if (value >= highBit) {
-        value -= highBit * 2;
-      }
-    }
-    return value;
-  }
-  if (size2 <= 53) {
-    return intFromUnalignedSliceUsingNumber(
-      bitArray.rawBuffer,
-      start4,
-      end,
-      isBigEndian,
-      isSigned
-    );
-  } else {
-    return intFromUnalignedSliceUsingBigInt(
-      bitArray.rawBuffer,
-      start4,
-      end,
-      isBigEndian,
-      isSigned
-    );
-  }
-}
-function intFromAlignedSlice(bitArray, start4, end, isBigEndian, isSigned) {
-  const byteSize = end - start4;
-  if (byteSize <= 6) {
-    return intFromAlignedSliceUsingNumber(
-      bitArray.rawBuffer,
-      start4,
-      end,
-      isBigEndian,
-      isSigned
-    );
-  } else {
-    return intFromAlignedSliceUsingBigInt(
-      bitArray.rawBuffer,
-      start4,
-      end,
-      isBigEndian,
-      isSigned
-    );
-  }
-}
-function intFromAlignedSliceUsingNumber(buffer, start4, end, isBigEndian, isSigned) {
-  const byteSize = end - start4;
-  let value = 0;
-  if (isBigEndian) {
-    for (let i = start4; i < end; i++) {
-      value *= 256;
-      value += buffer[i];
-    }
-  } else {
-    for (let i = end - 1; i >= start4; i--) {
-      value *= 256;
-      value += buffer[i];
-    }
-  }
-  if (isSigned) {
-    const highBit = 2 ** (byteSize * 8 - 1);
-    if (value >= highBit) {
-      value -= highBit * 2;
-    }
-  }
-  return value;
-}
-function intFromAlignedSliceUsingBigInt(buffer, start4, end, isBigEndian, isSigned) {
-  const byteSize = end - start4;
-  let value = 0n;
-  if (isBigEndian) {
-    for (let i = start4; i < end; i++) {
-      value *= 256n;
-      value += BigInt(buffer[i]);
-    }
-  } else {
-    for (let i = end - 1; i >= start4; i--) {
-      value *= 256n;
-      value += BigInt(buffer[i]);
-    }
-  }
-  if (isSigned) {
-    const highBit = 1n << BigInt(byteSize * 8 - 1);
-    if (value >= highBit) {
-      value -= highBit * 2n;
-    }
-  }
-  return Number(value);
-}
-function intFromUnalignedSliceUsingNumber(buffer, start4, end, isBigEndian, isSigned) {
-  const isStartByteAligned = start4 % 8 === 0;
-  let size2 = end - start4;
-  let byteIndex = Math.trunc(start4 / 8);
-  let value = 0;
-  if (isBigEndian) {
-    if (!isStartByteAligned) {
-      const leadingBitsCount = 8 - start4 % 8;
-      value = buffer[byteIndex++] & (1 << leadingBitsCount) - 1;
-      size2 -= leadingBitsCount;
-    }
-    while (size2 >= 8) {
-      value *= 256;
-      value += buffer[byteIndex++];
-      size2 -= 8;
-    }
-    if (size2 > 0) {
-      value *= 2 ** size2;
-      value += buffer[byteIndex] >> 8 - size2;
-    }
-  } else {
-    if (isStartByteAligned) {
-      let size3 = end - start4;
-      let scale = 1;
-      while (size3 >= 8) {
-        value += buffer[byteIndex++] * scale;
-        scale *= 256;
-        size3 -= 8;
-      }
-      value += (buffer[byteIndex] >> 8 - size3) * scale;
-    } else {
-      const highBitsCount = start4 % 8;
-      const lowBitsCount = 8 - highBitsCount;
-      let size3 = end - start4;
-      let scale = 1;
-      while (size3 >= 8) {
-        const byte = buffer[byteIndex] << highBitsCount | buffer[byteIndex + 1] >> lowBitsCount;
-        value += (byte & 255) * scale;
-        scale *= 256;
-        size3 -= 8;
-        byteIndex++;
-      }
-      if (size3 > 0) {
-        const lowBitsUsed = size3 - Math.max(0, size3 - lowBitsCount);
-        let trailingByte = (buffer[byteIndex] & (1 << lowBitsCount) - 1) >> lowBitsCount - lowBitsUsed;
-        size3 -= lowBitsUsed;
-        if (size3 > 0) {
-          trailingByte *= 2 ** size3;
-          trailingByte += buffer[byteIndex + 1] >> 8 - size3;
-        }
-        value += trailingByte * scale;
-      }
-    }
-  }
-  if (isSigned) {
-    const highBit = 2 ** (end - start4 - 1);
-    if (value >= highBit) {
-      value -= highBit * 2;
-    }
-  }
-  return value;
-}
-function intFromUnalignedSliceUsingBigInt(buffer, start4, end, isBigEndian, isSigned) {
-  const isStartByteAligned = start4 % 8 === 0;
-  let size2 = end - start4;
-  let byteIndex = Math.trunc(start4 / 8);
-  let value = 0n;
-  if (isBigEndian) {
-    if (!isStartByteAligned) {
-      const leadingBitsCount = 8 - start4 % 8;
-      value = BigInt(buffer[byteIndex++] & (1 << leadingBitsCount) - 1);
-      size2 -= leadingBitsCount;
-    }
-    while (size2 >= 8) {
-      value *= 256n;
-      value += BigInt(buffer[byteIndex++]);
-      size2 -= 8;
-    }
-    if (size2 > 0) {
-      value <<= BigInt(size2);
-      value += BigInt(buffer[byteIndex] >> 8 - size2);
-    }
-  } else {
-    if (isStartByteAligned) {
-      let size3 = end - start4;
-      let shift = 0n;
-      while (size3 >= 8) {
-        value += BigInt(buffer[byteIndex++]) << shift;
-        shift += 8n;
-        size3 -= 8;
-      }
-      value += BigInt(buffer[byteIndex] >> 8 - size3) << shift;
-    } else {
-      const highBitsCount = start4 % 8;
-      const lowBitsCount = 8 - highBitsCount;
-      let size3 = end - start4;
-      let shift = 0n;
-      while (size3 >= 8) {
-        const byte = buffer[byteIndex] << highBitsCount | buffer[byteIndex + 1] >> lowBitsCount;
-        value += BigInt(byte & 255) << shift;
-        shift += 8n;
-        size3 -= 8;
-        byteIndex++;
-      }
-      if (size3 > 0) {
-        const lowBitsUsed = size3 - Math.max(0, size3 - lowBitsCount);
-        let trailingByte = (buffer[byteIndex] & (1 << lowBitsCount) - 1) >> lowBitsCount - lowBitsUsed;
-        size3 -= lowBitsUsed;
-        if (size3 > 0) {
-          trailingByte <<= size3;
-          trailingByte += buffer[byteIndex + 1] >> 8 - size3;
-        }
-        value += BigInt(trailingByte) << shift;
-      }
-    }
-  }
-  if (isSigned) {
-    const highBit = 2n ** BigInt(end - start4 - 1);
-    if (value >= highBit) {
-      value -= highBit * 2n;
-    }
-  }
-  return Number(value);
-}
-function bitArrayValidateRange(bitArray, start4, end) {
-  if (start4 < 0 || start4 > bitArray.bitSize || end < start4 || end > bitArray.bitSize) {
-    const msg = `Invalid bit array slice: start = ${start4}, end = ${end}, bit size = ${bitArray.bitSize}`;
-    throw new globalThis.Error(msg);
-  }
-}
 var Result = class _Result extends CustomType {
   // @internal
   static isResult(data) {
@@ -550,9 +279,9 @@ var Result = class _Result extends CustomType {
   }
 };
 var Ok = class extends Result {
-  constructor(value) {
+  constructor(value2) {
     super();
-    this[0] = value;
+    this[0] = value2;
   }
   // @internal
   isOk() {
@@ -674,6 +403,14 @@ function to_result(option, e) {
     return new Error(e);
   }
 }
+function from_result(result) {
+  if (result.isOk()) {
+    let a2 = result[0];
+    return new Some(a2);
+  } else {
+    return new None();
+  }
+}
 function unwrap(option, default$) {
   if (option instanceof Some) {
     let x = option[0];
@@ -698,6 +435,29 @@ var Eq = class extends CustomType {
 };
 var Gt = class extends CustomType {
 };
+
+// build/dev/javascript/gleam_stdlib/gleam/float.mjs
+function negate(x) {
+  return -1 * x;
+}
+function round2(x) {
+  let $ = x >= 0;
+  if ($) {
+    return round(x);
+  } else {
+    return 0 - round(negate(x));
+  }
+}
+function to_precision(x, precision) {
+  let $ = precision <= 0;
+  if ($) {
+    let factor = power(10, identity(-precision));
+    return identity(round2(divideFloat(x, factor))) * factor;
+  } else {
+    let factor = power(10, identity(precision));
+    return divideFloat(identity(round2(x * factor)), factor);
+  }
+}
 
 // build/dev/javascript/gleam_stdlib/gleam/list.mjs
 var Ascending = class extends CustomType {
@@ -1148,10 +908,10 @@ function key_find(keyword_list, desired_key) {
     keyword_list,
     (keyword) => {
       let key = keyword[0];
-      let value = keyword[1];
+      let value2 = keyword[1];
       let $ = isEqual(key, desired_key);
       if ($) {
-        return new Ok(value);
+        return new Ok(value2);
       } else {
         return new Error(void 0);
       }
@@ -1988,16 +1748,16 @@ var NOT_FOUND = {};
 function identity(x) {
   return x;
 }
-function parse_int(value) {
-  if (/^[-+]?(\d+)$/.test(value)) {
-    return new Ok(parseInt(value));
+function parse_int(value2) {
+  if (/^[-+]?(\d+)$/.test(value2)) {
+    return new Ok(parseInt(value2));
   } else {
     return new Error(Nil);
   }
 }
-function parse_float(value) {
-  if (/^[-+]?(\d+)\.(\d+)([eE][-+]?\d+)?$/.test(value)) {
-    return new Ok(parseFloat(value));
+function parse_float(value2) {
+  if (/^[-+]?(\d+)\.(\d+)([eE][-+]?\d+)?$/.test(value2)) {
+    return new Ok(parseFloat(value2));
   } else {
     return new Error(Nil);
   }
@@ -2114,8 +1874,14 @@ function console_log(term) {
 function console_error(term) {
   console.error(term);
 }
+function round(float3) {
+  return Math.round(float3);
+}
 function truncate(float3) {
   return Math.trunc(float3);
+}
+function power(base, exponent) {
+  return Math.pow(base, exponent);
 }
 function new_map() {
   return Dict.new();
@@ -2124,14 +1890,14 @@ function map_to_list(map6) {
   return List.fromArray(map6.entries());
 }
 function map_get(map6, key) {
-  const value = map6.get(key, NOT_FOUND);
-  if (value === NOT_FOUND) {
+  const value2 = map6.get(key, NOT_FOUND);
+  if (value2 === NOT_FOUND) {
     return new Error(Nil);
   }
-  return new Ok(value);
+  return new Ok(value2);
 }
-function map_insert(key, value, map6) {
-  return map6.set(key, value);
+function map_insert(key, value2, map6) {
+  return map6.set(key, value2);
 }
 function classify_dynamic(data) {
   if (typeof data === "string") {
@@ -2224,9 +1990,9 @@ function inspectString(str) {
 function inspectDict(map6) {
   let body = "dict.from_list([";
   let first = true;
-  map6.forEach((value, key) => {
+  map6.forEach((value2, key) => {
     if (!first) body = body + ", ";
-    body = body + "#(" + inspect(key) + ", " + inspect(value) + ")";
+    body = body + "#(" + inspect(key) + ", " + inspect(value2) + ")";
     first = false;
   });
   return body + "])";
@@ -2243,8 +2009,8 @@ function inspectObject(v) {
 }
 function inspectCustomType(record) {
   const props = Object.keys(record).map((label2) => {
-    const value = inspect(record[label2]);
-    return isNaN(parseInt(label2)) ? `${label2}: ${value}` : value;
+    const value2 = inspect(record[label2]);
+    return isNaN(parseInt(label2)) ? `${label2}: ${value2}` : value2;
   }).join(", ");
   return props ? `${record.constructor.name}(${props})` : record.constructor.name;
 }
@@ -2273,8 +2039,8 @@ function bit_array_inspect(bits, acc) {
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/dict.mjs
-function insert(dict2, key, value) {
-  return map_insert(key, value, dict2);
+function insert(dict2, key, value2) {
+  return map_insert(key, value2, dict2);
 }
 function reverse_and_concat(loop$remaining, loop$accumulator) {
   while (true) {
@@ -2297,10 +2063,10 @@ function do_values_loop(loop$list, loop$acc) {
     if (list4.hasLength(0)) {
       return reverse_and_concat(acc, toList([]));
     } else {
-      let value = list4.head[1];
+      let value2 = list4.head[1];
       let rest = list4.tail;
       loop$list = rest;
-      loop$acc = prepend(value, acc);
+      loop$acc = prepend(value2, acc);
     }
   }
 }
@@ -2311,8 +2077,8 @@ function values(dict2) {
 function upsert(dict2, key, fun) {
   let $ = map_get(dict2, key);
   if ($.isOk()) {
-    let value = $[0];
-    return insert(dict2, key, fun(new Some(value)));
+    let value2 = $[0];
+    return insert(dict2, key, fun(new Some(value2)));
   } else {
     return insert(dict2, key, fun(new None()));
   }
@@ -2358,8 +2124,8 @@ function index2(data, key) {
   const key_is_int = Number.isInteger(key);
   if (key_is_int && key >= 0 && key < 8 && data instanceof List) {
     let i = 0;
-    for (const value of data) {
-      if (i === key) return new Ok(new Some(value));
+    for (const value2 of data) {
+      if (i === key) return new Ok(new Some(value2));
       i++;
     }
     return new Error("Indexable");
@@ -2830,19 +2596,19 @@ function compare3(a2, b) {
 
 // build/dev/javascript/lustre/lustre/vdom/vattr.mjs
 var Attribute = class extends CustomType {
-  constructor(kind, name2, value) {
+  constructor(kind, name2, value2) {
     super();
     this.kind = kind;
     this.name = name2;
-    this.value = value;
+    this.value = value2;
   }
 };
 var Property = class extends CustomType {
-  constructor(kind, name2, value) {
+  constructor(kind, name2, value2) {
     super();
     this.kind = kind;
     this.name = name2;
-    this.value = value;
+    this.value = value2;
   }
 };
 var Event2 = class extends CustomType {
@@ -2904,8 +2670,8 @@ function merge(loop$attributes, loop$merged) {
       let class1 = attributes.head.value;
       let class2 = attributes.tail.head.value;
       let rest = attributes.tail.tail;
-      let value = class1 + " " + class2;
-      let attribute$1 = new Attribute(kind, "class", value);
+      let value2 = class1 + " " + class2;
+      let attribute$1 = new Attribute(kind, "class", value2);
       loop$attributes = prepend(attribute$1, rest);
       loop$merged = merged;
     } else if (attributes.atLeastLength(2) && attributes.head instanceof Attribute && attributes.head.name === "style" && attributes.tail.head instanceof Attribute && attributes.tail.head.name === "style") {
@@ -2913,8 +2679,8 @@ function merge(loop$attributes, loop$merged) {
       let style1 = attributes.head.value;
       let style2 = attributes.tail.head.value;
       let rest = attributes.tail.tail;
-      let value = style1 + ";" + style2;
-      let attribute$1 = new Attribute(kind, "style", value);
+      let value2 = style1 + ";" + style2;
+      let attribute$1 = new Attribute(kind, "style", value2);
       loop$attributes = prepend(attribute$1, rest);
       loop$merged = merged;
     } else {
@@ -2939,8 +2705,8 @@ function prepare(attributes) {
   }
 }
 var attribute_kind = 0;
-function attribute(name2, value) {
-  return new Attribute(attribute_kind, name2, value);
+function attribute(name2, value2) {
+  return new Attribute(attribute_kind, name2, value2);
 }
 var property_kind = 1;
 var event_kind = 2;
@@ -2960,14 +2726,14 @@ var debounce_kind = 1;
 var throttle_kind = 2;
 
 // build/dev/javascript/lustre/lustre/attribute.mjs
-function attribute2(name2, value) {
-  return attribute(name2, value);
+function attribute2(name2, value2) {
+  return attribute(name2, value2);
 }
 function class$(name2) {
   return attribute2("class", name2);
 }
-function id(value) {
-  return attribute2("id", value);
+function id(value2) {
+  return attribute2("id", value2);
 }
 function href(url) {
   return attribute2("href", url);
@@ -2975,14 +2741,26 @@ function href(url) {
 function for$(id2) {
   return attribute2("for", id2);
 }
+function max(value2) {
+  return attribute2("max", value2);
+}
+function min(value2) {
+  return attribute2("min", value2);
+}
 function name(element_name) {
   return attribute2("name", element_name);
 }
 function placeholder(text4) {
   return attribute2("placeholder", text4);
 }
+function step(value2) {
+  return attribute2("step", value2);
+}
 function type_(control_type) {
   return attribute2("type", control_type);
+}
+function value(control_value) {
+  return attribute2("value", control_value);
 }
 
 // build/dev/javascript/lustre/lustre/effect.mjs
@@ -3016,16 +2794,16 @@ function empty2() {
   return null;
 }
 function get(map6, key) {
-  const value = map6?.get(key);
-  if (value != null) {
-    return new Ok(value);
+  const value2 = map6?.get(key);
+  if (value2 != null) {
+    return new Ok(value2);
   } else {
     return new Error(void 0);
   }
 }
-function insert3(map6, key, value) {
+function insert3(map6, key, value2) {
   map6 ??= /* @__PURE__ */ new Map();
-  map6.set(key, value);
+  map6.set(key, value2);
   return map6;
 }
 function remove(map6, key) {
@@ -4389,11 +4167,11 @@ var Reconciler = class {
     switch (attribute3.kind) {
       case attribute_kind: {
         const name2 = attribute3.name;
-        const value = attribute3.value ?? "";
-        if (value !== node.getAttribute(name2)) {
-          node.setAttribute(name2, value);
+        const value2 = attribute3.value ?? "";
+        if (value2 !== node.getAttribute(name2)) {
+          node.setAttribute(name2, value2);
         }
-        ATTRIBUTE_HOOKS[name2]?.added?.(node, value);
+        ATTRIBUTE_HOOKS[name2]?.added?.(node, value2);
         break;
       }
       case property_kind:
@@ -4565,8 +4343,8 @@ var syncedBooleanAttribute = (name2) => {
 };
 var syncedAttribute = (name2) => {
   return {
-    added(node, value) {
-      node[name2] = value;
+    added(node, value2) {
+      node[name2] = value2;
     }
   };
 };
@@ -4641,13 +4419,13 @@ var virtualise_node = (node) => {
 };
 var input_elements = ["input", "select", "textarea"];
 var virtualise_input_events = (tag, node) => {
-  const value = node.value;
+  const value2 = node.value;
   const checked = node.checked;
   if (tag === "input" && node.type === "checkbox" && !checked) return;
   if (tag === "input" && node.type === "radio" && !checked) return;
-  if (node.type !== "checkbox" && node.type !== "radio" && !value) return;
+  if (node.type !== "checkbox" && node.type !== "radio" && !value2) return;
   queueMicrotask(() => {
-    node.value = value;
+    node.value = value2;
     node.checked = checked;
     node.dispatchEvent(new Event("input", { bubbles: true }));
     node.dispatchEvent(new Event("change", { bubbles: true }));
@@ -4684,8 +4462,8 @@ var virtualise_attributes = (node) => {
 };
 var virtualise_attribute = (attr) => {
   const name2 = attr.localName;
-  const value = attr.value;
-  return attribute2(name2, value);
+  const value2 = attr.value;
+  return attribute2(name2, value2);
 };
 
 // build/dev/javascript/lustre/lustre/runtime/client/runtime.ffi.mjs
@@ -5424,6 +5202,20 @@ function multibuy_to_string(multibuy) {
   );
   let _pipe$1 = concat2(_pipe);
   return drop_end(_pipe$1, 1);
+}
+var base_tax_rate = 7.5;
+var tax_reduction_per_accounting_level = 11;
+function tax_percent_from_accounting_level(accounting_level) {
+  let accounting_tax_percent_reduction = (() => {
+    let _pipe = accounting_level;
+    return identity(_pipe);
+  })() * tax_reduction_per_accounting_level;
+  let remaining_tax_ratio = 1 - divideFloat(
+    accounting_tax_percent_reduction,
+    100
+  );
+  let effective_tax_rate = base_tax_rate * remaining_tax_ratio;
+  return effective_tax_rate;
 }
 
 // build/dev/javascript/gleam_time/gleam_time_ffi.mjs
@@ -6429,22 +6221,22 @@ var PromiseLayer = class _PromiseLayer {
   constructor(promise) {
     this.promise = promise;
   }
-  static wrap(value) {
-    return value instanceof Promise ? new _PromiseLayer(value) : value;
+  static wrap(value2) {
+    return value2 instanceof Promise ? new _PromiseLayer(value2) : value2;
   }
-  static unwrap(value) {
-    return value instanceof _PromiseLayer ? value.promise : value;
+  static unwrap(value2) {
+    return value2 instanceof _PromiseLayer ? value2.promise : value2;
   }
 };
-function resolve(value) {
-  return Promise.resolve(PromiseLayer.wrap(value));
+function resolve(value2) {
+  return Promise.resolve(PromiseLayer.wrap(value2));
 }
 function then_await(promise, fn) {
-  return promise.then((value) => fn(PromiseLayer.unwrap(value)));
+  return promise.then((value2) => fn(PromiseLayer.unwrap(value2)));
 }
 function map_promise(promise, fn) {
   return promise.then(
-    (value) => PromiseLayer.wrap(fn(PromiseLayer.unwrap(value)))
+    (value2) => PromiseLayer.wrap(fn(PromiseLayer.unwrap(value2)))
   );
 }
 
@@ -6548,7 +6340,7 @@ var from_relative_url = (url_string) => {
   return new Ok(uri);
 };
 var uri_from_url = (url) => {
-  const optional = (value) => value ? new Some(value) : new None();
+  const optional = (value2) => value2 ? new Some(value2) : new None();
   return new Uri(
     /* scheme   */
     optional(url.protocol?.slice(0, -1)),
@@ -7095,9 +6887,15 @@ var UserClickedExpandSidebar = class extends CustomType {
 var UserClickedCollapseSidebar = class extends CustomType {
 };
 var UserUpdatedCollateral = class extends CustomType {
-  constructor(value) {
+  constructor(value2) {
     super();
-    this.value = value;
+    this.value = value2;
+  }
+};
+var UserUpdatedAccountingLevel = class extends CustomType {
+  constructor(level) {
+    super();
+    this.level = level;
   }
 };
 
@@ -7170,7 +6968,7 @@ function user_clicked_expand_sidebar(model) {
   })();
   return [model$1, none()];
 }
-function user_updated_collateral(model, value) {
+function user_updated_collateral(model, value2) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
@@ -7182,132 +6980,29 @@ function user_updated_collateral(model, value) {
       _record.accounting_level,
       _record.language,
       _record.sidebar_expanded,
-      echo(new Some(value), "src/mvu/update/sidebar.gleam", 23),
+      value2,
       _record.multibuys
     );
   })();
   return [model$1, none()];
 }
-function echo(value, file, line) {
-  const grey = "\x1B[90m";
-  const reset_color = "\x1B[39m";
-  const file_line = `${file}:${line}`;
-  const string_value = echo$inspect(value);
-  if (typeof process === "object" && process.stderr?.write) {
-    const string5 = `${grey}${file_line}${reset_color}
-${string_value}
-`;
-    process.stderr.write(string5);
-  } else if (typeof Deno === "object") {
-    const string5 = `${grey}${file_line}${reset_color}
-${string_value}
-`;
-    Deno.stderr.writeSync(new TextEncoder().encode(string5));
-  } else {
-    const string5 = `${file_line}
-${string_value}`;
-    console.log(string5);
-  }
-  return value;
-}
-function echo$inspectString(str) {
-  let new_str = '"';
-  for (let i = 0; i < str.length; i++) {
-    let char = str[i];
-    if (char == "\n") new_str += "\\n";
-    else if (char == "\r") new_str += "\\r";
-    else if (char == "	") new_str += "\\t";
-    else if (char == "\f") new_str += "\\f";
-    else if (char == "\\") new_str += "\\\\";
-    else if (char == '"') new_str += '\\"';
-    else if (char < " " || char > "~" && char < "\xA0") {
-      new_str += "\\u{" + char.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0") + "}";
-    } else {
-      new_str += char;
-    }
-  }
-  new_str += '"';
-  return new_str;
-}
-function echo$inspectDict(map6) {
-  let body = "dict.from_list([";
-  let first = true;
-  let key_value_pairs = [];
-  map6.forEach((value, key) => {
-    key_value_pairs.push([key, value]);
-  });
-  key_value_pairs.sort();
-  key_value_pairs.forEach(([key, value]) => {
-    if (!first) body = body + ", ";
-    body = body + "#(" + echo$inspect(key) + ", " + echo$inspect(value) + ")";
-    first = false;
-  });
-  return body + "])";
-}
-function echo$inspectCustomType(record) {
-  const props = Object.keys(record).map((label2) => {
-    const value = echo$inspect(record[label2]);
-    return isNaN(parseInt(label2)) ? `${label2}: ${value}` : value;
-  }).join(", ");
-  return props ? `${record.constructor.name}(${props})` : record.constructor.name;
-}
-function echo$inspectObject(v) {
-  const name2 = Object.getPrototypeOf(v)?.constructor?.name || "Object";
-  const props = [];
-  for (const k of Object.keys(v)) {
-    props.push(`${echo$inspect(k)}: ${echo$inspect(v[k])}`);
-  }
-  const body = props.length ? " " + props.join(", ") + " " : "";
-  const head = name2 === "Object" ? "" : name2 + " ";
-  return `//js(${head}{${body}})`;
-}
-function echo$inspect(v) {
-  const t = typeof v;
-  if (v === true) return "True";
-  if (v === false) return "False";
-  if (v === null) return "//js(null)";
-  if (v === void 0) return "Nil";
-  if (t === "string") return echo$inspectString(v);
-  if (t === "bigint" || t === "number") return v.toString();
-  if (Array.isArray(v)) return `#(${v.map(echo$inspect).join(", ")})`;
-  if (v instanceof List) return `[${v.toArray().map(echo$inspect).join(", ")}]`;
-  if (v instanceof UtfCodepoint) return `//utfcodepoint(${String.fromCodePoint(v.value)})`;
-  if (v instanceof BitArray) return echo$inspectBitArray(v);
-  if (v instanceof CustomType) return echo$inspectCustomType(v);
-  if (echo$isDict(v)) return echo$inspectDict(v);
-  if (v instanceof Set) return `//js(Set(${[...v].map(echo$inspect).join(", ")}))`;
-  if (v instanceof RegExp) return `//js(${v})`;
-  if (v instanceof Date) return `//js(Date("${v.toISOString()}"))`;
-  if (v instanceof Function) {
-    const args = [];
-    for (const i of Array(v.length).keys()) args.push(String.fromCharCode(i + 97));
-    return `//fn(${args.join(", ")}) { ... }`;
-  }
-  return echo$inspectObject(v);
-}
-function echo$inspectBitArray(bitArray) {
-  let endOfAlignedBytes = bitArray.bitOffset + 8 * Math.trunc(bitArray.bitSize / 8);
-  let alignedBytes = bitArraySlice(bitArray, bitArray.bitOffset, endOfAlignedBytes);
-  let remainingUnalignedBits = bitArray.bitSize % 8;
-  if (remainingUnalignedBits > 0) {
-    let remainingBits = bitArraySliceToInt(bitArray, endOfAlignedBytes, bitArray.bitSize, false, false);
-    let alignedBytesArray = Array.from(alignedBytes.rawBuffer);
-    let suffix = `${remainingBits}:size(${remainingUnalignedBits})`;
-    if (alignedBytesArray.length === 0) {
-      return `<<${suffix}>>`;
-    } else {
-      return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}, ${suffix}>>`;
-    }
-  } else {
-    return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}>>`;
-  }
-}
-function echo$isDict(value) {
-  try {
-    return value instanceof Dict;
-  } catch {
-    return false;
-  }
+function user_updated_accounting_level(model, level) {
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      _record.ships,
+      _record.current_ship,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/update/side_effects/fetch_orders.mjs
@@ -7929,9 +7624,12 @@ function run2(model, msg) {
     return user_clicked_collapse_sidebar(model);
   } else if (msg instanceof UserClickedExpandSidebar) {
     return user_clicked_expand_sidebar(model);
+  } else if (msg instanceof UserUpdatedCollateral) {
+    let value2 = msg.value;
+    return user_updated_collateral(model, value2);
   } else {
-    let value = msg.value;
-    return user_updated_collateral(model, value);
+    let level = msg.level;
+    return user_updated_accounting_level(model, level);
   }
 }
 
@@ -7984,8 +7682,8 @@ function on_input(msg) {
     subfield(
       toList(["target", "value"]),
       string2,
-      (value) => {
-        return success(msg(value));
+      (value2) => {
+        return success(msg(value2));
       }
     )
   );
@@ -8142,8 +7840,100 @@ function get_section(model) {
   );
 }
 
+// build/dev/javascript/eve_arbitrage/mvu/view/sidebar/accounting.mjs
+function get_section2(level) {
+  let level_string = (() => {
+    let _pipe = level;
+    return to_string(_pipe);
+  })();
+  let effective_tax_rate_string = (() => {
+    let _pipe = tax_percent_from_accounting_level(level);
+    let _pipe$1 = to_precision(_pipe, 3);
+    return float_to_string(_pipe$1);
+  })();
+  return div(
+    toList([class$("p-4 border-b border-gray-200")]),
+    toList([
+      div(
+        toList([class$("flex justify-between items-center mb-2")]),
+        toList([
+          label(
+            toList([
+              class$("block text-sm font-medium text-gray-700"),
+              for$("accounting-level")
+            ]),
+            toList([text3("Accounting Level")])
+          ),
+          span(
+            toList([class$("text-sm font-medium text-selected")]),
+            toList([text3(level_string)])
+          )
+        ])
+      ),
+      div(
+        toList([class$("relative mb-6")]),
+        toList([
+          input(
+            toList([
+              class$(
+                "w-full h-1 bg-gray-200 rounded-md appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-selected focus:ring-opacity-50"
+              ),
+              id("accounting-level"),
+              step("1"),
+              value(level_string),
+              max("5"),
+              min("0"),
+              type_("range"),
+              on_input(
+                (input_string) => {
+                  let $ = parse_int(input_string);
+                  if (!$.isOk()) {
+                    throw makeError(
+                      "let_assert",
+                      "mvu/view/sidebar/accounting",
+                      41,
+                      "",
+                      "Pattern match failed, no pattern matched the value.",
+                      { value: $ }
+                    );
+                  }
+                  let level$1 = $[0];
+                  return new UserUpdatedAccountingLevel(level$1);
+                }
+              )
+            ])
+          )
+        ])
+      ),
+      div(
+        toList([
+          class$("flex justify-between text-xs text-gray-500 px-1")
+        ]),
+        toList([
+          span(toList([]), toList([text3("0")])),
+          span(toList([]), toList([text3("1")])),
+          span(toList([]), toList([text3("2")])),
+          span(toList([]), toList([text3("3")])),
+          span(toList([]), toList([text3("4")])),
+          span(toList([]), toList([text3("5")]))
+        ])
+      ),
+      div(
+        toList([class$("mt-2 text-xs text-gray-500")]),
+        toList([
+          span(toList([]), toList([text3("Effective tax rate: ")])),
+          span(
+            toList([class$("font-medium text-gray-700")]),
+            toList([text3(effective_tax_rate_string + "%")])
+          )
+        ])
+      )
+    ])
+  );
+}
+
 // build/dev/javascript/eve_arbitrage/mvu/view/sidebar/collateral.mjs
-function get_section2(collateral) {
+function get_section3(collateral) {
   return div(
     toList([class$("p-4 border-b border-gray-200")]),
     toList([
@@ -8181,32 +7971,22 @@ function get_section2(collateral) {
               type_("number"),
               on_input(
                 (input2) => {
-                  let $ = (() => {
+                  let value2 = (() => {
                     let _pipe = parse_float(input2);
-                    return lazy_or(
+                    let _pipe$1 = lazy_or(
                       _pipe,
                       () => {
                         return map2(
                           parse_int(input2),
-                          (value2) => {
-                            return identity(value2);
+                          (value3) => {
+                            return identity(value3);
                           }
                         );
                       }
                     );
+                    return from_result(_pipe$1);
                   })();
-                  if (!$.isOk()) {
-                    throw makeError(
-                      "let_assert",
-                      "mvu/view/sidebar/collateral",
-                      43,
-                      "",
-                      "Pattern match failed, no pattern matched the value.",
-                      { value: $ }
-                    );
-                  }
-                  let value = $[0];
-                  return new UserUpdatedCollateral(value);
+                  return new UserUpdatedCollateral(value2);
                 }
               )
             ])
@@ -8280,7 +8060,8 @@ function get_expanded_sidebar(model) {
           )
         ])
       ),
-      get_section2(model.collateral)
+      get_section3(model.collateral),
+      get_section2(model.accounting_level)
     ])
   );
 }
@@ -8333,7 +8114,7 @@ function get_collapsed_sidebar(_) {
     ])
   );
 }
-function get_section3(model) {
+function get_section4(model) {
   return (() => {
     let $ = model.sidebar_expanded;
     if (!$) {
@@ -8694,7 +8475,7 @@ function get_to_list(systems, selected) {
     ])
   );
 }
-function get_section4(model) {
+function get_section5(model) {
   let from_list2 = get_from_list(model.systems, model.source);
   let to_list2 = get_to_list(model.systems, model.destination);
   return section(
@@ -8714,8 +8495,8 @@ function get_section4(model) {
 
 // build/dev/javascript/eve_arbitrage/mvu/view.mjs
 function run3(model) {
-  let sidebar = get_section3(model);
-  let systems_lists = get_section4(model);
+  let sidebar = get_section4(model);
+  let systems_lists = get_section5(model);
   let multibuys = get_section(model);
   let page_contents = toList([systems_lists, multibuys]);
   let page = div(

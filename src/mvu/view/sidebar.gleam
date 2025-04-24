@@ -4,6 +4,7 @@ import lustre/element/html
 import lustre/element/svg
 import lustre/event
 import mvu
+import mvu/view/sidebar/accounting
 import mvu/view/sidebar/collateral
 
 pub fn get_section(model: mvu.Model) -> element.Element(mvu.Msg) {
@@ -60,6 +61,7 @@ fn get_expanded_sidebar(model: mvu.Model) -> element.Element(mvu.Msg) {
         ],
       ),
       collateral.get_section(model.collateral),
+      accounting.get_section(model.accounting_level),
     ],
   )
 }
