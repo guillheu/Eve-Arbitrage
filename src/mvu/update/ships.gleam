@@ -3,7 +3,7 @@ import gleam/dict
 import gleam/float
 import gleam/int
 import gleam/io
-import gleam/option.{type Option, Some}
+import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
 import lustre/effect
@@ -56,7 +56,11 @@ pub fn user_deleted_ship(
   deleted_ship: Int,
 ) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
   let ships = dict.delete(model.ships, deleted_ship)
-  let model = mvu.Model(..model, ships: ships)
+  let selected_ship = case model.current_ship {
+    Some(id) if id == deleted_ship -> None
+    any -> any
+  }
+  let model = mvu.Model(..model, ships: ships, current_ship: selected_ship)
   #(model, effect.none())
 }
 

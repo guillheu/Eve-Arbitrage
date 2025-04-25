@@ -7242,11 +7242,21 @@ function user_created_ship(model) {
 }
 function user_deleted_ship(model, deleted_ship) {
   let ships = delete$(model.ships, deleted_ship);
+  let selected_ship = (() => {
+    let $ = model.current_ship;
+    if ($ instanceof Some && $[0] === deleted_ship) {
+      let id2 = $[0];
+      return new None();
+    } else {
+      let any = $;
+      return any;
+    }
+  })();
   let model$1 = (() => {
     let _record = model;
     return new Model(
       ships,
-      _record.current_ship,
+      selected_ship,
       _record.count_ship_index,
       _record.count_hold_index,
       _record.systems,
@@ -7267,7 +7277,7 @@ function user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      135,
+      139,
       "user_updated_ship_hold_kind",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7279,7 +7289,7 @@ function user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      136,
+      140,
       "user_updated_ship_hold_kind",
       "Pattern match failed, no pattern matched the value.",
       { value: $1 }
@@ -7292,7 +7302,7 @@ function user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      138,
+      142,
       "user_updated_ship_hold_kind",
       "Pattern match failed, no pattern matched the value.",
       { value: $2 }
@@ -7339,7 +7349,7 @@ function user_added_hold_to_ship(model, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      153,
+      157,
       "user_added_hold_to_ship",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7382,7 +7392,7 @@ function user_deleted_hold_from_ship(model, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      173,
+      177,
       "user_deleted_hold_from_ship",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7424,7 +7434,7 @@ function user_collapsed_ship(model, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      186,
+      190,
       "user_collapsed_ship",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7461,7 +7471,7 @@ function user_expanded_ship(model, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      197,
+      201,
       "user_expanded_ship",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7519,7 +7529,7 @@ function user_updated_ship_name(model, id2) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      68,
+      72,
       "user_updated_ship_name",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7537,7 +7547,7 @@ function user_updated_ship_name(model, id2) {
       throw makeError(
         "let_assert",
         "mvu/update/ships",
-        75,
+        79,
         "user_updated_ship_name",
         "Pattern match failed, no pattern matched the value.",
         { value: $1 }
@@ -7578,7 +7588,7 @@ function user_updated_ship_hold_name(model, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      90,
+      94,
       "user_updated_ship_hold_name",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7591,7 +7601,7 @@ function user_updated_ship_hold_name(model, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      92,
+      96,
       "user_updated_ship_hold_name",
       "Pattern match failed, no pattern matched the value.",
       { value: $1 }
@@ -7662,7 +7672,7 @@ function user_updated_ship_hold_capacity(model, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      111,
+      115,
       "user_updated_ship_hold_capacity",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7675,7 +7685,7 @@ function user_updated_ship_hold_capacity(model, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      113,
+      117,
       "user_updated_ship_hold_capacity",
       "Pattern match failed, no pattern matched the value.",
       { value: $1 }
