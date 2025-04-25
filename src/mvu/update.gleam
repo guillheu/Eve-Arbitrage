@@ -42,5 +42,9 @@ pub fn run(
       ships.user_updated_ship_hold_capacity(model, hold_id, ship_id)
     mvu.UserUpdatedShipHoldKind(hold_kind, hold_id, ship_id) ->
       ships.user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id)
+    mvu.UserAddedHoldToShip(ship_id) ->
+      ships.user_added_hold_to_ship(model, ship_id)
+    mvu.UserDeletedHoldFromShip(hold_id, ship_id) ->
+      ships.user_deleted_hold_from_ship(model, hold_id, ship_id)
   }
 }

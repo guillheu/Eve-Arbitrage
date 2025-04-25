@@ -31,7 +31,10 @@ fn get_ship(ship_id: Int, ship: mvu.ShipEntry) -> element.Element(mvu.Msg) {
 }
 
 fn get_expanded_ship(ship_id: Int, ship: sde.Ship) -> element.Element(mvu.Msg) {
-  let holds_buttons = [get_add_hold_button(), get_delete_ship_button(ship_id)]
+  let holds_buttons = [
+    get_add_hold_button(ship_id),
+    get_delete_ship_button(ship_id),
+  ]
   let holds =
     dict.map_values(ship.holds, fn(hold_id, hold) {
       get_ship_hold(hold_id, hold, ship_id)
@@ -205,26 +208,56 @@ fn get_ship_hold(
         html.span([attribute.class("text-xs text-gray-500")], [html.text("m³")]),
       ]),
     ]),
-    html.div([], [
+    html.div([attribute.class("flex items-center mt-2")], [
       html.select(
         [
           attribute.class(
-            "border border-gray-300 rounded-md px-2 py-1 text-sm w-full",
+            "border border-gray-300 rounded-md px-2 py-1 text-sm flex-grow",
           ),
           event.on_input(mvu.UserUpdatedShipHoldKind(_, hold_id, ship_id)),
         ],
         hold_kinds,
       ),
+      html.button(
+        [
+          attribute("title", "Delete Hold"),
+          attribute.class("ml-2 p-1 text-red-500 hover:bg-red-50 rounded-md"),
+          event.on_click(mvu.UserDeletedHoldFromShip(hold_id, ship_id)),
+        ],
+        [
+          svg.svg(
+            [
+              attribute("stroke", "currentColor"),
+              attribute("viewBox", "0 0 24 24"),
+              attribute("fill", "none"),
+              attribute.class("h-4 w-4"),
+              attribute("xmlns", "http://www.w3.org/2000/svg"),
+            ],
+            [
+              svg.path([
+                attribute(
+                  "d",
+                  "M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16",
+                ),
+                attribute("stroke-width", "2"),
+                attribute("stroke-linejoin", "round"),
+                attribute("stroke-linecap", "round"),
+              ]),
+            ],
+          ),
+        ],
+      ),
     ]),
   ])
 }
 
-fn get_add_hold_button() -> element.Element(mvu.Msg) {
+fn get_add_hold_button(ship_id: Int) -> element.Element(mvu.Msg) {
   html.button(
     [
       attribute.class(
         "flex items-center justify-center w-full py-2 border border-dashed border-gray-300 rounded-md text-sm text-gray-500 hover:bg-gray-50 mb-3",
       ),
+      event.on_click(mvu.UserAddedHoldToShip(ship_id)),
     ],
     [
       svg.svg(

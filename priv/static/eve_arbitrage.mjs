@@ -7174,12 +7174,12 @@ function get_market_orders_url(from2, is_buy_order, page) {
 
 // build/dev/javascript/eve_arbitrage/mvu.mjs
 var Model = class extends CustomType {
-  constructor(ships, current_ship, count_ship_index, count_cargo_index, systems, source, destination, accounting_level, language, sidebar_expanded, collateral, multibuys) {
+  constructor(ships, current_ship, count_ship_index, count_hold_index, systems, source, destination, accounting_level, language, sidebar_expanded, collateral, multibuys) {
     super();
     this.ships = ships;
     this.current_ship = current_ship;
     this.count_ship_index = count_ship_index;
-    this.count_cargo_index = count_cargo_index;
+    this.count_hold_index = count_hold_index;
     this.systems = systems;
     this.source = source;
     this.destination = destination;
@@ -7321,6 +7321,19 @@ var UserUpdatedShipHoldKind = class extends CustomType {
     this.ship_id = ship_id;
   }
 };
+var UserAddedHoldToShip = class extends CustomType {
+  constructor(ship_id) {
+    super();
+    this.ship_id = ship_id;
+  }
+};
+var UserDeletedHoldFromShip = class extends CustomType {
+  constructor(hold_id, ship_id) {
+    super();
+    this.hold_id = hold_id;
+    this.ship_id = ship_id;
+  }
+};
 function int_input_to_msg(input2, msg) {
   let value3 = (() => {
     let _pipe = parse_int(input2);
@@ -7385,7 +7398,7 @@ function user_selected_ship(selected_ship, model) {
       _record.ships,
       new Some(selected_ship),
       _record.count_ship_index,
-      _record.count_cargo_index,
+      _record.count_hold_index,
       _record.systems,
       _record.source,
       _record.destination,
@@ -7412,7 +7425,7 @@ function user_created_ship(model) {
       (() => {
         let _pipe = toList([
           [
-            model.count_cargo_index,
+            model.count_hold_index,
             new Hold("Cargo", new Generic(), 1e3)
           ]
         ]);
@@ -7432,7 +7445,7 @@ function user_created_ship(model) {
       ships,
       _record.current_ship,
       model.count_ship_index + 1,
-      model.count_cargo_index + 1,
+      model.count_hold_index + 1,
       _record.systems,
       _record.source,
       _record.destination,
@@ -7453,7 +7466,7 @@ function user_deleted_ship(model, deleted_ship) {
       ships,
       _record.current_ship,
       _record.count_ship_index,
-      _record.count_cargo_index,
+      _record.count_hold_index,
       _record.systems,
       _record.source,
       _record.destination,
@@ -7528,7 +7541,101 @@ function user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id) {
       ship_entries,
       _record.current_ship,
       _record.count_ship_index,
-      _record.count_cargo_index,
+      _record.count_hold_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
+}
+function user_added_hold_to_ship(model, ship_id) {
+  let new_hold = new Hold("New Hold", new Generic(), 100);
+  let $ = map_get(model.ships, ship_id);
+  if (!$.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/update/ships",
+      153,
+      "user_added_hold_to_ship",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $ }
+    );
+  }
+  let ship_entry = $[0];
+  let ship = ship_entry.ship;
+  let holds = insert(ship.holds, model.count_hold_index, new_hold);
+  let ship$1 = echo(
+    (() => {
+      let _record = ship;
+      return new Ship(_record.name, holds);
+    })(),
+    "src/mvu/update/ships.gleam",
+    156
+  );
+  let ship_entry$1 = (() => {
+    let _record = ship_entry;
+    return new ShipEntry(ship$1, _record.is_expanded);
+  })();
+  let ship_entries = insert(model.ships, ship_id, ship_entry$1);
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      ship_entries,
+      _record.current_ship,
+      _record.count_ship_index,
+      model.count_hold_index + 1,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
+}
+function user_deleted_hold_from_ship(model, hold_id, ship_id) {
+  let $ = map_get(model.ships, ship_id);
+  if (!$.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/update/ships",
+      173,
+      "user_deleted_hold_from_ship",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $ }
+    );
+  }
+  let ship_entry = $[0];
+  let holds = delete$(ship_entry.ship.holds, hold_id);
+  let ship = echo(
+    (() => {
+      let _record = ship_entry.ship;
+      return new Ship(_record.name, holds);
+    })(),
+    "src/mvu/update/ships.gleam",
+    175
+  );
+  let ship_entry$1 = (() => {
+    let _record = ship_entry;
+    return new ShipEntry(ship, _record.is_expanded);
+  })();
+  let ship_entries = insert(model.ships, ship_id, ship_entry$1);
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      ship_entries,
+      _record.current_ship,
+      _record.count_ship_index,
+      _record.count_hold_index,
       _record.systems,
       _record.source,
       _record.destination,
@@ -7607,7 +7714,7 @@ function user_updated_ship_name(model, id2) {
       insert(model.ships, id2, ship_entry$1),
       _record.current_ship,
       _record.count_ship_index,
-      _record.count_cargo_index,
+      _record.count_hold_index,
       _record.systems,
       _record.source,
       _record.destination,
@@ -7672,7 +7779,7 @@ function user_updated_ship_hold_name(model, hold_id, ship_id) {
       ship_entries,
       _record.current_ship,
       _record.count_ship_index,
-      _record.count_cargo_index,
+      _record.count_hold_index,
       _record.systems,
       _record.source,
       _record.destination,
@@ -7752,7 +7859,7 @@ function user_updated_ship_hold_capacity(model, hold_id, ship_id) {
       ship_entries,
       _record.current_ship,
       _record.count_ship_index,
-      _record.count_cargo_index,
+      _record.count_hold_index,
       _record.systems,
       _record.source,
       _record.destination,
@@ -7895,7 +8002,7 @@ function user_clicked_collapse_sidebar(model) {
       _record.ships,
       _record.current_ship,
       _record.count_ship_index,
-      _record.count_cargo_index,
+      _record.count_hold_index,
       _record.systems,
       _record.source,
       _record.destination,
@@ -7915,7 +8022,7 @@ function user_clicked_expand_sidebar(model) {
       _record.ships,
       _record.current_ship,
       _record.count_ship_index,
-      _record.count_cargo_index,
+      _record.count_hold_index,
       _record.systems,
       _record.source,
       _record.destination,
@@ -7935,7 +8042,7 @@ function user_updated_collateral(model, value3) {
       _record.ships,
       _record.current_ship,
       _record.count_ship_index,
-      _record.count_cargo_index,
+      _record.count_hold_index,
       _record.systems,
       _record.source,
       _record.destination,
@@ -7955,7 +8062,7 @@ function user_updated_accounting_level(model, level) {
       _record.ships,
       _record.current_ship,
       _record.count_ship_index,
-      _record.count_cargo_index,
+      _record.count_hold_index,
       _record.systems,
       _record.source,
       _record.destination,
@@ -7999,7 +8106,7 @@ function user_selected_source(new_source, model) {
       _record.ships,
       _record.current_ship,
       _record.count_ship_index,
-      _record.count_cargo_index,
+      _record.count_hold_index,
       _record.systems,
       new Some(new_source),
       _record.destination,
@@ -8021,7 +8128,7 @@ function user_selected_destination(new_dest, model) {
       _record.ships,
       _record.current_ship,
       _record.count_ship_index,
-      _record.count_cargo_index,
+      _record.count_hold_index,
       _record.systems,
       _record.source,
       new Some(new_dest),
@@ -8106,7 +8213,7 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
         _record.ships,
         _record.current_ship,
         _record.count_ship_index,
-        _record.count_cargo_index,
+        _record.count_hold_index,
         systems,
         _record.source,
         _record.destination,
@@ -8181,7 +8288,7 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
           _record.ships,
           _record.current_ship,
           _record.count_ship_index,
-          _record.count_cargo_index,
+          _record.count_hold_index,
           systems,
           _record.source,
           _record.destination,
@@ -8270,7 +8377,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
         _record.ships,
         _record.current_ship,
         _record.count_ship_index,
-        _record.count_cargo_index,
+        _record.count_hold_index,
         systems,
         _record.source,
         _record.destination,
@@ -8345,7 +8452,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
           _record.ships,
           _record.current_ship,
           _record.count_ship_index,
-          _record.count_cargo_index,
+          _record.count_hold_index,
           systems,
           _record.source,
           _record.destination,
@@ -8421,7 +8528,7 @@ function user_loaded_source(model, from2) {
         _record.ships,
         _record.current_ship,
         _record.count_ship_index,
-        _record.count_cargo_index,
+        _record.count_hold_index,
         _record.systems,
         new None(),
         _record.destination,
@@ -8442,7 +8549,7 @@ function user_loaded_source(model, from2) {
         _record.ships,
         _record.current_ship,
         _record.count_ship_index,
-        _record.count_cargo_index,
+        _record.count_hold_index,
         systems,
         _record.source,
         _record.destination,
@@ -8513,7 +8620,7 @@ function user_loaded_destination(model, to) {
         _record.ships,
         _record.current_ship,
         _record.count_ship_index,
-        _record.count_cargo_index,
+        _record.count_hold_index,
         _record.systems,
         _record.source,
         new None(),
@@ -8534,7 +8641,7 @@ function user_loaded_destination(model, to) {
         _record.ships,
         _record.current_ship,
         _record.count_ship_index,
-        _record.count_cargo_index,
+        _record.count_hold_index,
         systems,
         _record.source,
         _record.destination,
@@ -8610,7 +8717,7 @@ function run2(model, msg) {
     let hold_id = msg.hold_id;
     let ship_id = msg.ship_id;
     return user_updated_ship_hold_capacity(model, hold_id, ship_id);
-  } else {
+  } else if (msg instanceof UserUpdatedShipHoldKind) {
     let hold_kind = msg.kind;
     let hold_id = msg.hold_id;
     let ship_id = msg.ship_id;
@@ -8620,6 +8727,13 @@ function run2(model, msg) {
       hold_id,
       ship_id
     );
+  } else if (msg instanceof UserAddedHoldToShip) {
+    let ship_id = msg.ship_id;
+    return user_added_hold_to_ship(model, ship_id);
+  } else {
+    let hold_id = msg.hold_id;
+    let ship_id = msg.ship_id;
+    return user_deleted_hold_from_ship(model, hold_id, ship_id);
   }
 }
 
@@ -9167,12 +9281,12 @@ function get_ship_hold(hold_id, hold, ship_id) {
         ])
       ),
       div(
-        toList([]),
+        toList([class$("flex items-center mt-2")]),
         toList([
           select(
             toList([
               class$(
-                "border border-gray-300 rounded-md px-2 py-1 text-sm w-full"
+                "border border-gray-300 rounded-md px-2 py-1 text-sm flex-grow"
               ),
               on_input(
                 (_capture) => {
@@ -9185,18 +9299,54 @@ function get_ship_hold(hold_id, hold, ship_id) {
               )
             ]),
             hold_kinds
+          ),
+          button(
+            toList([
+              attribute2("title", "Delete Hold"),
+              class$(
+                "ml-2 p-1 text-red-500 hover:bg-red-50 rounded-md"
+              ),
+              on_click(
+                new UserDeletedHoldFromShip(hold_id, ship_id)
+              )
+            ]),
+            toList([
+              svg(
+                toList([
+                  attribute2("stroke", "currentColor"),
+                  attribute2("viewBox", "0 0 24 24"),
+                  attribute2("fill", "none"),
+                  class$("h-4 w-4"),
+                  attribute2("xmlns", "http://www.w3.org/2000/svg")
+                ]),
+                toList([
+                  path(
+                    toList([
+                      attribute2(
+                        "d",
+                        "M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      ),
+                      attribute2("stroke-width", "2"),
+                      attribute2("stroke-linejoin", "round"),
+                      attribute2("stroke-linecap", "round")
+                    ])
+                  )
+                ])
+              )
+            ])
           )
         ])
       )
     ])
   );
 }
-function get_add_hold_button() {
+function get_add_hold_button(ship_id) {
   return button(
     toList([
       class$(
         "flex items-center justify-center w-full py-2 border border-dashed border-gray-300 rounded-md text-sm text-gray-500 hover:bg-gray-50 mb-3"
-      )
+      ),
+      on_click(new UserAddedHoldToShip(ship_id))
     ]),
     toList([
       svg(
@@ -9259,7 +9409,7 @@ function get_delete_ship_button(ship_id) {
 }
 function get_expanded_ship(ship_id, ship) {
   let holds_buttons = toList([
-    get_add_hold_button(),
+    get_add_hold_button(ship_id),
     get_delete_ship_button(ship_id)
   ]);
   let holds = (() => {

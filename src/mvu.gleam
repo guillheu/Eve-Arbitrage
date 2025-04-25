@@ -14,7 +14,7 @@ pub type Model {
     ships: Dict(Int, ShipEntry),
     current_ship: Option(Int),
     count_ship_index: Int,
-    count_cargo_index: Int,
+    count_hold_index: Int,
     systems: Dict(String, System),
     source: Option(String),
     destination: Option(String),
@@ -83,6 +83,8 @@ pub type Msg {
   UserUpdatedShipHoldName(hold_id: Int, ship_id: Int)
   UserUpdatedShipHoldCapacity(hold_id: Int, ship_id: Int)
   UserUpdatedShipHoldKind(kind: String, hold_id: Int, ship_id: Int)
+  UserAddedHoldToShip(ship_id: Int)
+  UserDeletedHoldFromShip(hold_id: Int, ship_id: Int)
 }
 
 pub fn float_input_to_msg(input: String, msg: fn(Option(Float)) -> Msg) {

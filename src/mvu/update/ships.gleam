@@ -30,7 +30,7 @@ pub fn user_created_ship(
         name: "New Ship",
         holds: [
           #(
-            model.count_cargo_index,
+            model.count_hold_index,
             sde.Hold(name: "Cargo", kind: sde.Generic, capacity: 1000.0),
           ),
         ]
@@ -46,7 +46,7 @@ pub fn user_created_ship(
       ..model,
       ships: ships,
       count_ship_index: model.count_ship_index + 1,
-      count_cargo_index: model.count_cargo_index + 1,
+      count_hold_index: model.count_hold_index + 1,
     )
   #(model, effect.none())
 }
@@ -139,6 +139,40 @@ pub fn user_updated_ship_hold_kind(
   let hold = sde.Hold(..hold, kind: hold_kind)
   let holds = dict.insert(ship.holds, hold_id, hold)
   let ship = echo sde.Ship(..ship, holds: holds)
+  let ship_entry = mvu.ShipEntry(..ship_entry, ship: ship)
+  let ship_entries = dict.insert(model.ships, ship_id, ship_entry)
+  let model = mvu.Model(..model, ships: ship_entries)
+  #(model, effect.none())
+}
+
+pub fn user_added_hold_to_ship(
+  model: mvu.Model,
+  ship_id: Int,
+) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
+  let new_hold = sde.Hold(name: "New Hold", kind: sde.Generic, capacity: 100.0)
+  let assert Ok(ship_entry) = dict.get(model.ships, ship_id)
+  let ship = ship_entry.ship
+  let holds = dict.insert(ship.holds, model.count_hold_index, new_hold)
+  let ship = echo sde.Ship(..ship, holds: holds)
+  let ship_entry = mvu.ShipEntry(..ship_entry, ship: ship)
+  let ship_entries = dict.insert(model.ships, ship_id, ship_entry)
+  let model =
+    mvu.Model(
+      ..model,
+      ships: ship_entries,
+      count_hold_index: model.count_hold_index + 1,
+    )
+  #(model, effect.none())
+}
+
+pub fn user_deleted_hold_from_ship(
+  model: mvu.Model,
+  hold_id: Int,
+  ship_id: Int,
+) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
+  let assert Ok(ship_entry) = dict.get(model.ships, ship_id)
+  let holds = dict.delete(ship_entry.ship.holds, hold_id)
+  let ship = echo sde.Ship(..ship_entry.ship, holds: holds)
   let ship_entry = mvu.ShipEntry(..ship_entry, ship: ship)
   let ship_entries = dict.insert(model.ships, ship_id, ship_entry)
   let model = mvu.Model(..model, ships: ship_entries)
