@@ -10,14 +10,6 @@ import mvu
 import util/alert
 import util/element as dom_element
 
-const default_ship_entry = mvu.ShipEntry(
-  sde.Ship(
-    name: "New Ship",
-    holds: [sde.Hold(name: "Cargo", kind: sde.Generic, m3: 1000.0)],
-  ),
-  is_expanded: True,
-)
-
 pub fn user_selected_ship(
   selected_ship: Int,
   model: mvu.Model,
@@ -31,6 +23,21 @@ pub fn user_selected_ship(
 pub fn user_created_ship(
   model: mvu.Model,
 ) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
+  let default_ship_entry =
+    mvu.ShipEntry(
+      sde.Ship(
+        name: "New Ship",
+        holds: [
+          #(
+            model.count_cargo_index,
+            sde.Hold(name: "Cargo", kind: sde.Generic, m3: 1000.0),
+          ),
+        ]
+          |> dict.from_list,
+      ),
+      is_expanded: True,
+    )
+
   let ships =
     dict.insert(model.ships, model.count_ship_index, default_ship_entry)
   let model =
@@ -38,6 +45,7 @@ pub fn user_created_ship(
       ..model,
       ships: ships,
       count_ship_index: model.count_ship_index + 1,
+      count_cargo_index: model.count_cargo_index + 1,
     )
   #(model, effect.none())
 }
@@ -56,16 +64,12 @@ pub fn user_updated_ship_name(
   id: Int,
 ) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
   let element_id = "ship-name-" <> int.to_string(id)
-  let element_result = dom_element.get_element_by_id(element_id)
-  let value_result =
-    result.try(element_result, fn(element) { dom_element.value(element) })
   let assert Ok(ship) = dict.get(model.ships, id)
   let default_value = ship.ship.name
-  let name = result.unwrap(value_result, default_value)
-  let name = case name |> string.trim {
-    "" -> default_value
-    any -> any
-  }
+
+  let name =
+    fetch_input_value_from_element_id_or_default(element_id, default_value)
+
   let model = {
     let assert Ok(ship_entry) = dict.get(model.ships, id)
     let ship = ship_entry.ship
@@ -74,4 +78,40 @@ pub fn user_updated_ship_name(
     mvu.Model(..model, ships: dict.insert(model.ships, id, ship_entry))
   }
   #(model, effect.none())
+}
+
+pub fn user_updated_ship_cargo_name(
+  model: mvu.Model,
+  cargo_id: Int,
+  ship_id: Int,
+) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
+  let element_id = "cargo-name-" <> int.to_string(cargo_id)
+  let assert Ok(ship_entry) = dict.get(model.ships, ship_id)
+  let ship = ship_entry.ship
+  let assert Ok(cargo) = dict.get(ship.holds, cargo_id)
+  let default_value = cargo.name
+  let name =
+    fetch_input_value_from_element_id_or_default(element_id, default_value)
+  let cargo = sde.Hold(..cargo, name: name)
+  let holds = dict.insert(ship.holds, cargo_id, cargo)
+  let new_ship = sde.Ship(..ship, holds: holds)
+  let ship_entry = echo mvu.ShipEntry(..ship_entry, ship: new_ship)
+  let ship_entries = dict.insert(model.ships, ship_id, ship_entry)
+  let model = mvu.Model(..model, ships: ship_entries)
+  #(model, effect.none())
+}
+
+fn fetch_input_value_from_element_id_or_default(
+  element_id: String,
+  default_value: String,
+) -> String {
+  let element_result = dom_element.get_element_by_id(element_id)
+  let value_result =
+    result.try(element_result, fn(element) { dom_element.value(element) })
+
+  let value = result.unwrap(value_result, default_value)
+  case value |> string.trim {
+    "" -> default_value
+    any -> any
+  }
 }

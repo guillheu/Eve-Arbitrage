@@ -1,3 +1,4 @@
+import gleam/dict.{type Dict}
 import gleam/list
 
 pub type Id =
@@ -14,7 +15,7 @@ pub type Location {
 }
 
 pub type Ship {
-  Ship(name: String, holds: List(Hold))
+  Ship(name: String, holds: Dict(Int, Hold))
 }
 
 pub type Hold {

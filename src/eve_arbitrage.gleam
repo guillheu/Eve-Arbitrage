@@ -42,6 +42,7 @@ fn init(_args) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
       ships: dict.new(),
       current_ship: None,
       count_ship_index: 0,
+      count_cargo_index: 0,
       systems: systems,
       source: None,
       destination: None,

@@ -14,6 +14,7 @@ pub type Model {
     ships: Dict(Int, ShipEntry),
     current_ship: Option(Int),
     count_ship_index: Int,
+    count_cargo_index: Int,
     systems: Dict(String, System),
     source: Option(String),
     destination: Option(String),
@@ -46,13 +47,14 @@ pub type System {
 }
 
 pub type Msg {
+
+  // systems messages
   UserSelectedSource(new_source: String)
   UserSelectedDestination(new_destination: String)
+
+  // orders messages
   UserLoadedSource(source: String)
   UserLoadedDestination(destination: String)
-  UserCreatedShip
-  UserDeletedShip(deleted_ship: Int)
-  UserSelectedShip(selected_ship: Int)
   EsiReturnedBuyOrders(
     Result(List(esi.Order(esi.Buy)), rsvp.Error),
     location: String,
@@ -63,12 +65,22 @@ pub type Msg {
     location: String,
     page: Int,
   )
+
+  // multibuy messages
   UserClickedCopyMultibuy(multibuy: arbitrage.Multibuy)
+
+  // sidebar messages
   UserClickedExpandSidebar
   UserClickedCollapseSidebar
   UserUpdatedCollateral(value: Option(Int))
   UserUpdatedAccountingLevel(level: Int)
+
+  // ship messages
+  UserCreatedShip
+  UserDeletedShip(deleted_ship: Int)
+  UserSelectedShip(selected_ship: Int)
   UserUpdatedShipName(id: Int)
+  UserUpdatedShipCargoName(cargo_id: Int, ship_id: Int)
 }
 
 pub fn float_input_to_msg(input: String, msg: fn(Option(Float)) -> Msg) {

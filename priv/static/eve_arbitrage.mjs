@@ -272,6 +272,277 @@ function bitArrayPrintDeprecationWarning(name2, message) {
   );
   isBitArrayDeprecationMessagePrinted[name2] = true;
 }
+function bitArraySlice(bitArray, start4, end) {
+  end ??= bitArray.bitSize;
+  bitArrayValidateRange(bitArray, start4, end);
+  if (start4 === end) {
+    return new BitArray(new Uint8Array());
+  }
+  if (start4 === 0 && end === bitArray.bitSize) {
+    return bitArray;
+  }
+  start4 += bitArray.bitOffset;
+  end += bitArray.bitOffset;
+  const startByteIndex = Math.trunc(start4 / 8);
+  const endByteIndex = Math.trunc((end + 7) / 8);
+  const byteLength = endByteIndex - startByteIndex;
+  let buffer;
+  if (startByteIndex === 0 && byteLength === bitArray.rawBuffer.byteLength) {
+    buffer = bitArray.rawBuffer;
+  } else {
+    buffer = new Uint8Array(
+      bitArray.rawBuffer.buffer,
+      bitArray.rawBuffer.byteOffset + startByteIndex,
+      byteLength
+    );
+  }
+  return new BitArray(buffer, end - start4, start4 % 8);
+}
+function bitArraySliceToInt(bitArray, start4, end, isBigEndian, isSigned) {
+  bitArrayValidateRange(bitArray, start4, end);
+  if (start4 === end) {
+    return 0;
+  }
+  start4 += bitArray.bitOffset;
+  end += bitArray.bitOffset;
+  const isStartByteAligned = start4 % 8 === 0;
+  const isEndByteAligned = end % 8 === 0;
+  if (isStartByteAligned && isEndByteAligned) {
+    return intFromAlignedSlice(
+      bitArray,
+      start4 / 8,
+      end / 8,
+      isBigEndian,
+      isSigned
+    );
+  }
+  const size2 = end - start4;
+  const startByteIndex = Math.trunc(start4 / 8);
+  const endByteIndex = Math.trunc((end - 1) / 8);
+  if (startByteIndex == endByteIndex) {
+    const mask2 = 255 >> start4 % 8;
+    const unusedLowBitCount = (8 - end % 8) % 8;
+    let value3 = (bitArray.rawBuffer[startByteIndex] & mask2) >> unusedLowBitCount;
+    if (isSigned) {
+      const highBit = 2 ** (size2 - 1);
+      if (value3 >= highBit) {
+        value3 -= highBit * 2;
+      }
+    }
+    return value3;
+  }
+  if (size2 <= 53) {
+    return intFromUnalignedSliceUsingNumber(
+      bitArray.rawBuffer,
+      start4,
+      end,
+      isBigEndian,
+      isSigned
+    );
+  } else {
+    return intFromUnalignedSliceUsingBigInt(
+      bitArray.rawBuffer,
+      start4,
+      end,
+      isBigEndian,
+      isSigned
+    );
+  }
+}
+function intFromAlignedSlice(bitArray, start4, end, isBigEndian, isSigned) {
+  const byteSize = end - start4;
+  if (byteSize <= 6) {
+    return intFromAlignedSliceUsingNumber(
+      bitArray.rawBuffer,
+      start4,
+      end,
+      isBigEndian,
+      isSigned
+    );
+  } else {
+    return intFromAlignedSliceUsingBigInt(
+      bitArray.rawBuffer,
+      start4,
+      end,
+      isBigEndian,
+      isSigned
+    );
+  }
+}
+function intFromAlignedSliceUsingNumber(buffer, start4, end, isBigEndian, isSigned) {
+  const byteSize = end - start4;
+  let value3 = 0;
+  if (isBigEndian) {
+    for (let i = start4; i < end; i++) {
+      value3 *= 256;
+      value3 += buffer[i];
+    }
+  } else {
+    for (let i = end - 1; i >= start4; i--) {
+      value3 *= 256;
+      value3 += buffer[i];
+    }
+  }
+  if (isSigned) {
+    const highBit = 2 ** (byteSize * 8 - 1);
+    if (value3 >= highBit) {
+      value3 -= highBit * 2;
+    }
+  }
+  return value3;
+}
+function intFromAlignedSliceUsingBigInt(buffer, start4, end, isBigEndian, isSigned) {
+  const byteSize = end - start4;
+  let value3 = 0n;
+  if (isBigEndian) {
+    for (let i = start4; i < end; i++) {
+      value3 *= 256n;
+      value3 += BigInt(buffer[i]);
+    }
+  } else {
+    for (let i = end - 1; i >= start4; i--) {
+      value3 *= 256n;
+      value3 += BigInt(buffer[i]);
+    }
+  }
+  if (isSigned) {
+    const highBit = 1n << BigInt(byteSize * 8 - 1);
+    if (value3 >= highBit) {
+      value3 -= highBit * 2n;
+    }
+  }
+  return Number(value3);
+}
+function intFromUnalignedSliceUsingNumber(buffer, start4, end, isBigEndian, isSigned) {
+  const isStartByteAligned = start4 % 8 === 0;
+  let size2 = end - start4;
+  let byteIndex = Math.trunc(start4 / 8);
+  let value3 = 0;
+  if (isBigEndian) {
+    if (!isStartByteAligned) {
+      const leadingBitsCount = 8 - start4 % 8;
+      value3 = buffer[byteIndex++] & (1 << leadingBitsCount) - 1;
+      size2 -= leadingBitsCount;
+    }
+    while (size2 >= 8) {
+      value3 *= 256;
+      value3 += buffer[byteIndex++];
+      size2 -= 8;
+    }
+    if (size2 > 0) {
+      value3 *= 2 ** size2;
+      value3 += buffer[byteIndex] >> 8 - size2;
+    }
+  } else {
+    if (isStartByteAligned) {
+      let size3 = end - start4;
+      let scale = 1;
+      while (size3 >= 8) {
+        value3 += buffer[byteIndex++] * scale;
+        scale *= 256;
+        size3 -= 8;
+      }
+      value3 += (buffer[byteIndex] >> 8 - size3) * scale;
+    } else {
+      const highBitsCount = start4 % 8;
+      const lowBitsCount = 8 - highBitsCount;
+      let size3 = end - start4;
+      let scale = 1;
+      while (size3 >= 8) {
+        const byte = buffer[byteIndex] << highBitsCount | buffer[byteIndex + 1] >> lowBitsCount;
+        value3 += (byte & 255) * scale;
+        scale *= 256;
+        size3 -= 8;
+        byteIndex++;
+      }
+      if (size3 > 0) {
+        const lowBitsUsed = size3 - Math.max(0, size3 - lowBitsCount);
+        let trailingByte = (buffer[byteIndex] & (1 << lowBitsCount) - 1) >> lowBitsCount - lowBitsUsed;
+        size3 -= lowBitsUsed;
+        if (size3 > 0) {
+          trailingByte *= 2 ** size3;
+          trailingByte += buffer[byteIndex + 1] >> 8 - size3;
+        }
+        value3 += trailingByte * scale;
+      }
+    }
+  }
+  if (isSigned) {
+    const highBit = 2 ** (end - start4 - 1);
+    if (value3 >= highBit) {
+      value3 -= highBit * 2;
+    }
+  }
+  return value3;
+}
+function intFromUnalignedSliceUsingBigInt(buffer, start4, end, isBigEndian, isSigned) {
+  const isStartByteAligned = start4 % 8 === 0;
+  let size2 = end - start4;
+  let byteIndex = Math.trunc(start4 / 8);
+  let value3 = 0n;
+  if (isBigEndian) {
+    if (!isStartByteAligned) {
+      const leadingBitsCount = 8 - start4 % 8;
+      value3 = BigInt(buffer[byteIndex++] & (1 << leadingBitsCount) - 1);
+      size2 -= leadingBitsCount;
+    }
+    while (size2 >= 8) {
+      value3 *= 256n;
+      value3 += BigInt(buffer[byteIndex++]);
+      size2 -= 8;
+    }
+    if (size2 > 0) {
+      value3 <<= BigInt(size2);
+      value3 += BigInt(buffer[byteIndex] >> 8 - size2);
+    }
+  } else {
+    if (isStartByteAligned) {
+      let size3 = end - start4;
+      let shift = 0n;
+      while (size3 >= 8) {
+        value3 += BigInt(buffer[byteIndex++]) << shift;
+        shift += 8n;
+        size3 -= 8;
+      }
+      value3 += BigInt(buffer[byteIndex] >> 8 - size3) << shift;
+    } else {
+      const highBitsCount = start4 % 8;
+      const lowBitsCount = 8 - highBitsCount;
+      let size3 = end - start4;
+      let shift = 0n;
+      while (size3 >= 8) {
+        const byte = buffer[byteIndex] << highBitsCount | buffer[byteIndex + 1] >> lowBitsCount;
+        value3 += BigInt(byte & 255) << shift;
+        shift += 8n;
+        size3 -= 8;
+        byteIndex++;
+      }
+      if (size3 > 0) {
+        const lowBitsUsed = size3 - Math.max(0, size3 - lowBitsCount);
+        let trailingByte = (buffer[byteIndex] & (1 << lowBitsCount) - 1) >> lowBitsCount - lowBitsUsed;
+        size3 -= lowBitsUsed;
+        if (size3 > 0) {
+          trailingByte <<= size3;
+          trailingByte += buffer[byteIndex + 1] >> 8 - size3;
+        }
+        value3 += BigInt(trailingByte) << shift;
+      }
+    }
+  }
+  if (isSigned) {
+    const highBit = 2n ** BigInt(end - start4 - 1);
+    if (value3 >= highBit) {
+      value3 -= highBit * 2n;
+    }
+  }
+  return Number(value3);
+}
+function bitArrayValidateRange(bitArray, start4, end) {
+  if (start4 < 0 || start4 > bitArray.bitSize || end < start4 || end > bitArray.bitSize) {
+    const msg = `Invalid bit array slice: start = ${start4}, end = ${end}, bit size = ${bitArray.bitSize}`;
+    throw new globalThis.Error(msg);
+  }
+}
 var Result = class _Result extends CustomType {
   // @internal
   static isResult(data) {
@@ -2049,6 +2320,24 @@ function bit_array_inspect(bits, acc) {
 // build/dev/javascript/gleam_stdlib/gleam/dict.mjs
 function insert(dict2, key, value3) {
   return map_insert(key, value3, dict2);
+}
+function from_list_loop(loop$list, loop$initial) {
+  while (true) {
+    let list4 = loop$list;
+    let initial = loop$initial;
+    if (list4.hasLength(0)) {
+      return initial;
+    } else {
+      let key = list4.head[0];
+      let value3 = list4.head[1];
+      let rest = list4.tail;
+      loop$list = rest;
+      loop$initial = insert(initial, key, value3);
+    }
+  }
+}
+function from_list(list4) {
+  return from_list_loop(list4, new_map());
 }
 function reverse_and_concat(loop$remaining, loop$accumulator) {
   while (true) {
@@ -6864,11 +7153,12 @@ function get_market_orders_url(from2, is_buy_order, page) {
 
 // build/dev/javascript/eve_arbitrage/mvu.mjs
 var Model = class extends CustomType {
-  constructor(ships, current_ship, count_ship_index, systems, source, destination, accounting_level, language, sidebar_expanded, collateral, multibuys) {
+  constructor(ships, current_ship, count_ship_index, count_cargo_index, systems, source, destination, accounting_level, language, sidebar_expanded, collateral, multibuys) {
     super();
     this.ships = ships;
     this.current_ship = current_ship;
     this.count_ship_index = count_ship_index;
+    this.count_cargo_index = count_cargo_index;
     this.systems = systems;
     this.source = source;
     this.destination = destination;
@@ -6930,20 +7220,6 @@ var UserLoadedDestination = class extends CustomType {
     this.destination = destination;
   }
 };
-var UserCreatedShip = class extends CustomType {
-};
-var UserDeletedShip = class extends CustomType {
-  constructor(deleted_ship) {
-    super();
-    this.deleted_ship = deleted_ship;
-  }
-};
-var UserSelectedShip = class extends CustomType {
-  constructor(selected_ship) {
-    super();
-    this.selected_ship = selected_ship;
-  }
-};
 var EsiReturnedBuyOrders = class extends CustomType {
   constructor(x0, location, page) {
     super();
@@ -6982,10 +7258,31 @@ var UserUpdatedAccountingLevel = class extends CustomType {
     this.level = level;
   }
 };
+var UserCreatedShip = class extends CustomType {
+};
+var UserDeletedShip = class extends CustomType {
+  constructor(deleted_ship) {
+    super();
+    this.deleted_ship = deleted_ship;
+  }
+};
+var UserSelectedShip = class extends CustomType {
+  constructor(selected_ship) {
+    super();
+    this.selected_ship = selected_ship;
+  }
+};
 var UserUpdatedShipName = class extends CustomType {
   constructor(id2) {
     super();
     this.id = id2;
+  }
+};
+var UserUpdatedShipCargoName = class extends CustomType {
+  constructor(cargo_id, ship_id) {
+    super();
+    this.cargo_id = cargo_id;
+    this.ship_id = ship_id;
   }
 };
 function int_input_to_msg(input2, msg) {
@@ -7052,6 +7349,7 @@ function user_selected_ship(selected_ship, model) {
       _record.ships,
       new Some(selected_ship),
       _record.count_ship_index,
+      _record.count_cargo_index,
       _record.systems,
       _record.source,
       _record.destination,
@@ -7071,114 +7369,22 @@ function user_selected_ship(selected_ship, model) {
   );
   return [model$1, side_effect];
 }
-function user_deleted_ship(model, deleted_ship) {
-  let ships = delete$(model.ships, deleted_ship);
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      ships,
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
-    );
-  })();
-  return [model$1, none()];
-}
-function user_updated_ship_name(model, id2) {
-  let element_id = "ship-name-" + to_string(id2);
-  let element_result = getElementById(element_id);
-  let value_result = try$(
-    element_result,
-    (element3) => {
-      return value2(element3);
-    }
-  );
-  let $ = map_get(model.ships, id2);
-  if (!$.isOk()) {
-    throw makeError(
-      "let_assert",
-      "mvu/update/ships",
-      62,
-      "user_updated_ship_name",
-      "Pattern match failed, no pattern matched the value.",
-      { value: $ }
-    );
-  }
-  let ship = $[0];
-  let default_value = ship.ship.name;
-  let name2 = unwrap2(value_result, default_value);
-  let name$1 = (() => {
-    let $1 = (() => {
-      let _pipe = name2;
-      return trim(_pipe);
-    })();
-    if ($1 === "") {
-      return default_value;
-    } else {
-      let any = $1;
-      return any;
-    }
-  })();
-  let model$1 = (() => {
-    let $1 = map_get(model.ships, id2);
-    if (!$1.isOk()) {
-      throw makeError(
-        "let_assert",
-        "mvu/update/ships",
-        70,
-        "user_updated_ship_name",
-        "Pattern match failed, no pattern matched the value.",
-        { value: $1 }
-      );
-    }
-    let ship_entry = $1[0];
-    let ship$1 = ship_entry.ship;
-    let ship$2 = (() => {
-      let _record2 = ship$1;
-      return new Ship(name$1, _record2.holds);
-    })();
-    let ship_entry$1 = (() => {
-      let _record2 = ship_entry;
-      return new ShipEntry(ship$2, _record2.is_expanded);
-    })();
-    let _record = model;
-    return new Model(
-      insert(model.ships, id2, ship_entry$1),
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
-    );
-  })();
-  return [model$1, none()];
-}
-var default_ship_entry = /* @__PURE__ */ new ShipEntry(
-  /* @__PURE__ */ new Ship(
-    "New Ship",
-    /* @__PURE__ */ toList([
-      /* @__PURE__ */ new Hold(
-        "Cargo",
-        /* @__PURE__ */ new Generic(),
-        1e3
-      )
-    ])
-  ),
-  true
-);
 function user_created_ship(model) {
+  let default_ship_entry = new ShipEntry(
+    new Ship(
+      "New Ship",
+      (() => {
+        let _pipe = toList([
+          [
+            model.count_cargo_index,
+            new Hold("Cargo", new Generic(), 1e3)
+          ]
+        ]);
+        return from_list(_pipe);
+      })()
+    ),
+    true
+  );
   let ships = insert(
     model.ships,
     model.count_ship_index,
@@ -7190,6 +7396,7 @@ function user_created_ship(model) {
       ships,
       _record.current_ship,
       model.count_ship_index + 1,
+      model.count_cargo_index + 1,
       _record.systems,
       _record.source,
       _record.destination,
@@ -7202,6 +7409,296 @@ function user_created_ship(model) {
   })();
   return [model$1, none()];
 }
+function user_deleted_ship(model, deleted_ship) {
+  let ships = delete$(model.ships, deleted_ship);
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      ships,
+      _record.current_ship,
+      _record.count_ship_index,
+      _record.count_cargo_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
+}
+function fetch_input_value_from_element_id_or_default(element_id, default_value) {
+  let element_result = getElementById(element_id);
+  let value_result = try$(
+    element_result,
+    (element3) => {
+      return value2(element3);
+    }
+  );
+  let value3 = unwrap2(value_result, default_value);
+  let $ = (() => {
+    let _pipe = value3;
+    return trim(_pipe);
+  })();
+  if ($ === "") {
+    return default_value;
+  } else {
+    let any = $;
+    return any;
+  }
+}
+function user_updated_ship_name(model, id2) {
+  let element_id = "ship-name-" + to_string(id2);
+  let $ = map_get(model.ships, id2);
+  if (!$.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/update/ships",
+      67,
+      "user_updated_ship_name",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $ }
+    );
+  }
+  let ship = $[0];
+  let default_value = ship.ship.name;
+  let name2 = fetch_input_value_from_element_id_or_default(
+    element_id,
+    default_value
+  );
+  let model$1 = (() => {
+    let $1 = map_get(model.ships, id2);
+    if (!$1.isOk()) {
+      throw makeError(
+        "let_assert",
+        "mvu/update/ships",
+        74,
+        "user_updated_ship_name",
+        "Pattern match failed, no pattern matched the value.",
+        { value: $1 }
+      );
+    }
+    let ship_entry = $1[0];
+    let ship$1 = ship_entry.ship;
+    let ship$2 = (() => {
+      let _record2 = ship$1;
+      return new Ship(name2, _record2.holds);
+    })();
+    let ship_entry$1 = (() => {
+      let _record2 = ship_entry;
+      return new ShipEntry(ship$2, _record2.is_expanded);
+    })();
+    let _record = model;
+    return new Model(
+      insert(model.ships, id2, ship_entry$1),
+      _record.current_ship,
+      _record.count_ship_index,
+      _record.count_cargo_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
+}
+function user_updated_ship_cargo_name(model, cargo_id, ship_id) {
+  let element_id = "cargo-name-" + to_string(cargo_id);
+  let $ = map_get(model.ships, ship_id);
+  if (!$.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/update/ships",
+      89,
+      "user_updated_ship_cargo_name",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $ }
+    );
+  }
+  let ship_entry = $[0];
+  let ship = ship_entry.ship;
+  let $1 = map_get(ship.holds, cargo_id);
+  if (!$1.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/update/ships",
+      91,
+      "user_updated_ship_cargo_name",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $1 }
+    );
+  }
+  let cargo = $1[0];
+  let default_value = cargo.name;
+  let name2 = fetch_input_value_from_element_id_or_default(
+    element_id,
+    default_value
+  );
+  let cargo$1 = (() => {
+    let _record = cargo;
+    return new Hold(name2, _record.kind, _record.m3);
+  })();
+  let holds = insert(ship.holds, cargo_id, cargo$1);
+  let new_ship = (() => {
+    let _record = ship;
+    return new Ship(_record.name, holds);
+  })();
+  let ship_entry$1 = echo(
+    (() => {
+      let _record = ship_entry;
+      return new ShipEntry(new_ship, _record.is_expanded);
+    })(),
+    "src/mvu/update/ships.gleam",
+    98
+  );
+  let ship_entries = insert(model.ships, ship_id, ship_entry$1);
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      ship_entries,
+      _record.current_ship,
+      _record.count_ship_index,
+      _record.count_cargo_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
+}
+function echo(value3, file, line) {
+  const grey = "\x1B[90m";
+  const reset_color = "\x1B[39m";
+  const file_line = `${file}:${line}`;
+  const string_value = echo$inspect(value3);
+  if (typeof process === "object" && process.stderr?.write) {
+    const string5 = `${grey}${file_line}${reset_color}
+${string_value}
+`;
+    process.stderr.write(string5);
+  } else if (typeof Deno === "object") {
+    const string5 = `${grey}${file_line}${reset_color}
+${string_value}
+`;
+    Deno.stderr.writeSync(new TextEncoder().encode(string5));
+  } else {
+    const string5 = `${file_line}
+${string_value}`;
+    console.log(string5);
+  }
+  return value3;
+}
+function echo$inspectString(str) {
+  let new_str = '"';
+  for (let i = 0; i < str.length; i++) {
+    let char = str[i];
+    if (char == "\n") new_str += "\\n";
+    else if (char == "\r") new_str += "\\r";
+    else if (char == "	") new_str += "\\t";
+    else if (char == "\f") new_str += "\\f";
+    else if (char == "\\") new_str += "\\\\";
+    else if (char == '"') new_str += '\\"';
+    else if (char < " " || char > "~" && char < "\xA0") {
+      new_str += "\\u{" + char.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0") + "}";
+    } else {
+      new_str += char;
+    }
+  }
+  new_str += '"';
+  return new_str;
+}
+function echo$inspectDict(map6) {
+  let body = "dict.from_list([";
+  let first = true;
+  let key_value_pairs = [];
+  map6.forEach((value3, key) => {
+    key_value_pairs.push([key, value3]);
+  });
+  key_value_pairs.sort();
+  key_value_pairs.forEach(([key, value3]) => {
+    if (!first) body = body + ", ";
+    body = body + "#(" + echo$inspect(key) + ", " + echo$inspect(value3) + ")";
+    first = false;
+  });
+  return body + "])";
+}
+function echo$inspectCustomType(record) {
+  const props = Object.keys(record).map((label2) => {
+    const value3 = echo$inspect(record[label2]);
+    return isNaN(parseInt(label2)) ? `${label2}: ${value3}` : value3;
+  }).join(", ");
+  return props ? `${record.constructor.name}(${props})` : record.constructor.name;
+}
+function echo$inspectObject(v) {
+  const name2 = Object.getPrototypeOf(v)?.constructor?.name || "Object";
+  const props = [];
+  for (const k of Object.keys(v)) {
+    props.push(`${echo$inspect(k)}: ${echo$inspect(v[k])}`);
+  }
+  const body = props.length ? " " + props.join(", ") + " " : "";
+  const head = name2 === "Object" ? "" : name2 + " ";
+  return `//js(${head}{${body}})`;
+}
+function echo$inspect(v) {
+  const t = typeof v;
+  if (v === true) return "True";
+  if (v === false) return "False";
+  if (v === null) return "//js(null)";
+  if (v === void 0) return "Nil";
+  if (t === "string") return echo$inspectString(v);
+  if (t === "bigint" || t === "number") return v.toString();
+  if (Array.isArray(v)) return `#(${v.map(echo$inspect).join(", ")})`;
+  if (v instanceof List) return `[${v.toArray().map(echo$inspect).join(", ")}]`;
+  if (v instanceof UtfCodepoint) return `//utfcodepoint(${String.fromCodePoint(v.value)})`;
+  if (v instanceof BitArray) return echo$inspectBitArray(v);
+  if (v instanceof CustomType) return echo$inspectCustomType(v);
+  if (echo$isDict(v)) return echo$inspectDict(v);
+  if (v instanceof Set) return `//js(Set(${[...v].map(echo$inspect).join(", ")}))`;
+  if (v instanceof RegExp) return `//js(${v})`;
+  if (v instanceof Date) return `//js(Date("${v.toISOString()}"))`;
+  if (v instanceof Function) {
+    const args = [];
+    for (const i of Array(v.length).keys()) args.push(String.fromCharCode(i + 97));
+    return `//fn(${args.join(", ")}) { ... }`;
+  }
+  return echo$inspectObject(v);
+}
+function echo$inspectBitArray(bitArray) {
+  let endOfAlignedBytes = bitArray.bitOffset + 8 * Math.trunc(bitArray.bitSize / 8);
+  let alignedBytes = bitArraySlice(bitArray, bitArray.bitOffset, endOfAlignedBytes);
+  let remainingUnalignedBits = bitArray.bitSize % 8;
+  if (remainingUnalignedBits > 0) {
+    let remainingBits = bitArraySliceToInt(bitArray, endOfAlignedBytes, bitArray.bitSize, false, false);
+    let alignedBytesArray = Array.from(alignedBytes.rawBuffer);
+    let suffix = `${remainingBits}:size(${remainingUnalignedBits})`;
+    if (alignedBytesArray.length === 0) {
+      return `<<${suffix}>>`;
+    } else {
+      return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}, ${suffix}>>`;
+    }
+  } else {
+    return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}>>`;
+  }
+}
+function echo$isDict(value3) {
+  try {
+    return value3 instanceof Dict;
+  } catch {
+    return false;
+  }
+}
 
 // build/dev/javascript/eve_arbitrage/mvu/update/sidebar.mjs
 function user_clicked_collapse_sidebar(model) {
@@ -7211,6 +7708,7 @@ function user_clicked_collapse_sidebar(model) {
       _record.ships,
       _record.current_ship,
       _record.count_ship_index,
+      _record.count_cargo_index,
       _record.systems,
       _record.source,
       _record.destination,
@@ -7230,6 +7728,7 @@ function user_clicked_expand_sidebar(model) {
       _record.ships,
       _record.current_ship,
       _record.count_ship_index,
+      _record.count_cargo_index,
       _record.systems,
       _record.source,
       _record.destination,
@@ -7249,6 +7748,7 @@ function user_updated_collateral(model, value3) {
       _record.ships,
       _record.current_ship,
       _record.count_ship_index,
+      _record.count_cargo_index,
       _record.systems,
       _record.source,
       _record.destination,
@@ -7268,6 +7768,7 @@ function user_updated_accounting_level(model, level) {
       _record.ships,
       _record.current_ship,
       _record.count_ship_index,
+      _record.count_cargo_index,
       _record.systems,
       _record.source,
       _record.destination,
@@ -7311,6 +7812,7 @@ function user_selected_source(new_source, model) {
       _record.ships,
       _record.current_ship,
       _record.count_ship_index,
+      _record.count_cargo_index,
       _record.systems,
       new Some(new_source),
       _record.destination,
@@ -7332,6 +7834,7 @@ function user_selected_destination(new_dest, model) {
       _record.ships,
       _record.current_ship,
       _record.count_ship_index,
+      _record.count_cargo_index,
       _record.systems,
       _record.source,
       new Some(new_dest),
@@ -7416,6 +7919,7 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
         _record.ships,
         _record.current_ship,
         _record.count_ship_index,
+        _record.count_cargo_index,
         systems,
         _record.source,
         _record.destination,
@@ -7490,6 +7994,7 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
           _record.ships,
           _record.current_ship,
           _record.count_ship_index,
+          _record.count_cargo_index,
           systems,
           _record.source,
           _record.destination,
@@ -7578,6 +8083,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
         _record.ships,
         _record.current_ship,
         _record.count_ship_index,
+        _record.count_cargo_index,
         systems,
         _record.source,
         _record.destination,
@@ -7652,6 +8158,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
           _record.ships,
           _record.current_ship,
           _record.count_ship_index,
+          _record.count_cargo_index,
           systems,
           _record.source,
           _record.destination,
@@ -7727,6 +8234,7 @@ function user_loaded_source(model, from2) {
         _record.ships,
         _record.current_ship,
         _record.count_ship_index,
+        _record.count_cargo_index,
         _record.systems,
         new None(),
         _record.destination,
@@ -7747,6 +8255,7 @@ function user_loaded_source(model, from2) {
         _record.ships,
         _record.current_ship,
         _record.count_ship_index,
+        _record.count_cargo_index,
         systems,
         _record.source,
         _record.destination,
@@ -7817,6 +8326,7 @@ function user_loaded_destination(model, to) {
         _record.ships,
         _record.current_ship,
         _record.count_ship_index,
+        _record.count_cargo_index,
         _record.systems,
         _record.source,
         new None(),
@@ -7837,6 +8347,7 @@ function user_loaded_destination(model, to) {
         _record.ships,
         _record.current_ship,
         _record.count_ship_index,
+        _record.count_cargo_index,
         systems,
         _record.source,
         _record.destination,
@@ -7901,9 +8412,13 @@ function run2(model, msg) {
   } else if (msg instanceof UserDeletedShip) {
     let deleted_ship = msg.deleted_ship;
     return user_deleted_ship(model, deleted_ship);
-  } else {
+  } else if (msg instanceof UserUpdatedShipName) {
     let id2 = msg.id;
     return user_updated_ship_name(model, id2);
+  } else {
+    let cargo_id = msg.cargo_id;
+    let ship_id = msg.ship_id;
+    return user_updated_ship_cargo_name(model, cargo_id, ship_id);
   }
 }
 
@@ -8378,7 +8893,8 @@ function get_collapsed_ship(ship) {
     ])
   );
 }
-function get_ship_hold(hold) {
+function get_ship_hold(hold_id, hold, ship_id) {
+  let element_id = "cargo-name-" + to_string(hold_id);
   let hold_kinds = (() => {
     let _pipe = get_all_hold_kinds();
     return map(
@@ -8413,8 +8929,12 @@ function get_ship_hold(hold) {
               class$(
                 "border border-gray-300 rounded-md px-2 py-1 text-sm w-1/2"
               ),
+              id(element_id),
               value(hold.name),
-              type_("text")
+              type_("text"),
+              on_blur(
+                new UserUpdatedShipCargoName(hold_id, ship_id)
+              )
             ])
           ),
           div(
@@ -8529,7 +9049,15 @@ function get_expanded_ship(ship_id, ship) {
     get_add_hold_button(),
     get_delete_ship_button(ship_id)
   ]);
-  let holds = map(ship.holds, get_ship_hold);
+  let holds = (() => {
+    let _pipe = map_values(
+      ship.holds,
+      (hold_id, hold) => {
+        return get_ship_hold(hold_id, hold, ship_id);
+      }
+    );
+    return values(_pipe);
+  })();
   let holds_content = append(holds, holds_buttons);
   let attribute_id = "ship-name-" + to_string(ship_id);
   return div(
@@ -9211,6 +9739,7 @@ function init(_) {
     new Model(
       new_map(),
       new None(),
+      0,
       0,
       systems,
       new None(),

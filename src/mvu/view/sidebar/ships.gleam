@@ -11,7 +11,6 @@ import lustre/element/html
 import lustre/element/svg
 import lustre/event
 import mvu
-import util/element as dom_element
 
 pub fn get_section(model: mvu.Model) -> element.Element(mvu.Msg) {
   let ships_contents = dict.map_values(model.ships, get_ship) |> dict.values
@@ -33,7 +32,11 @@ fn get_ship(ship_id: Int, ship: mvu.ShipEntry) -> element.Element(mvu.Msg) {
 
 fn get_expanded_ship(ship_id: Int, ship: sde.Ship) -> element.Element(mvu.Msg) {
   let holds_buttons = [get_add_hold_button(), get_delete_ship_button(ship_id)]
-  let holds = list.map(ship.holds, get_ship_hold)
+  let holds =
+    dict.map_values(ship.holds, fn(hold_id, hold) {
+      get_ship_hold(hold_id, hold, ship_id)
+    })
+    |> dict.values
   let holds_content = list.append(holds, holds_buttons)
   let attribute_id = "ship-name-" <> int.to_string(ship_id)
   html.div(
@@ -103,22 +106,6 @@ fn get_expanded_ship(ship_id: Int, ship: sde.Ship) -> element.Element(mvu.Msg) {
   )
 }
 
-// fn get_on_blur_event(
-//   element_id: String,
-//   default_value: String,
-//   msg: fn(String) -> mvu.Msg,
-// ) -> attribute.Attribute(mvu.Msg) {
-//   let trigger = fn() {
-//     let element_result = dom_element.get_element_by_id(element_id)
-//     let value_result =
-//       result.try(element_result, fn(element) { dom_element.value(element) })
-//     let value = result.unwrap(value_result, default_value)
-//     msg(value)
-//   }
-
-//   event.on_blur(trigger())
-// }
-
 fn get_collapsed_ship(ship: sde.Ship) -> element.Element(mvu.Msg) {
   html.div(
     [
@@ -173,7 +160,12 @@ fn get_collapsed_ship(ship: sde.Ship) -> element.Element(mvu.Msg) {
   )
 }
 
-fn get_ship_hold(hold: sde.Hold) -> element.Element(mvu.Msg) {
+fn get_ship_hold(
+  hold_id: Int,
+  hold: sde.Hold,
+  ship_id: Int,
+) -> element.Element(mvu.Msg) {
+  let element_id = "cargo-name-" <> int.to_string(hold_id)
   let hold_kinds =
     sde.get_all_hold_kinds()
     |> list.map(fn(hold_kind) {
@@ -194,8 +186,10 @@ fn get_ship_hold(hold: sde.Hold) -> element.Element(mvu.Msg) {
         attribute.class(
           "border border-gray-300 rounded-md px-2 py-1 text-sm w-1/2",
         ),
+        attribute.id(element_id),
         attribute.value(hold.name),
         attribute.type_("text"),
+        event.on_blur(mvu.UserUpdatedShipCargoName(hold_id, ship_id)),
       ]),
       html.div([attribute.class("flex items-center")], [
         html.input([
