@@ -179,6 +179,28 @@ pub fn user_deleted_hold_from_ship(
   #(model, effect.none())
 }
 
+pub fn user_collapsed_ship(
+  model: mvu.Model,
+  ship_id: Int,
+) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
+  let assert Ok(ship_entry) = dict.get(model.ships, ship_id)
+  let ship_entry = mvu.ShipEntry(..ship_entry, is_expanded: False)
+  let ship_entries = dict.insert(model.ships, ship_id, ship_entry)
+  let model = mvu.Model(..model, ships: ship_entries)
+  #(model, effect.none())
+}
+
+pub fn user_expanded_ship(
+  model: mvu.Model,
+  ship_id: Int,
+) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
+  let assert Ok(ship_entry) = dict.get(model.ships, ship_id)
+  let ship_entry = mvu.ShipEntry(..ship_entry, is_expanded: True)
+  let ship_entries = dict.insert(model.ships, ship_id, ship_entry)
+  let model = mvu.Model(..model, ships: ship_entries)
+  #(model, effect.none())
+}
+
 fn fetch_input_value_from_element_id_or_default(
   element_id: String,
   default_value: String,

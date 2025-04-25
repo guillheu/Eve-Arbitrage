@@ -7104,6 +7104,18 @@ var UserDeletedHoldFromShip = class extends CustomType {
     this.ship_id = ship_id;
   }
 };
+var UserCollapsedShip = class extends CustomType {
+  constructor(ship_id) {
+    super();
+    this.ship_id = ship_id;
+  }
+};
+var UserExpandedShip = class extends CustomType {
+  constructor(ship_id) {
+    super();
+    this.ship_id = ship_id;
+  }
+};
 function int_input_to_msg(input2, msg) {
   let value3 = (() => {
     let _pipe = parse_int(input2);
@@ -7385,6 +7397,80 @@ function user_deleted_hold_from_ship(model, hold_id, ship_id) {
   let ship_entry$1 = (() => {
     let _record = ship_entry;
     return new ShipEntry(ship, _record.is_expanded);
+  })();
+  let ship_entries = insert(model.ships, ship_id, ship_entry$1);
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      ship_entries,
+      _record.current_ship,
+      _record.count_ship_index,
+      _record.count_hold_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
+}
+function user_collapsed_ship(model, ship_id) {
+  let $ = map_get(model.ships, ship_id);
+  if (!$.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/update/ships",
+      186,
+      "user_collapsed_ship",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $ }
+    );
+  }
+  let ship_entry = $[0];
+  let ship_entry$1 = (() => {
+    let _record = ship_entry;
+    return new ShipEntry(_record.ship, false);
+  })();
+  let ship_entries = insert(model.ships, ship_id, ship_entry$1);
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      ship_entries,
+      _record.current_ship,
+      _record.count_ship_index,
+      _record.count_hold_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
+}
+function user_expanded_ship(model, ship_id) {
+  let $ = map_get(model.ships, ship_id);
+  if (!$.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/update/ships",
+      197,
+      "user_expanded_ship",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $ }
+    );
+  }
+  let ship_entry = $[0];
+  let ship_entry$1 = (() => {
+    let _record = ship_entry;
+    return new ShipEntry(_record.ship, true);
   })();
   let ship_entries = insert(model.ships, ship_id, ship_entry$1);
   let model$1 = (() => {
@@ -8371,10 +8457,16 @@ function run2(model, msg) {
   } else if (msg instanceof UserAddedHoldToShip) {
     let ship_id = msg.ship_id;
     return user_added_hold_to_ship(model, ship_id);
-  } else {
+  } else if (msg instanceof UserDeletedHoldFromShip) {
     let hold_id = msg.hold_id;
     let ship_id = msg.ship_id;
     return user_deleted_hold_from_ship(model, hold_id, ship_id);
+  } else if (msg instanceof UserCollapsedShip) {
+    let ship_id = msg.ship_id;
+    return user_collapsed_ship(model, ship_id);
+  } else {
+    let ship_id = msg.ship_id;
+    return user_expanded_ship(model, ship_id);
   }
 }
 
@@ -8792,7 +8884,20 @@ function get_section3(collateral) {
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/view/sidebar/ships.mjs
-function get_collapsed_ship(ship) {
+function get_collapsed_ship(ship_id, ship) {
+  let total_capacity_string = (() => {
+    let _pipe = fold(
+      (() => {
+        let _pipe2 = ship.holds;
+        return values(_pipe2);
+      })(),
+      0,
+      (total, hold) => {
+        return total + hold.capacity;
+      }
+    );
+    return float_to_human_string(_pipe);
+  })() + " m\xB3";
   return div(
     toList([
       class$(
@@ -8809,22 +8914,14 @@ function get_collapsed_ship(ship) {
         toList([
           span(
             toList([class$("font-medium")]),
-            toList([text3("Iteron Mark V")])
+            toList([text3(ship.name)])
           ),
           div(
             toList([class$("flex items-center")]),
             toList([
               span(
                 toList([class$("text-sm text-gray-600 mr-2")]),
-                toList([text3("27,500 m\xB3")])
-              ),
-              span(
-                toList([
-                  class$(
-                    "bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded"
-                  )
-                ]),
-                toList([text3("mixed")])
+                toList([text3(total_capacity_string)])
               ),
               svg(
                 toList([
@@ -8832,7 +8929,8 @@ function get_collapsed_ship(ship) {
                   attribute2("viewBox", "0 0 24 24"),
                   attribute2("fill", "none"),
                   class$("h-5 w-5 ml-2"),
-                  attribute2("xmlns", "http://www.w3.org/2000/svg")
+                  attribute2("xmlns", "http://www.w3.org/2000/svg"),
+                  on_click(new UserExpandedShip(ship_id))
                 ]),
                 toList([
                   path(
@@ -9118,7 +9216,8 @@ function get_expanded_ship(ship_id, ship) {
                   attribute2("viewBox", "0 0 24 24"),
                   attribute2("fill", "none"),
                   class$("h-5 w-5 ml-2 rotate-180"),
-                  attribute2("xmlns", "http://www.w3.org/2000/svg")
+                  attribute2("xmlns", "http://www.w3.org/2000/svg"),
+                  on_click(new UserCollapsedShip(ship_id))
                 ]),
                 toList([
                   path(
@@ -9149,7 +9248,7 @@ function get_expanded_ship(ship_id, ship) {
 function get_ship(ship_id, ship) {
   let $ = ship.is_expanded;
   if (!$) {
-    return get_collapsed_ship(ship.ship);
+    return get_collapsed_ship(ship_id, ship.ship);
   } else {
     return get_expanded_ship(ship_id, ship.ship);
   }

@@ -46,5 +46,7 @@ pub fn run(
       ships.user_added_hold_to_ship(model, ship_id)
     mvu.UserDeletedHoldFromShip(hold_id, ship_id) ->
       ships.user_deleted_hold_from_ship(model, hold_id, ship_id)
+    mvu.UserCollapsedShip(ship_id) -> ships.user_collapsed_ship(model, ship_id)
+    mvu.UserExpandedShip(ship_id) -> ships.user_expanded_ship(model, ship_id)
   }
 }

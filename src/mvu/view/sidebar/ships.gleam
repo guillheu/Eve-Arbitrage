@@ -26,7 +26,7 @@ pub fn get_section(model: mvu.Model) -> element.Element(mvu.Msg) {
 
 fn get_ship(ship_id: Int, ship: mvu.ShipEntry) -> element.Element(mvu.Msg) {
   case ship.is_expanded {
-    False -> get_collapsed_ship(ship.ship)
+    False -> get_collapsed_ship(ship_id, ship.ship)
     True -> get_expanded_ship(ship_id, ship.ship)
   }
 }
@@ -92,6 +92,7 @@ fn get_expanded_ship(ship_id: Int, ship: sde.Ship) -> element.Element(mvu.Msg) {
                 attribute("fill", "none"),
                 attribute.class("h-5 w-5 ml-2 rotate-180"),
                 attribute("xmlns", "http://www.w3.org/2000/svg"),
+                event.on_click(mvu.UserCollapsedShip(ship_id)),
               ],
               [
                 svg.path([
@@ -117,7 +118,14 @@ fn get_expanded_ship(ship_id: Int, ship: sde.Ship) -> element.Element(mvu.Msg) {
   )
 }
 
-fn get_collapsed_ship(ship: sde.Ship) -> element.Element(mvu.Msg) {
+fn get_collapsed_ship(ship_id: Int, ship: sde.Ship) -> element.Element(mvu.Msg) {
+  let total_capacity_string =
+    list.fold(ship.holds |> dict.values, 0.0, fn(total, hold) {
+      total +. hold.capacity
+    })
+    |> numbers.float_to_human_string
+    <> " m³"
+
   html.div(
     [
       attribute.class(
@@ -132,21 +140,19 @@ fn get_collapsed_ship(ship: sde.Ship) -> element.Element(mvu.Msg) {
           ),
         ],
         [
-          html.span([attribute.class("font-medium")], [
-            html.text("Iteron Mark V"),
-          ]),
+          html.span([attribute.class("font-medium")], [html.text(ship.name)]),
           html.div([attribute.class("flex items-center")], [
             html.span([attribute.class("text-sm text-gray-600 mr-2")], [
-              html.text("27,500 m³"),
+              html.text(total_capacity_string),
             ]),
-            html.span(
-              [
-                attribute.class(
-                  "bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded",
-                ),
-              ],
-              [html.text("mixed")],
-            ),
+            // html.span(
+            //   [
+            //     attribute.class(
+            //       "bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded",
+            //     ),
+            //   ],
+            //   [html.text("mixed")],
+            // ),
             svg.svg(
               [
                 attribute("stroke", "currentColor"),
@@ -154,6 +160,7 @@ fn get_collapsed_ship(ship: sde.Ship) -> element.Element(mvu.Msg) {
                 attribute("fill", "none"),
                 attribute.class("h-5 w-5 ml-2"),
                 attribute("xmlns", "http://www.w3.org/2000/svg"),
+                event.on_click(mvu.UserExpandedShip(ship_id)),
               ],
               [
                 svg.path([

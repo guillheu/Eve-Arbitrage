@@ -85,6 +85,8 @@ pub type Msg {
   UserUpdatedShipHoldKind(kind: String, hold_id: Int, ship_id: Int)
   UserAddedHoldToShip(ship_id: Int)
   UserDeletedHoldFromShip(hold_id: Int, ship_id: Int)
+  UserCollapsedShip(ship_id: Int)
+  UserExpandedShip(ship_id: Int)
 }
 
 pub fn float_input_to_msg(input: String, msg: fn(Option(Float)) -> Msg) {
