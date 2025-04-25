@@ -77,14 +77,14 @@ fn get_expanded_ship(ship_id: Int, ship: sde.Ship) -> element.Element(mvu.Msg) {
             html.span([attribute.class("text-sm text-gray-600 mr-2")], [
               html.text(total_capacity_string),
             ]),
-            html.span(
-              [
-                attribute.class(
-                  "bg-orange-100 text-orange-800 text-xs px-2 py-0.5 rounded",
-                ),
-              ],
-              [html.text("minerals")],
-            ),
+            // html.span(
+            //   [
+            //     attribute.class(
+            //       "bg-orange-100 text-orange-800 text-xs px-2 py-0.5 rounded",
+            //     ),
+            //   ],
+            //   [html.text("minerals")],
+            // ),
             svg.svg(
               [
                 attribute("stroke", "currentColor"),

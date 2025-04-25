@@ -9112,14 +9112,6 @@ function get_expanded_ship(ship_id, ship) {
                 toList([class$("text-sm text-gray-600 mr-2")]),
                 toList([text3(total_capacity_string)])
               ),
-              span(
-                toList([
-                  class$(
-                    "bg-orange-100 text-orange-800 text-xs px-2 py-0.5 rounded"
-                  )
-                ]),
-                toList([text3("minerals")])
-              ),
               svg(
                 toList([
                   attribute2("stroke", "currentColor"),
