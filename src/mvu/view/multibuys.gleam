@@ -80,7 +80,7 @@ fn get_multibuy(multibuy: arbitrage.Multibuy) -> element.Element(mvu.Msg) {
           ]),
           html.span([attribute.class("font-bold text-gray-900")], [
             html.text(
-              numbers.price_to_human_string(arbitrage.get_multibuy_total_price(
+              numbers.float_to_human_string(arbitrage.get_multibuy_total_price(
                 multibuy,
               ))
               <> " ISK",

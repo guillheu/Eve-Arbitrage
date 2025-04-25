@@ -11,6 +11,7 @@ import lustre/element/html
 import lustre/element/svg
 import lustre/event
 import mvu
+import util/numbers
 
 pub fn get_section(model: mvu.Model) -> element.Element(mvu.Msg) {
   let ships_contents = dict.map_values(model.ships, get_ship) |> dict.values
@@ -40,6 +41,13 @@ fn get_expanded_ship(ship_id: Int, ship: sde.Ship) -> element.Element(mvu.Msg) {
       get_ship_hold(hold_id, hold, ship_id)
     })
     |> dict.values
+  let total_capacity_string =
+    list.fold(ship.holds |> dict.values, 0.0, fn(total, hold) {
+      total +. hold.capacity
+    })
+    |> numbers.float_to_human_string
+    <> " m³"
+
   let holds_content = list.append(holds, holds_buttons)
   let attribute_id = "ship-name-" <> int.to_string(ship_id)
   html.div(
@@ -67,7 +75,7 @@ fn get_expanded_ship(ship_id: Int, ship: sde.Ship) -> element.Element(mvu.Msg) {
           ]),
           html.div([attribute.class("flex items-center")], [
             html.span([attribute.class("text-sm text-gray-600 mr-2")], [
-              html.text("7,500 m³"),
+              html.text(total_capacity_string),
             ]),
             html.span(
               [

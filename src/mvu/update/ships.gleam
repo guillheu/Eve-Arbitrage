@@ -119,7 +119,7 @@ pub fn user_updated_ship_hold_capacity(
     )
   let hold = sde.Hold(..hold, capacity: capacity)
   let holds = dict.insert(ship.holds, hold_id, hold)
-  let new_ship = echo sde.Ship(..ship, holds: holds)
+  let new_ship = sde.Ship(..ship, holds: holds)
   let ship_entry = mvu.ShipEntry(..ship_entry, ship: new_ship)
   let ship_entries = dict.insert(model.ships, ship_id, ship_entry)
   let model = mvu.Model(..model, ships: ship_entries)
@@ -138,7 +138,7 @@ pub fn user_updated_ship_hold_kind(
   let assert Ok(hold) = dict.get(ship.holds, hold_id)
   let hold = sde.Hold(..hold, kind: hold_kind)
   let holds = dict.insert(ship.holds, hold_id, hold)
-  let ship = echo sde.Ship(..ship, holds: holds)
+  let ship = sde.Ship(..ship, holds: holds)
   let ship_entry = mvu.ShipEntry(..ship_entry, ship: ship)
   let ship_entries = dict.insert(model.ships, ship_id, ship_entry)
   let model = mvu.Model(..model, ships: ship_entries)
@@ -153,7 +153,7 @@ pub fn user_added_hold_to_ship(
   let assert Ok(ship_entry) = dict.get(model.ships, ship_id)
   let ship = ship_entry.ship
   let holds = dict.insert(ship.holds, model.count_hold_index, new_hold)
-  let ship = echo sde.Ship(..ship, holds: holds)
+  let ship = sde.Ship(..ship, holds: holds)
   let ship_entry = mvu.ShipEntry(..ship_entry, ship: ship)
   let ship_entries = dict.insert(model.ships, ship_id, ship_entry)
   let model =
@@ -172,7 +172,7 @@ pub fn user_deleted_hold_from_ship(
 ) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
   let assert Ok(ship_entry) = dict.get(model.ships, ship_id)
   let holds = dict.delete(ship_entry.ship.holds, hold_id)
-  let ship = echo sde.Ship(..ship_entry.ship, holds: holds)
+  let ship = sde.Ship(..ship_entry.ship, holds: holds)
   let ship_entry = mvu.ShipEntry(..ship_entry, ship: ship)
   let ship_entries = dict.insert(model.ships, ship_id, ship_entry)
   let model = mvu.Model(..model, ships: ship_entries)
@@ -201,7 +201,10 @@ fn fetch_float_input_value_from_element_id_or_default(
   let element_result = dom_element.get_element_by_id(element_id)
   let value_result =
     result.try(element_result, fn(element) { dom_element.value(element) })
-  let value_result = result.try(value_result, float.parse)
+  let float_parse_result = result.try(value_result, float.parse)
+  let int_parse_result =
+    result.try(value_result, int.parse) |> result.map(int.to_float)
+  let value_result = float_parse_result |> result.or(int_parse_result)
 
   result.unwrap(value_result, default_value)
 }

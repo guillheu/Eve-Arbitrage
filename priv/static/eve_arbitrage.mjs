@@ -272,277 +272,6 @@ function bitArrayPrintDeprecationWarning(name2, message) {
   );
   isBitArrayDeprecationMessagePrinted[name2] = true;
 }
-function bitArraySlice(bitArray, start4, end) {
-  end ??= bitArray.bitSize;
-  bitArrayValidateRange(bitArray, start4, end);
-  if (start4 === end) {
-    return new BitArray(new Uint8Array());
-  }
-  if (start4 === 0 && end === bitArray.bitSize) {
-    return bitArray;
-  }
-  start4 += bitArray.bitOffset;
-  end += bitArray.bitOffset;
-  const startByteIndex = Math.trunc(start4 / 8);
-  const endByteIndex = Math.trunc((end + 7) / 8);
-  const byteLength = endByteIndex - startByteIndex;
-  let buffer;
-  if (startByteIndex === 0 && byteLength === bitArray.rawBuffer.byteLength) {
-    buffer = bitArray.rawBuffer;
-  } else {
-    buffer = new Uint8Array(
-      bitArray.rawBuffer.buffer,
-      bitArray.rawBuffer.byteOffset + startByteIndex,
-      byteLength
-    );
-  }
-  return new BitArray(buffer, end - start4, start4 % 8);
-}
-function bitArraySliceToInt(bitArray, start4, end, isBigEndian, isSigned) {
-  bitArrayValidateRange(bitArray, start4, end);
-  if (start4 === end) {
-    return 0;
-  }
-  start4 += bitArray.bitOffset;
-  end += bitArray.bitOffset;
-  const isStartByteAligned = start4 % 8 === 0;
-  const isEndByteAligned = end % 8 === 0;
-  if (isStartByteAligned && isEndByteAligned) {
-    return intFromAlignedSlice(
-      bitArray,
-      start4 / 8,
-      end / 8,
-      isBigEndian,
-      isSigned
-    );
-  }
-  const size2 = end - start4;
-  const startByteIndex = Math.trunc(start4 / 8);
-  const endByteIndex = Math.trunc((end - 1) / 8);
-  if (startByteIndex == endByteIndex) {
-    const mask2 = 255 >> start4 % 8;
-    const unusedLowBitCount = (8 - end % 8) % 8;
-    let value3 = (bitArray.rawBuffer[startByteIndex] & mask2) >> unusedLowBitCount;
-    if (isSigned) {
-      const highBit = 2 ** (size2 - 1);
-      if (value3 >= highBit) {
-        value3 -= highBit * 2;
-      }
-    }
-    return value3;
-  }
-  if (size2 <= 53) {
-    return intFromUnalignedSliceUsingNumber(
-      bitArray.rawBuffer,
-      start4,
-      end,
-      isBigEndian,
-      isSigned
-    );
-  } else {
-    return intFromUnalignedSliceUsingBigInt(
-      bitArray.rawBuffer,
-      start4,
-      end,
-      isBigEndian,
-      isSigned
-    );
-  }
-}
-function intFromAlignedSlice(bitArray, start4, end, isBigEndian, isSigned) {
-  const byteSize = end - start4;
-  if (byteSize <= 6) {
-    return intFromAlignedSliceUsingNumber(
-      bitArray.rawBuffer,
-      start4,
-      end,
-      isBigEndian,
-      isSigned
-    );
-  } else {
-    return intFromAlignedSliceUsingBigInt(
-      bitArray.rawBuffer,
-      start4,
-      end,
-      isBigEndian,
-      isSigned
-    );
-  }
-}
-function intFromAlignedSliceUsingNumber(buffer, start4, end, isBigEndian, isSigned) {
-  const byteSize = end - start4;
-  let value3 = 0;
-  if (isBigEndian) {
-    for (let i = start4; i < end; i++) {
-      value3 *= 256;
-      value3 += buffer[i];
-    }
-  } else {
-    for (let i = end - 1; i >= start4; i--) {
-      value3 *= 256;
-      value3 += buffer[i];
-    }
-  }
-  if (isSigned) {
-    const highBit = 2 ** (byteSize * 8 - 1);
-    if (value3 >= highBit) {
-      value3 -= highBit * 2;
-    }
-  }
-  return value3;
-}
-function intFromAlignedSliceUsingBigInt(buffer, start4, end, isBigEndian, isSigned) {
-  const byteSize = end - start4;
-  let value3 = 0n;
-  if (isBigEndian) {
-    for (let i = start4; i < end; i++) {
-      value3 *= 256n;
-      value3 += BigInt(buffer[i]);
-    }
-  } else {
-    for (let i = end - 1; i >= start4; i--) {
-      value3 *= 256n;
-      value3 += BigInt(buffer[i]);
-    }
-  }
-  if (isSigned) {
-    const highBit = 1n << BigInt(byteSize * 8 - 1);
-    if (value3 >= highBit) {
-      value3 -= highBit * 2n;
-    }
-  }
-  return Number(value3);
-}
-function intFromUnalignedSliceUsingNumber(buffer, start4, end, isBigEndian, isSigned) {
-  const isStartByteAligned = start4 % 8 === 0;
-  let size2 = end - start4;
-  let byteIndex = Math.trunc(start4 / 8);
-  let value3 = 0;
-  if (isBigEndian) {
-    if (!isStartByteAligned) {
-      const leadingBitsCount = 8 - start4 % 8;
-      value3 = buffer[byteIndex++] & (1 << leadingBitsCount) - 1;
-      size2 -= leadingBitsCount;
-    }
-    while (size2 >= 8) {
-      value3 *= 256;
-      value3 += buffer[byteIndex++];
-      size2 -= 8;
-    }
-    if (size2 > 0) {
-      value3 *= 2 ** size2;
-      value3 += buffer[byteIndex] >> 8 - size2;
-    }
-  } else {
-    if (isStartByteAligned) {
-      let size3 = end - start4;
-      let scale = 1;
-      while (size3 >= 8) {
-        value3 += buffer[byteIndex++] * scale;
-        scale *= 256;
-        size3 -= 8;
-      }
-      value3 += (buffer[byteIndex] >> 8 - size3) * scale;
-    } else {
-      const highBitsCount = start4 % 8;
-      const lowBitsCount = 8 - highBitsCount;
-      let size3 = end - start4;
-      let scale = 1;
-      while (size3 >= 8) {
-        const byte = buffer[byteIndex] << highBitsCount | buffer[byteIndex + 1] >> lowBitsCount;
-        value3 += (byte & 255) * scale;
-        scale *= 256;
-        size3 -= 8;
-        byteIndex++;
-      }
-      if (size3 > 0) {
-        const lowBitsUsed = size3 - Math.max(0, size3 - lowBitsCount);
-        let trailingByte = (buffer[byteIndex] & (1 << lowBitsCount) - 1) >> lowBitsCount - lowBitsUsed;
-        size3 -= lowBitsUsed;
-        if (size3 > 0) {
-          trailingByte *= 2 ** size3;
-          trailingByte += buffer[byteIndex + 1] >> 8 - size3;
-        }
-        value3 += trailingByte * scale;
-      }
-    }
-  }
-  if (isSigned) {
-    const highBit = 2 ** (end - start4 - 1);
-    if (value3 >= highBit) {
-      value3 -= highBit * 2;
-    }
-  }
-  return value3;
-}
-function intFromUnalignedSliceUsingBigInt(buffer, start4, end, isBigEndian, isSigned) {
-  const isStartByteAligned = start4 % 8 === 0;
-  let size2 = end - start4;
-  let byteIndex = Math.trunc(start4 / 8);
-  let value3 = 0n;
-  if (isBigEndian) {
-    if (!isStartByteAligned) {
-      const leadingBitsCount = 8 - start4 % 8;
-      value3 = BigInt(buffer[byteIndex++] & (1 << leadingBitsCount) - 1);
-      size2 -= leadingBitsCount;
-    }
-    while (size2 >= 8) {
-      value3 *= 256n;
-      value3 += BigInt(buffer[byteIndex++]);
-      size2 -= 8;
-    }
-    if (size2 > 0) {
-      value3 <<= BigInt(size2);
-      value3 += BigInt(buffer[byteIndex] >> 8 - size2);
-    }
-  } else {
-    if (isStartByteAligned) {
-      let size3 = end - start4;
-      let shift = 0n;
-      while (size3 >= 8) {
-        value3 += BigInt(buffer[byteIndex++]) << shift;
-        shift += 8n;
-        size3 -= 8;
-      }
-      value3 += BigInt(buffer[byteIndex] >> 8 - size3) << shift;
-    } else {
-      const highBitsCount = start4 % 8;
-      const lowBitsCount = 8 - highBitsCount;
-      let size3 = end - start4;
-      let shift = 0n;
-      while (size3 >= 8) {
-        const byte = buffer[byteIndex] << highBitsCount | buffer[byteIndex + 1] >> lowBitsCount;
-        value3 += BigInt(byte & 255) << shift;
-        shift += 8n;
-        size3 -= 8;
-        byteIndex++;
-      }
-      if (size3 > 0) {
-        const lowBitsUsed = size3 - Math.max(0, size3 - lowBitsCount);
-        let trailingByte = (buffer[byteIndex] & (1 << lowBitsCount) - 1) >> lowBitsCount - lowBitsUsed;
-        size3 -= lowBitsUsed;
-        if (size3 > 0) {
-          trailingByte <<= size3;
-          trailingByte += buffer[byteIndex + 1] >> 8 - size3;
-        }
-        value3 += BigInt(trailingByte) << shift;
-      }
-    }
-  }
-  if (isSigned) {
-    const highBit = 2n ** BigInt(end - start4 - 1);
-    if (value3 >= highBit) {
-      value3 -= highBit * 2n;
-    }
-  }
-  return Number(value3);
-}
-function bitArrayValidateRange(bitArray, start4, end) {
-  if (start4 < 0 || start4 > bitArray.bitSize || end < start4 || end > bitArray.bitSize) {
-    const msg = `Invalid bit array slice: start = ${start4}, end = ${end}, bit size = ${bitArray.bitSize}`;
-    throw new globalThis.Error(msg);
-  }
-}
 var Result = class _Result extends CustomType {
   // @internal
   static isResult(data) {
@@ -1241,6 +970,40 @@ function concat_loop(loop$strings, loop$accumulator) {
 function concat2(strings) {
   return concat_loop(strings, "");
 }
+function repeat_loop(loop$string, loop$times, loop$acc) {
+  while (true) {
+    let string5 = loop$string;
+    let times = loop$times;
+    let acc = loop$acc;
+    let $ = times <= 0;
+    if ($) {
+      return acc;
+    } else {
+      loop$string = string5;
+      loop$times = times - 1;
+      loop$acc = acc + string5;
+    }
+  }
+}
+function repeat(string5, times) {
+  return repeat_loop(string5, times, "");
+}
+function padding(size2, pad_string) {
+  let pad_string_length = string_length(pad_string);
+  let num_pads = divideInt(size2, pad_string_length);
+  let extra = remainderInt(size2, pad_string_length);
+  return repeat(pad_string, num_pads) + slice(pad_string, 0, extra);
+}
+function pad_start(string5, desired_length, pad_string) {
+  let current_length = string_length(string5);
+  let to_pad_length = desired_length - current_length;
+  let $ = to_pad_length <= 0;
+  if ($) {
+    return string5;
+  } else {
+    return padding(to_pad_length, pad_string) + string5;
+  }
+}
 function trim(string5) {
   let _pipe = string5;
   let _pipe$1 = trim_start(_pipe);
@@ -1304,6 +1067,13 @@ function unwrap_both(result) {
   } else {
     let a2 = result[0];
     return a2;
+  }
+}
+function or(first, second) {
+  if (first.isOk()) {
+    return first;
+  } else {
+    return second;
   }
 }
 function replace_error(result, error) {
@@ -7522,14 +7292,10 @@ function user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id) {
     return new Hold(_record.name, hold_kind$1, _record.capacity);
   })();
   let holds = insert(ship.holds, hold_id, hold$1);
-  let ship$1 = echo(
-    (() => {
-      let _record = ship;
-      return new Ship(_record.name, holds);
-    })(),
-    "src/mvu/update/ships.gleam",
-    141
-  );
+  let ship$1 = (() => {
+    let _record = ship;
+    return new Ship(_record.name, holds);
+  })();
   let ship_entry$1 = (() => {
     let _record = ship_entry;
     return new ShipEntry(ship$1, _record.is_expanded);
@@ -7570,14 +7336,10 @@ function user_added_hold_to_ship(model, ship_id) {
   let ship_entry = $[0];
   let ship = ship_entry.ship;
   let holds = insert(ship.holds, model.count_hold_index, new_hold);
-  let ship$1 = echo(
-    (() => {
-      let _record = ship;
-      return new Ship(_record.name, holds);
-    })(),
-    "src/mvu/update/ships.gleam",
-    156
-  );
+  let ship$1 = (() => {
+    let _record = ship;
+    return new Ship(_record.name, holds);
+  })();
   let ship_entry$1 = (() => {
     let _record = ship_entry;
     return new ShipEntry(ship$1, _record.is_expanded);
@@ -7616,14 +7378,10 @@ function user_deleted_hold_from_ship(model, hold_id, ship_id) {
   }
   let ship_entry = $[0];
   let holds = delete$(ship_entry.ship.holds, hold_id);
-  let ship = echo(
-    (() => {
-      let _record = ship_entry.ship;
-      return new Ship(_record.name, holds);
-    })(),
-    "src/mvu/update/ships.gleam",
-    175
-  );
+  let ship = (() => {
+    let _record = ship_entry.ship;
+    return new Ship(_record.name, holds);
+  })();
   let ship_entry$1 = (() => {
     let _record = ship_entry;
     return new ShipEntry(ship, _record.is_expanded);
@@ -7800,7 +7558,15 @@ function fetch_float_input_value_from_element_id_or_default(element_id, default_
       return value2(element3);
     }
   );
-  let value_result$1 = try$(value_result, parse_float);
+  let float_parse_result = try$(value_result, parse_float);
+  let int_parse_result = (() => {
+    let _pipe = try$(value_result, parse_int);
+    return map2(_pipe, identity);
+  })();
+  let value_result$1 = (() => {
+    let _pipe = float_parse_result;
+    return or(_pipe, int_parse_result);
+  })();
   return unwrap2(value_result$1, default_value);
 }
 function user_updated_ship_hold_capacity(model, hold_id, ship_id) {
@@ -7840,14 +7606,10 @@ function user_updated_ship_hold_capacity(model, hold_id, ship_id) {
     return new Hold(_record.name, _record.kind, capacity);
   })();
   let holds = insert(ship.holds, hold_id, hold$1);
-  let new_ship = echo(
-    (() => {
-      let _record = ship;
-      return new Ship(_record.name, holds);
-    })(),
-    "src/mvu/update/ships.gleam",
-    122
-  );
+  let new_ship = (() => {
+    let _record = ship;
+    return new Ship(_record.name, holds);
+  })();
   let ship_entry$1 = (() => {
     let _record = ship_entry;
     return new ShipEntry(new_ship, _record.is_expanded);
@@ -7871,127 +7633,6 @@ function user_updated_ship_hold_capacity(model, hold_id, ship_id) {
     );
   })();
   return [model$1, none()];
-}
-function echo(value3, file, line) {
-  const grey = "\x1B[90m";
-  const reset_color = "\x1B[39m";
-  const file_line = `${file}:${line}`;
-  const string_value = echo$inspect(value3);
-  if (typeof process === "object" && process.stderr?.write) {
-    const string5 = `${grey}${file_line}${reset_color}
-${string_value}
-`;
-    process.stderr.write(string5);
-  } else if (typeof Deno === "object") {
-    const string5 = `${grey}${file_line}${reset_color}
-${string_value}
-`;
-    Deno.stderr.writeSync(new TextEncoder().encode(string5));
-  } else {
-    const string5 = `${file_line}
-${string_value}`;
-    console.log(string5);
-  }
-  return value3;
-}
-function echo$inspectString(str) {
-  let new_str = '"';
-  for (let i = 0; i < str.length; i++) {
-    let char = str[i];
-    if (char == "\n") new_str += "\\n";
-    else if (char == "\r") new_str += "\\r";
-    else if (char == "	") new_str += "\\t";
-    else if (char == "\f") new_str += "\\f";
-    else if (char == "\\") new_str += "\\\\";
-    else if (char == '"') new_str += '\\"';
-    else if (char < " " || char > "~" && char < "\xA0") {
-      new_str += "\\u{" + char.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0") + "}";
-    } else {
-      new_str += char;
-    }
-  }
-  new_str += '"';
-  return new_str;
-}
-function echo$inspectDict(map6) {
-  let body = "dict.from_list([";
-  let first = true;
-  let key_value_pairs = [];
-  map6.forEach((value3, key) => {
-    key_value_pairs.push([key, value3]);
-  });
-  key_value_pairs.sort();
-  key_value_pairs.forEach(([key, value3]) => {
-    if (!first) body = body + ", ";
-    body = body + "#(" + echo$inspect(key) + ", " + echo$inspect(value3) + ")";
-    first = false;
-  });
-  return body + "])";
-}
-function echo$inspectCustomType(record) {
-  const props = Object.keys(record).map((label2) => {
-    const value3 = echo$inspect(record[label2]);
-    return isNaN(parseInt(label2)) ? `${label2}: ${value3}` : value3;
-  }).join(", ");
-  return props ? `${record.constructor.name}(${props})` : record.constructor.name;
-}
-function echo$inspectObject(v) {
-  const name2 = Object.getPrototypeOf(v)?.constructor?.name || "Object";
-  const props = [];
-  for (const k of Object.keys(v)) {
-    props.push(`${echo$inspect(k)}: ${echo$inspect(v[k])}`);
-  }
-  const body = props.length ? " " + props.join(", ") + " " : "";
-  const head = name2 === "Object" ? "" : name2 + " ";
-  return `//js(${head}{${body}})`;
-}
-function echo$inspect(v) {
-  const t = typeof v;
-  if (v === true) return "True";
-  if (v === false) return "False";
-  if (v === null) return "//js(null)";
-  if (v === void 0) return "Nil";
-  if (t === "string") return echo$inspectString(v);
-  if (t === "bigint" || t === "number") return v.toString();
-  if (Array.isArray(v)) return `#(${v.map(echo$inspect).join(", ")})`;
-  if (v instanceof List) return `[${v.toArray().map(echo$inspect).join(", ")}]`;
-  if (v instanceof UtfCodepoint) return `//utfcodepoint(${String.fromCodePoint(v.value)})`;
-  if (v instanceof BitArray) return echo$inspectBitArray(v);
-  if (v instanceof CustomType) return echo$inspectCustomType(v);
-  if (echo$isDict(v)) return echo$inspectDict(v);
-  if (v instanceof Set) return `//js(Set(${[...v].map(echo$inspect).join(", ")}))`;
-  if (v instanceof RegExp) return `//js(${v})`;
-  if (v instanceof Date) return `//js(Date("${v.toISOString()}"))`;
-  if (v instanceof Function) {
-    const args = [];
-    for (const i of Array(v.length).keys()) args.push(String.fromCharCode(i + 97));
-    return `//fn(${args.join(", ")}) { ... }`;
-  }
-  return echo$inspectObject(v);
-}
-function echo$inspectBitArray(bitArray) {
-  let endOfAlignedBytes = bitArray.bitOffset + 8 * Math.trunc(bitArray.bitSize / 8);
-  let alignedBytes = bitArraySlice(bitArray, bitArray.bitOffset, endOfAlignedBytes);
-  let remainingUnalignedBits = bitArray.bitSize % 8;
-  if (remainingUnalignedBits > 0) {
-    let remainingBits = bitArraySliceToInt(bitArray, endOfAlignedBytes, bitArray.bitSize, false, false);
-    let alignedBytesArray = Array.from(alignedBytes.rawBuffer);
-    let suffix = `${remainingBits}:size(${remainingUnalignedBits})`;
-    if (alignedBytesArray.length === 0) {
-      return `<<${suffix}>>`;
-    } else {
-      return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}, ${suffix}>>`;
-    }
-  } else {
-    return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}>>`;
-  }
-}
-function echo$isDict(value3) {
-  try {
-    return value3 instanceof Dict;
-  } catch {
-    return false;
-  }
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/update/sidebar.mjs
@@ -8804,26 +8445,29 @@ function int_to_segments(loop$acc, loop$from) {
     let $ = divideInt(from2, 1e3);
     if ($ > 0) {
       let x = $;
-      loop$acc = prepend(remainderInt(from2, 1e3), acc);
+      let segment = "," + (() => {
+        let _pipe = to_string(remainderInt(from2, 1e3));
+        return pad_start(_pipe, 3, "0");
+      })();
+      loop$acc = prepend(segment, acc);
       loop$from = x;
     } else {
-      let _pipe = prepend(from2, acc);
+      let _pipe = prepend(
+        (() => {
+          let _pipe2 = from2;
+          return to_string(_pipe2);
+        })(),
+        acc
+      );
       return reverse(_pipe);
     }
   }
 }
-function price_to_human_string(from2) {
+function float_to_human_string(from2) {
   let truncated = truncate(from2);
   let _pipe = int_to_segments(toList([]), truncated);
-  let _pipe$1 = map(
-    _pipe,
-    (segment) => {
-      return to_string(segment) + ",";
-    }
-  );
-  let _pipe$2 = reverse(_pipe$1);
-  let _pipe$3 = concat2(_pipe$2);
-  return drop_end(_pipe$3, 1);
+  let _pipe$1 = reverse(_pipe);
+  return concat2(_pipe$1);
 }
 function int_to_human_string(from2) {
   let $ = divideInt(from2, 1e3);
@@ -8919,7 +8563,7 @@ function get_multibuy(multibuy) {
                 toList([class$("font-bold text-gray-900")]),
                 toList([
                   text3(
-                    price_to_human_string(
+                    float_to_human_string(
                       get_multibuy_total_price(multibuy)
                     ) + " ISK"
                   )
@@ -9421,6 +9065,19 @@ function get_expanded_ship(ship_id, ship) {
     );
     return values(_pipe);
   })();
+  let total_capacity_string = (() => {
+    let _pipe = fold(
+      (() => {
+        let _pipe2 = ship.holds;
+        return values(_pipe2);
+      })(),
+      0,
+      (total, hold) => {
+        return total + hold.capacity;
+      }
+    );
+    return float_to_human_string(_pipe);
+  })() + " m\xB3";
   let holds_content = append(holds, holds_buttons);
   let attribute_id = "ship-name-" + to_string(ship_id);
   return div(
@@ -9453,7 +9110,7 @@ function get_expanded_ship(ship_id, ship) {
             toList([
               span(
                 toList([class$("text-sm text-gray-600 mr-2")]),
-                toList([text3("7,500 m\xB3")])
+                toList([text3(total_capacity_string)])
               ),
               span(
                 toList([

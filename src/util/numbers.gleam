@@ -13,19 +13,22 @@ pub fn int_to_human_string(from: Int) -> String {
   }
 }
 
-pub fn price_to_human_string(from: Float) -> String {
+pub fn float_to_human_string(from: Float) -> String {
   let truncated = float.truncate(from)
 
   int_to_segments([], truncated)
-  |> list.map(fn(segment) { int.to_string(segment) <> "," })
   |> list.reverse
   |> string.concat
-  |> string.drop_end(1)
+  // |> string.drop_end(1)
 }
 
-fn int_to_segments(acc: List(Int), from: Int) -> List(Int) {
+fn int_to_segments(acc: List(String), from: Int) -> List(String) {
   case from / 1000 {
-    x if x > 0 -> int_to_segments([from % 1000, ..acc], x)
-    _x -> [from, ..acc] |> list.reverse
+    x if x > 0 -> {
+      let segment =
+        "," <> { int.to_string(from % 1000) |> string.pad_start(3, "0") }
+      int_to_segments([segment, ..acc], x)
+    }
+    _x -> [from |> int.to_string, ..acc] |> list.reverse
   }
 }
