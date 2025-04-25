@@ -78,7 +78,7 @@ pub type Msg {
   // ship messages
   UserCreatedShip
   UserDeletedShip(deleted_ship: Int)
-  UserSelectedShip(selected_ship: Int)
+  UserSelectedShip(ship_id: Int)
   UserUpdatedShipName(id: Int)
   UserUpdatedShipHoldName(hold_id: Int, ship_id: Int)
   UserUpdatedShipHoldCapacity(hold_id: Int, ship_id: Int)

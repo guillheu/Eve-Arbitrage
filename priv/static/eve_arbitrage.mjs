@@ -7058,9 +7058,9 @@ var UserDeletedShip = class extends CustomType {
   }
 };
 var UserSelectedShip = class extends CustomType {
-  constructor(selected_ship) {
+  constructor(ship_id) {
     super();
-    this.selected_ship = selected_ship;
+    this.ship_id = ship_id;
   }
 };
 var UserUpdatedShipName = class extends CustomType {
@@ -8392,7 +8392,7 @@ function run2(model, msg) {
     let new_source = msg.new_source;
     return user_selected_source(new_source, model);
   } else if (msg instanceof UserSelectedShip) {
-    let selected_ship = msg.selected_ship;
+    let selected_ship = msg.ship_id;
     return user_selected_ship(selected_ship, model);
   } else if (msg instanceof EsiReturnedBuyOrders) {
     let esi_response = msg[0];
@@ -8884,7 +8884,17 @@ function get_section3(collateral) {
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/view/sidebar/ships.mjs
-function get_collapsed_ship(ship_id, ship) {
+var ShipStyle = class extends CustomType {
+  constructor(container, header, name_input, capacity_text, arrow_icon) {
+    super();
+    this.container = container;
+    this.header = header;
+    this.name_input = name_input;
+    this.capacity_text = capacity_text;
+    this.arrow_icon = arrow_icon;
+  }
+};
+function get_collapsed_ship(ship_id, ship, style) {
   let total_capacity_string = (() => {
     let _pipe = fold(
       (() => {
@@ -8899,38 +8909,42 @@ function get_collapsed_ship(ship_id, ship) {
     return float_to_human_string(_pipe);
   })() + " m\xB3";
   return div(
-    toList([
-      class$(
-        "mb-3 border border-gray-200 rounded-md hover:border-gray-300"
-      )
-    ]),
+    toList([class$(style.container)]),
     toList([
       div(
+        toList([class$(style.header)]),
         toList([
-          class$(
-            "p-3 bg-gray-50 rounded-t-md flex justify-between items-center cursor-pointer hover:bg-gray-100"
-          )
-        ]),
-        toList([
-          span(
-            toList([class$("font-medium")]),
-            toList([text3(ship.name)])
-          ),
           div(
-            toList([class$("flex items-center")]),
+            toList([
+              class$(
+                "pl-3 pt-3 pb-3 flex-grow flex items-center text-right"
+              ),
+              on_click(new UserSelectedShip(ship_id))
+            ]),
             toList([
               span(
-                toList([class$("text-sm text-gray-600 mr-2")]),
-                toList([text3(total_capacity_string)])
+                toList([class$(style.name_input + " text-left")]),
+                toList([text3(ship.name)])
               ),
+              span(
+                toList([class$(style.capacity_text)]),
+                toList([text3(total_capacity_string)])
+              )
+            ])
+          ),
+          div(
+            toList([
+              class$("flex-shrink-0 pt-3 pb-3 pr-3"),
+              on_click(new UserExpandedShip(ship_id))
+            ]),
+            toList([
               svg(
                 toList([
                   attribute2("stroke", "currentColor"),
                   attribute2("viewBox", "0 0 24 24"),
                   attribute2("fill", "none"),
                   class$("h-5 w-5 ml-2"),
-                  attribute2("xmlns", "http://www.w3.org/2000/svg"),
-                  on_click(new UserExpandedShip(ship_id))
+                  attribute2("xmlns", "http://www.w3.org/2000/svg")
                 ]),
                 toList([
                   path(
@@ -9149,7 +9163,7 @@ function get_delete_ship_button(ship_id) {
     ])
   );
 }
-function get_expanded_ship(ship_id, ship) {
+function get_expanded_ship(ship_id, ship, style) {
   let holds_buttons = toList([
     get_add_hold_button(ship_id),
     get_delete_ship_button(ship_id)
@@ -9179,45 +9193,47 @@ function get_expanded_ship(ship_id, ship) {
   let holds_content = append(holds, holds_buttons);
   let attribute_id = "ship-name-" + to_string(ship_id);
   return div(
-    toList([
-      class$(
-        "mb-3 border border-gray-200 rounded-md hover:border-gray-300"
-      )
-    ]),
+    toList([class$(style.container)]),
     toList([
       div(
+        toList([class$(style.header)]),
         toList([
-          class$(
-            "p-3 bg-gray-50 rounded-t-md flex justify-between items-center cursor-pointer hover:bg-gray-100"
-          )
-        ]),
-        toList([
-          input(
+          div(
             toList([
               class$(
-                "font-medium bg-transparent border-0 border-b border-gray-300 focus:ring-0 focus:border-gray-500 px-0 py-0 w-24"
+                "pl-3 pt-3 pb-3 flex-grow flex items-center text-right"
               ),
-              id(attribute_id),
-              value(ship.name),
-              type_("text"),
-              on_blur(new UserUpdatedShipName(ship_id))
+              on_click(new UserSelectedShip(ship_id))
+            ]),
+            toList([
+              input(
+                toList([
+                  class$(style.name_input),
+                  id(attribute_id),
+                  value(ship.name),
+                  type_("text"),
+                  on_blur(new UserUpdatedShipName(ship_id))
+                ])
+              ),
+              span(
+                toList([class$(style.capacity_text)]),
+                toList([text3(total_capacity_string)])
+              )
             ])
           ),
           div(
-            toList([class$("flex items-center")]),
             toList([
-              span(
-                toList([class$("text-sm text-gray-600 mr-2")]),
-                toList([text3(total_capacity_string)])
-              ),
+              class$("pt-3 pb-3 pr-3 flex-shrink-0"),
+              on_click(new UserCollapsedShip(ship_id))
+            ]),
+            toList([
               svg(
                 toList([
                   attribute2("stroke", "currentColor"),
                   attribute2("viewBox", "0 0 24 24"),
                   attribute2("fill", "none"),
-                  class$("h-5 w-5 ml-2 rotate-180"),
-                  attribute2("xmlns", "http://www.w3.org/2000/svg"),
-                  on_click(new UserCollapsedShip(ship_id))
+                  class$(style.arrow_icon + " rotate-180"),
+                  attribute2("xmlns", "http://www.w3.org/2000/svg")
                 ]),
                 toList([
                   path(
@@ -9235,23 +9251,11 @@ function get_expanded_ship(ship_id, ship) {
         ])
       ),
       div(
-        toList([
-          class$(
-            "collapsible-content demo-expanded border-t border-gray-200"
-          )
-        ]),
+        toList([class$("border-t border-gray-200")]),
         toList([div(toList([class$("p-3")]), holds_content)])
       )
     ])
   );
-}
-function get_ship(ship_id, ship) {
-  let $ = ship.is_expanded;
-  if (!$) {
-    return get_collapsed_ship(ship_id, ship.ship);
-  } else {
-    return get_expanded_ship(ship_id, ship.ship);
-  }
 }
 function get_add_ship_button() {
   return button(
@@ -9285,9 +9289,50 @@ function get_add_ship_button() {
     ])
   );
 }
+var default_ship_style = /* @__PURE__ */ new ShipStyle(
+  "mb-3 border border-gray-200 rounded-md hover:border-gray-300",
+  "bg-gray-50 rounded-t-md flex justify-between items-center cursor-pointer hover:bg-gray-100",
+  "font-medium bg-transparent border-0 border-b border-gray-300 focus:ring-0 focus:border-gray-500 px-0 py-0 w-24",
+  "text-sm text-gray-600 mr-2 flex-grow",
+  "h-5 w-5 ml-2"
+);
+var selected_ship_style = /* @__PURE__ */ new ShipStyle(
+  "mb-3 border-2 border-selected rounded-md bg-indigo-50",
+  "bg-indigo-100 rounded-t-md flex justify-between items-center cursor-pointer hover:bg-indigo-200",
+  "font-medium text-selected bg-transparent border-0 border-b border-indigo-300 focus:ring-0 focus:border-selected px-0 py-0 w-24",
+  "text-sm text-selected mr-2 flex-grow",
+  "h-5 w-5 ml-2 text-selected"
+);
+function get_ship(ship_id, ship, is_selected) {
+  let style = (() => {
+    if (!is_selected) {
+      return default_ship_style;
+    } else {
+      return selected_ship_style;
+    }
+  })();
+  let $ = ship.is_expanded;
+  if (!$) {
+    return get_collapsed_ship(ship_id, ship.ship, style);
+  } else {
+    return get_expanded_ship(ship_id, ship.ship, style);
+  }
+}
 function get_section4(model) {
+  let mapping_fn = (ship_id, ship_entry) => {
+    let is_selected = (() => {
+      let $ = model.current_ship;
+      if ($ instanceof Some && $[0] === ship_id) {
+        let id2 = $[0];
+        return true;
+      } else {
+        return false;
+      }
+    })();
+    return get_ship(ship_id, ship_entry, is_selected);
+  };
   let ships_contents = (() => {
-    let _pipe = map_values(model.ships, get_ship);
+    let _pipe = map_values(model.ships, mapping_fn);
     return values(_pipe);
   })();
   let contents = prepend(
