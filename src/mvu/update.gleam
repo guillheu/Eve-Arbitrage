@@ -36,7 +36,9 @@ pub fn run(
     mvu.UserDeletedShip(deleted_ship) ->
       ships.user_deleted_ship(model, deleted_ship)
     mvu.UserUpdatedShipName(id) -> ships.user_updated_ship_name(model, id)
-    mvu.UserUpdatedShipCargoName(cargo_id, ship_id) ->
-      ships.user_updated_ship_cargo_name(model, cargo_id, ship_id)
+    mvu.UserUpdatedShipHoldName(hold_id, ship_id) ->
+      ships.user_updated_ship_hold_name(model, hold_id, ship_id)
+    mvu.UserUpdatedShipHoldCapacity(hold_id, ship_id) ->
+      ships.user_updated_ship_hold_capacity(model, hold_id, ship_id)
   }
 }

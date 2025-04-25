@@ -165,7 +165,8 @@ fn get_ship_hold(
   hold: sde.Hold,
   ship_id: Int,
 ) -> element.Element(mvu.Msg) {
-  let element_id = "cargo-name-" <> int.to_string(hold_id)
+  let name_element_id = "hold-name-" <> int.to_string(hold_id)
+  let capacity_element_id = "hold-capacity-" <> int.to_string(hold_id)
   let hold_kinds =
     sde.get_all_hold_kinds()
     |> list.map(fn(hold_kind) {
@@ -186,18 +187,20 @@ fn get_ship_hold(
         attribute.class(
           "border border-gray-300 rounded-md px-2 py-1 text-sm w-1/2",
         ),
-        attribute.id(element_id),
+        attribute.id(name_element_id),
         attribute.value(hold.name),
         attribute.type_("text"),
-        event.on_blur(mvu.UserUpdatedShipCargoName(hold_id, ship_id)),
+        event.on_blur(mvu.UserUpdatedShipHoldName(hold_id, ship_id)),
       ]),
       html.div([attribute.class("flex items-center")], [
         html.input([
           attribute.class(
             "border border-gray-300 rounded-md px-2 py-1 text-sm w-20 mr-2",
           ),
-          attribute.value(hold.m3 |> float.to_string),
+          attribute.value(hold.capacity |> float.to_string),
+          attribute.id(capacity_element_id),
           attribute.type_("number"),
+          event.on_blur(mvu.UserUpdatedShipHoldCapacity(hold_id, ship_id)),
         ]),
         html.span([attribute.class("text-xs text-gray-500")], [html.text("m³")]),
       ]),

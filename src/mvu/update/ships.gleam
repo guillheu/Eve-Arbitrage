@@ -1,5 +1,6 @@
 import config/sde
 import gleam/dict
+import gleam/float
 import gleam/int
 import gleam/io
 import gleam/option.{type Option, Some}
@@ -30,7 +31,7 @@ pub fn user_created_ship(
         holds: [
           #(
             model.count_cargo_index,
-            sde.Hold(name: "Cargo", kind: sde.Generic, m3: 1000.0),
+            sde.Hold(name: "Cargo", kind: sde.Generic, capacity: 1000.0),
           ),
         ]
           |> dict.from_list,
@@ -80,22 +81,46 @@ pub fn user_updated_ship_name(
   #(model, effect.none())
 }
 
-pub fn user_updated_ship_cargo_name(
+pub fn user_updated_ship_hold_name(
   model: mvu.Model,
-  cargo_id: Int,
+  hold_id: Int,
   ship_id: Int,
 ) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
-  let element_id = "cargo-name-" <> int.to_string(cargo_id)
+  let element_id = "hold-name-" <> int.to_string(hold_id)
   let assert Ok(ship_entry) = dict.get(model.ships, ship_id)
   let ship = ship_entry.ship
-  let assert Ok(cargo) = dict.get(ship.holds, cargo_id)
-  let default_value = cargo.name
+  let assert Ok(hold) = dict.get(ship.holds, hold_id)
+  let default_value = hold.name
   let name =
     fetch_input_value_from_element_id_or_default(element_id, default_value)
-  let cargo = sde.Hold(..cargo, name: name)
-  let holds = dict.insert(ship.holds, cargo_id, cargo)
+  let hold = sde.Hold(..hold, name: name)
+  let holds = dict.insert(ship.holds, hold_id, hold)
   let new_ship = sde.Ship(..ship, holds: holds)
-  let ship_entry = echo mvu.ShipEntry(..ship_entry, ship: new_ship)
+  let ship_entry = mvu.ShipEntry(..ship_entry, ship: new_ship)
+  let ship_entries = dict.insert(model.ships, ship_id, ship_entry)
+  let model = mvu.Model(..model, ships: ship_entries)
+  #(model, effect.none())
+}
+
+pub fn user_updated_ship_hold_capacity(
+  model: mvu.Model,
+  hold_id: Int,
+  ship_id: Int,
+) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
+  let element_id = "hold-capacity-" <> int.to_string(hold_id)
+  let assert Ok(ship_entry) = dict.get(model.ships, ship_id)
+  let ship = ship_entry.ship
+  let assert Ok(hold) = dict.get(ship.holds, hold_id)
+  let default_value = hold.capacity
+  let capacity =
+    fetch_float_input_value_from_element_id_or_default(
+      element_id,
+      default_value,
+    )
+  let hold = sde.Hold(..hold, capacity: capacity)
+  let holds = dict.insert(ship.holds, hold_id, hold)
+  let new_ship = echo sde.Ship(..ship, holds: holds)
+  let ship_entry = mvu.ShipEntry(..ship_entry, ship: new_ship)
   let ship_entries = dict.insert(model.ships, ship_id, ship_entry)
   let model = mvu.Model(..model, ships: ship_entries)
   #(model, effect.none())
@@ -114,4 +139,16 @@ fn fetch_input_value_from_element_id_or_default(
     "" -> default_value
     any -> any
   }
+}
+
+fn fetch_float_input_value_from_element_id_or_default(
+  element_id: String,
+  default_value: Float,
+) -> Float {
+  let element_result = dom_element.get_element_by_id(element_id)
+  let value_result =
+    result.try(element_result, fn(element) { dom_element.value(element) })
+  let value_result = result.try(value_result, float.parse)
+
+  result.unwrap(value_result, default_value)
 }

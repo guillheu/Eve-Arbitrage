@@ -19,7 +19,7 @@ pub type Ship {
 }
 
 pub type Hold {
-  Hold(name: String, kind: HoldKind, m3: Float)
+  Hold(name: String, kind: HoldKind, capacity: Float)
 }
 
 pub type HoldKind {

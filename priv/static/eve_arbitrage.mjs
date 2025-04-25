@@ -2032,6 +2032,13 @@ function parse_int(value3) {
     return new Error(Nil);
   }
 }
+function parse_float(value3) {
+  if (/^[-+]?(\d+)\.(\d+)([eE][-+]?\d+)?$/.test(value3)) {
+    return new Ok(parseFloat(value3));
+  } else {
+    return new Error(Nil);
+  }
+}
 function to_string(term) {
   return term.toString();
 }
@@ -5409,11 +5416,11 @@ var Ship = class extends CustomType {
   }
 };
 var Hold = class extends CustomType {
-  constructor(name2, kind, m3) {
+  constructor(name2, kind, capacity) {
     super();
     this.name = name2;
     this.kind = kind;
-    this.m3 = m3;
+    this.capacity = capacity;
   }
 };
 var Generic = class extends CustomType {
@@ -7278,10 +7285,17 @@ var UserUpdatedShipName = class extends CustomType {
     this.id = id2;
   }
 };
-var UserUpdatedShipCargoName = class extends CustomType {
-  constructor(cargo_id, ship_id) {
+var UserUpdatedShipHoldName = class extends CustomType {
+  constructor(hold_id, ship_id) {
     super();
-    this.cargo_id = cargo_id;
+    this.hold_id = hold_id;
+    this.ship_id = ship_id;
+  }
+};
+var UserUpdatedShipHoldCapacity = class extends CustomType {
+  constructor(hold_id, ship_id) {
+    super();
+    this.hold_id = hold_id;
     this.ship_id = ship_id;
   }
 };
@@ -7457,7 +7471,7 @@ function user_updated_ship_name(model, id2) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      67,
+      68,
       "user_updated_ship_name",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7475,7 +7489,7 @@ function user_updated_ship_name(model, id2) {
       throw makeError(
         "let_assert",
         "mvu/update/ships",
-        74,
+        75,
         "user_updated_ship_name",
         "Pattern match failed, no pattern matched the value.",
         { value: $1 }
@@ -7509,55 +7523,131 @@ function user_updated_ship_name(model, id2) {
   })();
   return [model$1, none()];
 }
-function user_updated_ship_cargo_name(model, cargo_id, ship_id) {
-  let element_id = "cargo-name-" + to_string(cargo_id);
+function user_updated_ship_hold_name(model, hold_id, ship_id) {
+  let element_id = "hold-name-" + to_string(hold_id);
   let $ = map_get(model.ships, ship_id);
   if (!$.isOk()) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      89,
-      "user_updated_ship_cargo_name",
+      90,
+      "user_updated_ship_hold_name",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
     );
   }
   let ship_entry = $[0];
   let ship = ship_entry.ship;
-  let $1 = map_get(ship.holds, cargo_id);
+  let $1 = map_get(ship.holds, hold_id);
   if (!$1.isOk()) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      91,
-      "user_updated_ship_cargo_name",
+      92,
+      "user_updated_ship_hold_name",
       "Pattern match failed, no pattern matched the value.",
       { value: $1 }
     );
   }
-  let cargo = $1[0];
-  let default_value = cargo.name;
+  let hold = $1[0];
+  let default_value = hold.name;
   let name2 = fetch_input_value_from_element_id_or_default(
     element_id,
     default_value
   );
-  let cargo$1 = (() => {
-    let _record = cargo;
-    return new Hold(name2, _record.kind, _record.m3);
+  let hold$1 = (() => {
+    let _record = hold;
+    return new Hold(name2, _record.kind, _record.capacity);
   })();
-  let holds = insert(ship.holds, cargo_id, cargo$1);
+  let holds = insert(ship.holds, hold_id, hold$1);
   let new_ship = (() => {
     let _record = ship;
     return new Ship(_record.name, holds);
   })();
-  let ship_entry$1 = echo(
+  let ship_entry$1 = (() => {
+    let _record = ship_entry;
+    return new ShipEntry(new_ship, _record.is_expanded);
+  })();
+  let ship_entries = insert(model.ships, ship_id, ship_entry$1);
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      ship_entries,
+      _record.current_ship,
+      _record.count_ship_index,
+      _record.count_cargo_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
+}
+function fetch_float_input_value_from_element_id_or_default(element_id, default_value) {
+  let element_result = getElementById(element_id);
+  let value_result = try$(
+    element_result,
+    (element3) => {
+      return value2(element3);
+    }
+  );
+  let value_result$1 = try$(value_result, parse_float);
+  return unwrap2(value_result$1, default_value);
+}
+function user_updated_ship_hold_capacity(model, hold_id, ship_id) {
+  let element_id = "hold-capacity-" + to_string(hold_id);
+  let $ = map_get(model.ships, ship_id);
+  if (!$.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/update/ships",
+      111,
+      "user_updated_ship_hold_capacity",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $ }
+    );
+  }
+  let ship_entry = $[0];
+  let ship = ship_entry.ship;
+  let $1 = map_get(ship.holds, hold_id);
+  if (!$1.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/update/ships",
+      113,
+      "user_updated_ship_hold_capacity",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $1 }
+    );
+  }
+  let hold = $1[0];
+  let default_value = hold.capacity;
+  let capacity = fetch_float_input_value_from_element_id_or_default(
+    element_id,
+    default_value
+  );
+  let hold$1 = (() => {
+    let _record = hold;
+    return new Hold(_record.name, _record.kind, capacity);
+  })();
+  let holds = insert(ship.holds, hold_id, hold$1);
+  let new_ship = echo(
     (() => {
-      let _record = ship_entry;
-      return new ShipEntry(new_ship, _record.is_expanded);
+      let _record = ship;
+      return new Ship(_record.name, holds);
     })(),
     "src/mvu/update/ships.gleam",
-    98
+    122
   );
+  let ship_entry$1 = (() => {
+    let _record = ship_entry;
+    return new ShipEntry(new_ship, _record.is_expanded);
+  })();
   let ship_entries = insert(model.ships, ship_id, ship_entry$1);
   let model$1 = (() => {
     let _record = model;
@@ -8415,10 +8505,14 @@ function run2(model, msg) {
   } else if (msg instanceof UserUpdatedShipName) {
     let id2 = msg.id;
     return user_updated_ship_name(model, id2);
-  } else {
-    let cargo_id = msg.cargo_id;
+  } else if (msg instanceof UserUpdatedShipHoldName) {
+    let hold_id = msg.hold_id;
     let ship_id = msg.ship_id;
-    return user_updated_ship_cargo_name(model, cargo_id, ship_id);
+    return user_updated_ship_hold_name(model, hold_id, ship_id);
+  } else {
+    let hold_id = msg.hold_id;
+    let ship_id = msg.ship_id;
+    return user_updated_ship_hold_capacity(model, hold_id, ship_id);
   }
 }
 
@@ -8894,7 +8988,8 @@ function get_collapsed_ship(ship) {
   );
 }
 function get_ship_hold(hold_id, hold, ship_id) {
-  let element_id = "cargo-name-" + to_string(hold_id);
+  let name_element_id = "hold-name-" + to_string(hold_id);
+  let capacity_element_id = "hold-capacity-" + to_string(hold_id);
   let hold_kinds = (() => {
     let _pipe = get_all_hold_kinds();
     return map(
@@ -8929,12 +9024,10 @@ function get_ship_hold(hold_id, hold, ship_id) {
               class$(
                 "border border-gray-300 rounded-md px-2 py-1 text-sm w-1/2"
               ),
-              id(element_id),
+              id(name_element_id),
               value(hold.name),
               type_("text"),
-              on_blur(
-                new UserUpdatedShipCargoName(hold_id, ship_id)
-              )
+              on_blur(new UserUpdatedShipHoldName(hold_id, ship_id))
             ])
           ),
           div(
@@ -8947,11 +9040,15 @@ function get_ship_hold(hold_id, hold, ship_id) {
                   ),
                   value(
                     (() => {
-                      let _pipe = hold.m3;
+                      let _pipe = hold.capacity;
                       return float_to_string(_pipe);
                     })()
                   ),
-                  type_("number")
+                  id(capacity_element_id),
+                  type_("number"),
+                  on_blur(
+                    new UserUpdatedShipHoldCapacity(hold_id, ship_id)
+                  )
                 ])
               ),
               span(

@@ -80,7 +80,8 @@ pub type Msg {
   UserDeletedShip(deleted_ship: Int)
   UserSelectedShip(selected_ship: Int)
   UserUpdatedShipName(id: Int)
-  UserUpdatedShipCargoName(cargo_id: Int, ship_id: Int)
+  UserUpdatedShipHoldName(hold_id: Int, ship_id: Int)
+  UserUpdatedShipHoldCapacity(hold_id: Int, ship_id: Int)
 }
 
 pub fn float_input_to_msg(input: String, msg: fn(Option(Float)) -> Msg) {
