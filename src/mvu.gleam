@@ -8,8 +8,9 @@ import rsvp
 
 pub type Model {
   Model(
-    ships: Dict(String, sde.Ship),
-    current_ship: Option(String),
+    ships: Dict(Int, ShipEntry),
+    current_ship: Option(Int),
+    count_ship_index: Int,
     systems: Dict(String, System),
     source: Option(String),
     destination: Option(String),
@@ -19,6 +20,10 @@ pub type Model {
     collateral: Option(Float),
     multibuys: List(arbitrage.Multibuy),
   )
+}
+
+pub type ShipEntry {
+  ShipEntry(ship: sde.Ship, is_expanded: Bool)
 }
 
 pub type OrdersStatus {
@@ -42,7 +47,9 @@ pub type Msg {
   UserSelectedDestination(new_destination: String)
   UserLoadedSource(source: String)
   UserLoadedDestination(destination: String)
-  UserSelectedShip(selected_ship: String)
+  UserCreatedShip
+  UserDeletedShip(deleted_ship: Int)
+  UserSelectedShip(selected_ship: Int)
   EsiReturnedBuyOrders(
     Result(List(esi.Order(esi.Buy)), rsvp.Error),
     location: String,

@@ -1,6 +1,7 @@
 import lustre/effect
 import mvu
 import mvu/update/multibuys
+import mvu/update/ships
 import mvu/update/sidebar
 import mvu/update/systems
 
@@ -14,7 +15,7 @@ pub fn run(
     mvu.UserSelectedSource(new_source) ->
       systems.user_selected_source(new_source, model)
     mvu.UserSelectedShip(selected_ship) ->
-      systems.user_selected_ship(selected_ship, model)
+      ships.user_selected_ship(selected_ship, model)
     mvu.EsiReturnedBuyOrders(esi_response, location, page) ->
       systems.esi_returned_buy_orders(model, esi_response, location, page)
     mvu.EsiReturnedSellOrders(esi_response, location, page) ->
@@ -31,5 +32,8 @@ pub fn run(
       sidebar.user_updated_collateral(model, value)
     mvu.UserUpdatedAccountingLevel(level) ->
       sidebar.user_updated_accounting_level(model, level)
+    mvu.UserCreatedShip -> ships.user_created_ship(model)
+    mvu.UserDeletedShip(deleted_ship) ->
+      ships.user_deleted_ship(model, deleted_ship)
   }
 }

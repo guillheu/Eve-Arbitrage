@@ -1,5 +1,4 @@
 import config/esi
-import config/sde
 import gleam/dict
 import gleam/http/response
 import gleam/int
@@ -12,16 +11,6 @@ import lustre/effect
 import mvu
 import mvu/update/side_effects/fetch_orders
 import rsvp
-
-pub fn user_selected_ship(
-  selected_ship: String,
-  model: mvu.Model,
-) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
-  let model = mvu.Model(..model, current_ship: Some(selected_ship))
-  let side_effect = effect.none()
-  io.println("Ship " <> selected_ship <> " selected")
-  #(model, side_effect)
-}
 
 pub fn user_selected_source(
   new_source: String,

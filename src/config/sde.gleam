@@ -105,3 +105,14 @@ pub fn is_item_contraband(item: Id, location: String) -> Bool {
   let assert Ok(found) = list.key_find(locations, location)
   list.contains(found.contraband, item)
 }
+
+pub fn hold_kind_to_string(hold_kind: HoldKind) -> String {
+  case hold_kind {
+    Generic -> "Generic"
+    Infrastructure -> "Infrastructure"
+  }
+}
+
+pub fn get_all_hold_kinds() -> List(HoldKind) {
+  [Generic, Infrastructure]
+}

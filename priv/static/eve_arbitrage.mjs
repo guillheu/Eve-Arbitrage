@@ -272,6 +272,277 @@ function bitArrayPrintDeprecationWarning(name2, message) {
   );
   isBitArrayDeprecationMessagePrinted[name2] = true;
 }
+function bitArraySlice(bitArray, start4, end) {
+  end ??= bitArray.bitSize;
+  bitArrayValidateRange(bitArray, start4, end);
+  if (start4 === end) {
+    return new BitArray(new Uint8Array());
+  }
+  if (start4 === 0 && end === bitArray.bitSize) {
+    return bitArray;
+  }
+  start4 += bitArray.bitOffset;
+  end += bitArray.bitOffset;
+  const startByteIndex = Math.trunc(start4 / 8);
+  const endByteIndex = Math.trunc((end + 7) / 8);
+  const byteLength = endByteIndex - startByteIndex;
+  let buffer;
+  if (startByteIndex === 0 && byteLength === bitArray.rawBuffer.byteLength) {
+    buffer = bitArray.rawBuffer;
+  } else {
+    buffer = new Uint8Array(
+      bitArray.rawBuffer.buffer,
+      bitArray.rawBuffer.byteOffset + startByteIndex,
+      byteLength
+    );
+  }
+  return new BitArray(buffer, end - start4, start4 % 8);
+}
+function bitArraySliceToInt(bitArray, start4, end, isBigEndian, isSigned) {
+  bitArrayValidateRange(bitArray, start4, end);
+  if (start4 === end) {
+    return 0;
+  }
+  start4 += bitArray.bitOffset;
+  end += bitArray.bitOffset;
+  const isStartByteAligned = start4 % 8 === 0;
+  const isEndByteAligned = end % 8 === 0;
+  if (isStartByteAligned && isEndByteAligned) {
+    return intFromAlignedSlice(
+      bitArray,
+      start4 / 8,
+      end / 8,
+      isBigEndian,
+      isSigned
+    );
+  }
+  const size2 = end - start4;
+  const startByteIndex = Math.trunc(start4 / 8);
+  const endByteIndex = Math.trunc((end - 1) / 8);
+  if (startByteIndex == endByteIndex) {
+    const mask2 = 255 >> start4 % 8;
+    const unusedLowBitCount = (8 - end % 8) % 8;
+    let value2 = (bitArray.rawBuffer[startByteIndex] & mask2) >> unusedLowBitCount;
+    if (isSigned) {
+      const highBit = 2 ** (size2 - 1);
+      if (value2 >= highBit) {
+        value2 -= highBit * 2;
+      }
+    }
+    return value2;
+  }
+  if (size2 <= 53) {
+    return intFromUnalignedSliceUsingNumber(
+      bitArray.rawBuffer,
+      start4,
+      end,
+      isBigEndian,
+      isSigned
+    );
+  } else {
+    return intFromUnalignedSliceUsingBigInt(
+      bitArray.rawBuffer,
+      start4,
+      end,
+      isBigEndian,
+      isSigned
+    );
+  }
+}
+function intFromAlignedSlice(bitArray, start4, end, isBigEndian, isSigned) {
+  const byteSize = end - start4;
+  if (byteSize <= 6) {
+    return intFromAlignedSliceUsingNumber(
+      bitArray.rawBuffer,
+      start4,
+      end,
+      isBigEndian,
+      isSigned
+    );
+  } else {
+    return intFromAlignedSliceUsingBigInt(
+      bitArray.rawBuffer,
+      start4,
+      end,
+      isBigEndian,
+      isSigned
+    );
+  }
+}
+function intFromAlignedSliceUsingNumber(buffer, start4, end, isBigEndian, isSigned) {
+  const byteSize = end - start4;
+  let value2 = 0;
+  if (isBigEndian) {
+    for (let i = start4; i < end; i++) {
+      value2 *= 256;
+      value2 += buffer[i];
+    }
+  } else {
+    for (let i = end - 1; i >= start4; i--) {
+      value2 *= 256;
+      value2 += buffer[i];
+    }
+  }
+  if (isSigned) {
+    const highBit = 2 ** (byteSize * 8 - 1);
+    if (value2 >= highBit) {
+      value2 -= highBit * 2;
+    }
+  }
+  return value2;
+}
+function intFromAlignedSliceUsingBigInt(buffer, start4, end, isBigEndian, isSigned) {
+  const byteSize = end - start4;
+  let value2 = 0n;
+  if (isBigEndian) {
+    for (let i = start4; i < end; i++) {
+      value2 *= 256n;
+      value2 += BigInt(buffer[i]);
+    }
+  } else {
+    for (let i = end - 1; i >= start4; i--) {
+      value2 *= 256n;
+      value2 += BigInt(buffer[i]);
+    }
+  }
+  if (isSigned) {
+    const highBit = 1n << BigInt(byteSize * 8 - 1);
+    if (value2 >= highBit) {
+      value2 -= highBit * 2n;
+    }
+  }
+  return Number(value2);
+}
+function intFromUnalignedSliceUsingNumber(buffer, start4, end, isBigEndian, isSigned) {
+  const isStartByteAligned = start4 % 8 === 0;
+  let size2 = end - start4;
+  let byteIndex = Math.trunc(start4 / 8);
+  let value2 = 0;
+  if (isBigEndian) {
+    if (!isStartByteAligned) {
+      const leadingBitsCount = 8 - start4 % 8;
+      value2 = buffer[byteIndex++] & (1 << leadingBitsCount) - 1;
+      size2 -= leadingBitsCount;
+    }
+    while (size2 >= 8) {
+      value2 *= 256;
+      value2 += buffer[byteIndex++];
+      size2 -= 8;
+    }
+    if (size2 > 0) {
+      value2 *= 2 ** size2;
+      value2 += buffer[byteIndex] >> 8 - size2;
+    }
+  } else {
+    if (isStartByteAligned) {
+      let size3 = end - start4;
+      let scale = 1;
+      while (size3 >= 8) {
+        value2 += buffer[byteIndex++] * scale;
+        scale *= 256;
+        size3 -= 8;
+      }
+      value2 += (buffer[byteIndex] >> 8 - size3) * scale;
+    } else {
+      const highBitsCount = start4 % 8;
+      const lowBitsCount = 8 - highBitsCount;
+      let size3 = end - start4;
+      let scale = 1;
+      while (size3 >= 8) {
+        const byte = buffer[byteIndex] << highBitsCount | buffer[byteIndex + 1] >> lowBitsCount;
+        value2 += (byte & 255) * scale;
+        scale *= 256;
+        size3 -= 8;
+        byteIndex++;
+      }
+      if (size3 > 0) {
+        const lowBitsUsed = size3 - Math.max(0, size3 - lowBitsCount);
+        let trailingByte = (buffer[byteIndex] & (1 << lowBitsCount) - 1) >> lowBitsCount - lowBitsUsed;
+        size3 -= lowBitsUsed;
+        if (size3 > 0) {
+          trailingByte *= 2 ** size3;
+          trailingByte += buffer[byteIndex + 1] >> 8 - size3;
+        }
+        value2 += trailingByte * scale;
+      }
+    }
+  }
+  if (isSigned) {
+    const highBit = 2 ** (end - start4 - 1);
+    if (value2 >= highBit) {
+      value2 -= highBit * 2;
+    }
+  }
+  return value2;
+}
+function intFromUnalignedSliceUsingBigInt(buffer, start4, end, isBigEndian, isSigned) {
+  const isStartByteAligned = start4 % 8 === 0;
+  let size2 = end - start4;
+  let byteIndex = Math.trunc(start4 / 8);
+  let value2 = 0n;
+  if (isBigEndian) {
+    if (!isStartByteAligned) {
+      const leadingBitsCount = 8 - start4 % 8;
+      value2 = BigInt(buffer[byteIndex++] & (1 << leadingBitsCount) - 1);
+      size2 -= leadingBitsCount;
+    }
+    while (size2 >= 8) {
+      value2 *= 256n;
+      value2 += BigInt(buffer[byteIndex++]);
+      size2 -= 8;
+    }
+    if (size2 > 0) {
+      value2 <<= BigInt(size2);
+      value2 += BigInt(buffer[byteIndex] >> 8 - size2);
+    }
+  } else {
+    if (isStartByteAligned) {
+      let size3 = end - start4;
+      let shift = 0n;
+      while (size3 >= 8) {
+        value2 += BigInt(buffer[byteIndex++]) << shift;
+        shift += 8n;
+        size3 -= 8;
+      }
+      value2 += BigInt(buffer[byteIndex] >> 8 - size3) << shift;
+    } else {
+      const highBitsCount = start4 % 8;
+      const lowBitsCount = 8 - highBitsCount;
+      let size3 = end - start4;
+      let shift = 0n;
+      while (size3 >= 8) {
+        const byte = buffer[byteIndex] << highBitsCount | buffer[byteIndex + 1] >> lowBitsCount;
+        value2 += BigInt(byte & 255) << shift;
+        shift += 8n;
+        size3 -= 8;
+        byteIndex++;
+      }
+      if (size3 > 0) {
+        const lowBitsUsed = size3 - Math.max(0, size3 - lowBitsCount);
+        let trailingByte = (buffer[byteIndex] & (1 << lowBitsCount) - 1) >> lowBitsCount - lowBitsUsed;
+        size3 -= lowBitsUsed;
+        if (size3 > 0) {
+          trailingByte <<= size3;
+          trailingByte += buffer[byteIndex + 1] >> 8 - size3;
+        }
+        value2 += BigInt(trailingByte) << shift;
+      }
+    }
+  }
+  if (isSigned) {
+    const highBit = 2n ** BigInt(end - start4 - 1);
+    if (value2 >= highBit) {
+      value2 -= highBit * 2n;
+    }
+  }
+  return Number(value2);
+}
+function bitArrayValidateRange(bitArray, start4, end) {
+  if (start4 < 0 || start4 > bitArray.bitSize || end < start4 || end > bitArray.bitSize) {
+    const msg = `Invalid bit array slice: start = ${start4}, end = ${end}, bit size = ${bitArray.bitSize}`;
+    throw new globalThis.Error(msg);
+  }
+}
 var Result = class _Result extends CustomType {
   // @internal
   static isResult(data) {
@@ -395,9 +666,9 @@ var Some = class extends CustomType {
 };
 var None = class extends CustomType {
 };
-function to_result(option, e) {
-  if (option instanceof Some) {
-    let a2 = option[0];
+function to_result(option2, e) {
+  if (option2 instanceof Some) {
+    let a2 = option2[0];
     return new Ok(a2);
   } else {
     return new Error(e);
@@ -411,17 +682,17 @@ function from_result(result) {
     return new None();
   }
 }
-function unwrap(option, default$) {
-  if (option instanceof Some) {
-    let x = option[0];
+function unwrap(option2, default$) {
+  if (option2 instanceof Some) {
+    let x = option2[0];
     return x;
   } else {
     return default$;
   }
 }
-function lazy_unwrap(option, default$) {
-  if (option instanceof Some) {
-    let x = option[0];
+function lazy_unwrap(option2, default$) {
+  if (option2 instanceof Some) {
+    let x = option2[0];
     return x;
   } else {
     return default$();
@@ -2428,6 +2699,9 @@ function identity2(x) {
 }
 
 // build/dev/javascript/gleam_json/gleam_json_ffi.mjs
+function identity3(x) {
+  return x;
+}
 function decode(string5) {
   try {
     const result = JSON.parse(string5);
@@ -2538,6 +2812,9 @@ function do_parse(json2, decoder) {
 }
 function parse(json2, decoder) {
   return do_parse(json2, decoder);
+}
+function bool2(input2) {
+  return identity3(input2);
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/set.mjs
@@ -2709,6 +2986,9 @@ function attribute(name2, value2) {
   return new Attribute(attribute_kind, name2, value2);
 }
 var property_kind = 1;
+function property(name2, value2) {
+  return new Property(property_kind, name2, value2);
+}
 var event_kind = 2;
 function event(name2, handler, include, prevent_default, stop_propagation, immediate2, limit) {
   return new Event2(
@@ -2728,6 +3008,16 @@ var throttle_kind = 2;
 // build/dev/javascript/lustre/lustre/attribute.mjs
 function attribute2(name2, value2) {
   return attribute(name2, value2);
+}
+function property2(name2, value2) {
+  return property(name2, value2);
+}
+function boolean_attribute(name2, value2) {
+  if (value2) {
+    return attribute2(name2, "");
+  } else {
+    return property2(name2, bool2(false));
+  }
 }
 function class$(name2) {
   return attribute2("class", name2);
@@ -2752,6 +3042,9 @@ function name(element_name) {
 }
 function placeholder(text4) {
   return attribute2("placeholder", text4);
+}
+function selected(is_selected) {
+  return boolean_attribute("selected", is_selected);
 }
 function step(value2) {
   return attribute2("step", value2);
@@ -4318,8 +4611,8 @@ var createServerEvent = (event4, include = []) => {
   if (event4.type === "submit") {
     include.push("detail.formData");
   }
-  for (const property2 of include) {
-    const path2 = property2.split(".");
+  for (const property3 of include) {
+    const path2 = property3.split(".");
     for (let i = 0, input2 = event4, output = data; i < path2.length; i++) {
       if (i === path2.length - 1) {
         output[path2[i]] = input2[path2[i]];
@@ -4944,6 +5237,12 @@ function input(attrs) {
 function label(attrs, children) {
   return element2("label", attrs, children);
 }
+function option(attrs, label2) {
+  return element2("option", attrs, toList([text2(label2)]));
+}
+function select(attrs, children) {
+  return element2("select", attrs, children);
+}
 
 // build/dev/javascript/lustre/lustre/runtime/server/runtime.mjs
 var EffectDispatchedMessage = class extends CustomType {
@@ -4990,8 +5289,8 @@ function new$6(options) {
   return fold(
     options,
     init2,
-    (config, option) => {
-      return option.apply(config);
+    (config, option2) => {
+      return option2.apply(config);
     }
   );
 }
@@ -5073,6 +5372,35 @@ var Location = class extends CustomType {
     this.contraband = contraband;
   }
 };
+var Ship = class extends CustomType {
+  constructor(name2, holds) {
+    super();
+    this.name = name2;
+    this.holds = holds;
+  }
+};
+var Hold = class extends CustomType {
+  constructor(name2, kind, m3) {
+    super();
+    this.name = name2;
+    this.kind = kind;
+    this.m3 = m3;
+  }
+};
+var Generic = class extends CustomType {
+};
+var Infrastructure = class extends CustomType {
+};
+function hold_kind_to_string(hold_kind) {
+  if (hold_kind instanceof Generic) {
+    return "Generic";
+  } else {
+    return "Infrastructure";
+  }
+}
+function get_all_hold_kinds() {
+  return toList([new Generic(), new Infrastructure()]);
+}
 var jita_contraband = /* @__PURE__ */ toList([3713, 3721, 17796]);
 var amarr_contraband = /* @__PURE__ */ toList([12478, 3727]);
 var rens_contraband = /* @__PURE__ */ toList([]);
@@ -6796,10 +7124,11 @@ function get_market_orders_url(from2, is_buy_order, page) {
 
 // build/dev/javascript/eve_arbitrage/mvu.mjs
 var Model = class extends CustomType {
-  constructor(ships, current_ship, systems, source, destination, accounting_level, language, sidebar_expanded, collateral, multibuys) {
+  constructor(ships, current_ship, count_ship_index, systems, source, destination, accounting_level, language, sidebar_expanded, collateral, multibuys) {
     super();
     this.ships = ships;
     this.current_ship = current_ship;
+    this.count_ship_index = count_ship_index;
     this.systems = systems;
     this.source = source;
     this.destination = destination;
@@ -6808,6 +7137,13 @@ var Model = class extends CustomType {
     this.sidebar_expanded = sidebar_expanded;
     this.collateral = collateral;
     this.multibuys = multibuys;
+  }
+};
+var ShipEntry = class extends CustomType {
+  constructor(ship, is_expanded) {
+    super();
+    this.ship = ship;
+    this.is_expanded = is_expanded;
   }
 };
 var Empty2 = class extends CustomType {
@@ -6853,6 +7189,8 @@ var UserLoadedDestination = class extends CustomType {
     super();
     this.destination = destination;
   }
+};
+var UserCreatedShip = class extends CustomType {
 };
 var UserSelectedShip = class extends CustomType {
   constructor(selected_ship) {
@@ -6931,6 +7269,204 @@ function user_clicked_copy_multibuy(model, multibuy) {
   return [model, side_effect];
 }
 
+// build/dev/javascript/eve_arbitrage/mvu/update/ships.mjs
+function user_selected_ship(selected_ship, model) {
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      _record.ships,
+      new Some(selected_ship),
+      _record.count_ship_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  let side_effect = none();
+  console_log(
+    "Ship #" + (() => {
+      let _pipe = selected_ship;
+      return to_string(_pipe);
+    })() + " selected"
+  );
+  return [model$1, side_effect];
+}
+function user_deleted_ship(model, deleted_ship) {
+  throw makeError(
+    "todo",
+    "mvu/update/ships",
+    48,
+    "user_deleted_ship",
+    "`todo` expression evaluated. This code has not yet been implemented.",
+    {}
+  );
+}
+var default_ship_entry = /* @__PURE__ */ new ShipEntry(
+  /* @__PURE__ */ new Ship(
+    "New Ship",
+    /* @__PURE__ */ toList([
+      /* @__PURE__ */ new Hold(
+        "Cargo",
+        /* @__PURE__ */ new Generic(),
+        1e3
+      )
+    ])
+  ),
+  true
+);
+function user_created_ship(model) {
+  echo("creating ship", "src/mvu/update/ships.gleam", 31);
+  echo(default_ship_entry, "src/mvu/update/ships.gleam", 32);
+  let ships = insert(
+    model.ships,
+    model.count_ship_index,
+    default_ship_entry
+  );
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      ships,
+      _record.current_ship,
+      model.count_ship_index + 1,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
+}
+function echo(value2, file, line) {
+  const grey = "\x1B[90m";
+  const reset_color = "\x1B[39m";
+  const file_line = `${file}:${line}`;
+  const string_value = echo$inspect(value2);
+  if (typeof process === "object" && process.stderr?.write) {
+    const string5 = `${grey}${file_line}${reset_color}
+${string_value}
+`;
+    process.stderr.write(string5);
+  } else if (typeof Deno === "object") {
+    const string5 = `${grey}${file_line}${reset_color}
+${string_value}
+`;
+    Deno.stderr.writeSync(new TextEncoder().encode(string5));
+  } else {
+    const string5 = `${file_line}
+${string_value}`;
+    console.log(string5);
+  }
+  return value2;
+}
+function echo$inspectString(str) {
+  let new_str = '"';
+  for (let i = 0; i < str.length; i++) {
+    let char = str[i];
+    if (char == "\n") new_str += "\\n";
+    else if (char == "\r") new_str += "\\r";
+    else if (char == "	") new_str += "\\t";
+    else if (char == "\f") new_str += "\\f";
+    else if (char == "\\") new_str += "\\\\";
+    else if (char == '"') new_str += '\\"';
+    else if (char < " " || char > "~" && char < "\xA0") {
+      new_str += "\\u{" + char.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0") + "}";
+    } else {
+      new_str += char;
+    }
+  }
+  new_str += '"';
+  return new_str;
+}
+function echo$inspectDict(map6) {
+  let body = "dict.from_list([";
+  let first = true;
+  let key_value_pairs = [];
+  map6.forEach((value2, key) => {
+    key_value_pairs.push([key, value2]);
+  });
+  key_value_pairs.sort();
+  key_value_pairs.forEach(([key, value2]) => {
+    if (!first) body = body + ", ";
+    body = body + "#(" + echo$inspect(key) + ", " + echo$inspect(value2) + ")";
+    first = false;
+  });
+  return body + "])";
+}
+function echo$inspectCustomType(record) {
+  const props = Object.keys(record).map((label2) => {
+    const value2 = echo$inspect(record[label2]);
+    return isNaN(parseInt(label2)) ? `${label2}: ${value2}` : value2;
+  }).join(", ");
+  return props ? `${record.constructor.name}(${props})` : record.constructor.name;
+}
+function echo$inspectObject(v) {
+  const name2 = Object.getPrototypeOf(v)?.constructor?.name || "Object";
+  const props = [];
+  for (const k of Object.keys(v)) {
+    props.push(`${echo$inspect(k)}: ${echo$inspect(v[k])}`);
+  }
+  const body = props.length ? " " + props.join(", ") + " " : "";
+  const head = name2 === "Object" ? "" : name2 + " ";
+  return `//js(${head}{${body}})`;
+}
+function echo$inspect(v) {
+  const t = typeof v;
+  if (v === true) return "True";
+  if (v === false) return "False";
+  if (v === null) return "//js(null)";
+  if (v === void 0) return "Nil";
+  if (t === "string") return echo$inspectString(v);
+  if (t === "bigint" || t === "number") return v.toString();
+  if (Array.isArray(v)) return `#(${v.map(echo$inspect).join(", ")})`;
+  if (v instanceof List) return `[${v.toArray().map(echo$inspect).join(", ")}]`;
+  if (v instanceof UtfCodepoint) return `//utfcodepoint(${String.fromCodePoint(v.value)})`;
+  if (v instanceof BitArray) return echo$inspectBitArray(v);
+  if (v instanceof CustomType) return echo$inspectCustomType(v);
+  if (echo$isDict(v)) return echo$inspectDict(v);
+  if (v instanceof Set) return `//js(Set(${[...v].map(echo$inspect).join(", ")}))`;
+  if (v instanceof RegExp) return `//js(${v})`;
+  if (v instanceof Date) return `//js(Date("${v.toISOString()}"))`;
+  if (v instanceof Function) {
+    const args = [];
+    for (const i of Array(v.length).keys()) args.push(String.fromCharCode(i + 97));
+    return `//fn(${args.join(", ")}) { ... }`;
+  }
+  return echo$inspectObject(v);
+}
+function echo$inspectBitArray(bitArray) {
+  let endOfAlignedBytes = bitArray.bitOffset + 8 * Math.trunc(bitArray.bitSize / 8);
+  let alignedBytes = bitArraySlice(bitArray, bitArray.bitOffset, endOfAlignedBytes);
+  let remainingUnalignedBits = bitArray.bitSize % 8;
+  if (remainingUnalignedBits > 0) {
+    let remainingBits = bitArraySliceToInt(bitArray, endOfAlignedBytes, bitArray.bitSize, false, false);
+    let alignedBytesArray = Array.from(alignedBytes.rawBuffer);
+    let suffix = `${remainingBits}:size(${remainingUnalignedBits})`;
+    if (alignedBytesArray.length === 0) {
+      return `<<${suffix}>>`;
+    } else {
+      return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}, ${suffix}>>`;
+    }
+  } else {
+    return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}>>`;
+  }
+}
+function echo$isDict(value2) {
+  try {
+    return value2 instanceof Dict;
+  } catch {
+    return false;
+  }
+}
+
 // build/dev/javascript/eve_arbitrage/mvu/update/sidebar.mjs
 function user_clicked_collapse_sidebar(model) {
   let model$1 = (() => {
@@ -6938,6 +7474,7 @@ function user_clicked_collapse_sidebar(model) {
     return new Model(
       _record.ships,
       _record.current_ship,
+      _record.count_ship_index,
       _record.systems,
       _record.source,
       _record.destination,
@@ -6956,6 +7493,7 @@ function user_clicked_expand_sidebar(model) {
     return new Model(
       _record.ships,
       _record.current_ship,
+      _record.count_ship_index,
       _record.systems,
       _record.source,
       _record.destination,
@@ -6974,6 +7512,7 @@ function user_updated_collateral(model, value2) {
     return new Model(
       _record.ships,
       _record.current_ship,
+      _record.count_ship_index,
       _record.systems,
       _record.source,
       _record.destination,
@@ -6992,6 +7531,7 @@ function user_updated_accounting_level(model, level) {
     return new Model(
       _record.ships,
       _record.current_ship,
+      _record.count_ship_index,
       _record.systems,
       _record.source,
       _record.destination,
@@ -7028,32 +7568,13 @@ function get_query_buy_orders_side_effect(location, from2, page) {
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/update/systems.mjs
-function user_selected_ship(selected_ship, model) {
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.ships,
-      new Some(selected_ship),
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
-    );
-  })();
-  let side_effect = none();
-  console_log("Ship " + selected_ship + " selected");
-  return [model$1, side_effect];
-}
 function user_selected_source(new_source, model) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
       _record.ships,
       _record.current_ship,
+      _record.count_ship_index,
       _record.systems,
       new Some(new_source),
       _record.destination,
@@ -7074,6 +7595,7 @@ function user_selected_destination(new_dest, model) {
     return new Model(
       _record.ships,
       _record.current_ship,
+      _record.count_ship_index,
       _record.systems,
       _record.source,
       new Some(new_dest),
@@ -7096,7 +7618,7 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
       throw makeError(
         "let_assert",
         "mvu/update/systems",
-        59,
+        48,
         "esi_returned_sell_orders",
         "Pattern match failed, no pattern matched the value.",
         { value: $ }
@@ -7115,7 +7637,7 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
       throw makeError(
         "let_assert",
         "mvu/update/systems",
-        65,
+        54,
         "esi_returned_sell_orders",
         "Pattern match failed, no pattern matched the value.",
         { value: $1 }
@@ -7142,7 +7664,7 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
             throw makeError(
               "panic",
               "mvu/update/systems",
-              75,
+              64,
               "",
               "system " + from2 + " should be present",
               {}
@@ -7157,6 +7679,7 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
       return new Model(
         _record.ships,
         _record.current_ship,
+        _record.count_ship_index,
         systems,
         _record.source,
         _record.destination,
@@ -7189,7 +7712,7 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
             throw makeError(
               "panic",
               "mvu/update/systems",
-              91,
+              80,
               "",
               "system " + from2 + " should be present",
               {}
@@ -7214,7 +7737,7 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
       throw makeError(
         "let_assert",
         "mvu/update/systems",
-        98,
+        87,
         "esi_returned_sell_orders",
         "Pattern match failed, no pattern matched the value.",
         { value: $ }
@@ -7230,6 +7753,7 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
         return new Model(
           _record.ships,
           _record.current_ship,
+          _record.count_ship_index,
           systems,
           _record.source,
           _record.destination,
@@ -7256,7 +7780,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
       throw makeError(
         "let_assert",
         "mvu/update/systems",
-        127,
+        116,
         "esi_returned_buy_orders",
         "Pattern match failed, no pattern matched the value.",
         { value: $ }
@@ -7275,7 +7799,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
       throw makeError(
         "let_assert",
         "mvu/update/systems",
-        131,
+        120,
         "esi_returned_buy_orders",
         "Pattern match failed, no pattern matched the value.",
         { value: $1 }
@@ -7302,7 +7826,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
             throw makeError(
               "panic",
               "mvu/update/systems",
-              141,
+              130,
               "",
               "system " + from2 + " should be present",
               {}
@@ -7317,6 +7841,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
       return new Model(
         _record.ships,
         _record.current_ship,
+        _record.count_ship_index,
         systems,
         _record.source,
         _record.destination,
@@ -7349,7 +7874,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
             throw makeError(
               "panic",
               "mvu/update/systems",
-              157,
+              146,
               "",
               "system " + from2 + " should be present",
               {}
@@ -7374,7 +7899,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
       throw makeError(
         "let_assert",
         "mvu/update/systems",
-        164,
+        153,
         "esi_returned_buy_orders",
         "Pattern match failed, no pattern matched the value.",
         { value: $ }
@@ -7390,6 +7915,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
         return new Model(
           _record.ships,
           _record.current_ship,
+          _record.count_ship_index,
           systems,
           _record.source,
           _record.destination,
@@ -7414,7 +7940,7 @@ function user_loaded_source(model, from2) {
     throw makeError(
       "let_assert",
       "mvu/update/systems",
-      184,
+      173,
       "user_loaded_source",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7446,7 +7972,7 @@ function user_loaded_source(model, from2) {
           throw makeError(
             "panic",
             "mvu/update/systems",
-            192,
+            181,
             "",
             "did not find system " + from2,
             {}
@@ -7464,6 +7990,7 @@ function user_loaded_source(model, from2) {
       return new Model(
         _record.ships,
         _record.current_ship,
+        _record.count_ship_index,
         _record.systems,
         new None(),
         _record.destination,
@@ -7483,6 +8010,7 @@ function user_loaded_source(model, from2) {
       return new Model(
         _record.ships,
         _record.current_ship,
+        _record.count_ship_index,
         systems,
         _record.source,
         _record.destination,
@@ -7502,7 +8030,7 @@ function user_loaded_destination(model, to) {
     throw makeError(
       "let_assert",
       "mvu/update/systems",
-      208,
+      197,
       "user_loaded_destination",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7534,7 +8062,7 @@ function user_loaded_destination(model, to) {
           throw makeError(
             "panic",
             "mvu/update/systems",
-            216,
+            205,
             "",
             "did not find system " + to,
             {}
@@ -7552,6 +8080,7 @@ function user_loaded_destination(model, to) {
       return new Model(
         _record.ships,
         _record.current_ship,
+        _record.count_ship_index,
         _record.systems,
         _record.source,
         new None(),
@@ -7571,6 +8100,7 @@ function user_loaded_destination(model, to) {
       return new Model(
         _record.ships,
         _record.current_ship,
+        _record.count_ship_index,
         systems,
         _record.source,
         _record.destination,
@@ -7627,9 +8157,14 @@ function run2(model, msg) {
   } else if (msg instanceof UserUpdatedCollateral) {
     let value2 = msg.value;
     return user_updated_collateral(model, value2);
-  } else {
+  } else if (msg instanceof UserUpdatedAccountingLevel) {
     let level = msg.level;
     return user_updated_accounting_level(model, level);
+  } else if (msg instanceof UserCreatedShip) {
+    return user_created_ship(model);
+  } else {
+    let deleted_ship = msg.deleted_ship;
+    return user_deleted_ship(model, deleted_ship);
   }
 }
 
@@ -8010,6 +8545,341 @@ function get_section3(collateral) {
   );
 }
 
+// build/dev/javascript/eve_arbitrage/mvu/view/sidebar/ships.mjs
+function get_collapsed_ship(ship) {
+  return div(
+    toList([
+      class$(
+        "mb-3 border border-gray-200 rounded-md hover:border-gray-300"
+      )
+    ]),
+    toList([
+      div(
+        toList([
+          class$(
+            "p-3 bg-gray-50 rounded-t-md flex justify-between items-center cursor-pointer hover:bg-gray-100"
+          )
+        ]),
+        toList([
+          span(
+            toList([class$("font-medium")]),
+            toList([text3("Iteron Mark V")])
+          ),
+          div(
+            toList([class$("flex items-center")]),
+            toList([
+              span(
+                toList([class$("text-sm text-gray-600 mr-2")]),
+                toList([text3("27,500 m\xB3")])
+              ),
+              span(
+                toList([
+                  class$(
+                    "bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded"
+                  )
+                ]),
+                toList([text3("mixed")])
+              ),
+              svg(
+                toList([
+                  attribute2("stroke", "currentColor"),
+                  attribute2("viewBox", "0 0 24 24"),
+                  attribute2("fill", "none"),
+                  class$("h-5 w-5 ml-2"),
+                  attribute2("xmlns", "http://www.w3.org/2000/svg")
+                ]),
+                toList([
+                  path(
+                    toList([
+                      attribute2("d", "M19 9l-7 7-7-7"),
+                      attribute2("stroke-width", "2"),
+                      attribute2("stroke-linejoin", "round"),
+                      attribute2("stroke-linecap", "round")
+                    ])
+                  )
+                ])
+              )
+            ])
+          )
+        ])
+      )
+    ])
+  );
+}
+function get_ship_hold(hold) {
+  let hold_kinds = (() => {
+    let _pipe = get_all_hold_kinds();
+    return map(
+      _pipe,
+      (hold_kind) => {
+        let hold_kind_string = hold_kind_to_string(hold_kind);
+        let hold_kind_id = lowercase(hold_kind_string);
+        let $ = hold.kind;
+        if (isEqual($, hold_kind)) {
+          let k = $;
+          return option(
+            toList([value(hold_kind_id), selected(true)]),
+            hold_kind_string
+          );
+        } else {
+          return option(
+            toList([value(hold_kind_id)]),
+            hold_kind_string
+          );
+        }
+      }
+    );
+  })();
+  return div(
+    toList([class$("mb-3 p-3 bg-white rounded-md shadow-sm")]),
+    toList([
+      div(
+        toList([class$("flex justify-between items-center mb-2")]),
+        toList([
+          input(
+            toList([
+              class$(
+                "border border-gray-300 rounded-md px-2 py-1 text-sm w-1/2"
+              ),
+              value(hold.name),
+              type_("text")
+            ])
+          ),
+          div(
+            toList([class$("flex items-center")]),
+            toList([
+              input(
+                toList([
+                  class$(
+                    "border border-gray-300 rounded-md px-2 py-1 text-sm w-20 mr-2"
+                  ),
+                  value(
+                    (() => {
+                      let _pipe = hold.m3;
+                      return float_to_string(_pipe);
+                    })()
+                  ),
+                  type_("number")
+                ])
+              ),
+              span(
+                toList([class$("text-xs text-gray-500")]),
+                toList([text3("m\xB3")])
+              )
+            ])
+          )
+        ])
+      ),
+      div(
+        toList([]),
+        toList([
+          select(
+            toList([
+              class$(
+                "border border-gray-300 rounded-md px-2 py-1 text-sm w-full"
+              )
+            ]),
+            hold_kinds
+          )
+        ])
+      )
+    ])
+  );
+}
+function get_add_hold_button() {
+  return button(
+    toList([
+      class$(
+        "flex items-center justify-center w-full py-2 border border-dashed border-gray-300 rounded-md text-sm text-gray-500 hover:bg-gray-50 mb-3"
+      )
+    ]),
+    toList([
+      svg(
+        toList([
+          attribute2("stroke", "currentColor"),
+          attribute2("viewBox", "0 0 24 24"),
+          attribute2("fill", "none"),
+          class$("h-4 w-4 mr-1"),
+          attribute2("xmlns", "http://www.w3.org/2000/svg")
+        ]),
+        toList([
+          path(
+            toList([
+              attribute2("d", "M12 4v16m8-8H4"),
+              attribute2("stroke-width", "2"),
+              attribute2("stroke-linejoin", "round"),
+              attribute2("stroke-linecap", "round")
+            ])
+          )
+        ])
+      ),
+      text3("Add Hold\n                            ")
+    ])
+  );
+}
+function get_delete_ship_button() {
+  return button(
+    toList([
+      class$(
+        "flex items-center justify-center w-full py-2 border border-red-200 text-red-600 rounded-md text-sm hover:bg-red-50 hover:border-red-300 transition-colors"
+      )
+    ]),
+    toList([
+      svg(
+        toList([
+          attribute2("stroke", "currentColor"),
+          attribute2("viewBox", "0 0 24 24"),
+          attribute2("fill", "none"),
+          class$("h-4 w-4 mr-1"),
+          attribute2("xmlns", "http://www.w3.org/2000/svg")
+        ]),
+        toList([
+          path(
+            toList([
+              attribute2(
+                "d",
+                "M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              ),
+              attribute2("stroke-width", "2"),
+              attribute2("stroke-linejoin", "round"),
+              attribute2("stroke-linecap", "round")
+            ])
+          )
+        ])
+      ),
+      text3("Delete Ship\n                            ")
+    ])
+  );
+}
+function get_expanded_ship(ship) {
+  let holds_buttons = toList([get_add_hold_button(), get_delete_ship_button()]);
+  let holds = map(ship.holds, get_ship_hold);
+  let holds_content = append(holds, holds_buttons);
+  return div(
+    toList([
+      class$(
+        "mb-3 border border-gray-200 rounded-md hover:border-gray-300"
+      )
+    ]),
+    toList([
+      div(
+        toList([
+          class$(
+            "p-3 bg-gray-50 rounded-t-md flex justify-between items-center cursor-pointer hover:bg-gray-100"
+          )
+        ]),
+        toList([
+          span(
+            toList([class$("font-medium")]),
+            toList([text3("Tayra")])
+          ),
+          div(
+            toList([class$("flex items-center")]),
+            toList([
+              span(
+                toList([class$("text-sm text-gray-600 mr-2")]),
+                toList([text3("7,500 m\xB3")])
+              ),
+              span(
+                toList([
+                  class$(
+                    "bg-orange-100 text-orange-800 text-xs px-2 py-0.5 rounded"
+                  )
+                ]),
+                toList([text3("minerals")])
+              ),
+              svg(
+                toList([
+                  attribute2("stroke", "currentColor"),
+                  attribute2("viewBox", "0 0 24 24"),
+                  attribute2("fill", "none"),
+                  class$("h-5 w-5 ml-2 rotate-180"),
+                  attribute2("xmlns", "http://www.w3.org/2000/svg")
+                ]),
+                toList([
+                  path(
+                    toList([
+                      attribute2("d", "M19 9l-7 7-7-7"),
+                      attribute2("stroke-width", "2"),
+                      attribute2("stroke-linejoin", "round"),
+                      attribute2("stroke-linecap", "round")
+                    ])
+                  )
+                ])
+              )
+            ])
+          )
+        ])
+      ),
+      div(
+        toList([
+          class$(
+            "collapsible-content demo-expanded border-t border-gray-200"
+          )
+        ]),
+        toList([div(toList([class$("p-3")]), holds_content)])
+      )
+    ])
+  );
+}
+function get_ship(ship) {
+  let $ = ship.is_expanded;
+  if (!$) {
+    return get_collapsed_ship(ship.ship);
+  } else {
+    return get_expanded_ship(ship.ship);
+  }
+}
+function get_add_ship_button() {
+  return button(
+    toList([
+      class$(
+        "flex items-center justify-center w-full py-3 border border-dashed border-gray-300 rounded-md text-sm text-gray-500 hover:bg-gray-50"
+      ),
+      on_click(new UserCreatedShip())
+    ]),
+    toList([
+      svg(
+        toList([
+          attribute2("stroke", "currentColor"),
+          attribute2("viewBox", "0 0 24 24"),
+          attribute2("fill", "none"),
+          class$("h-5 w-5 mr-1"),
+          attribute2("xmlns", "http://www.w3.org/2000/svg")
+        ]),
+        toList([
+          path(
+            toList([
+              attribute2("d", "M12 4v16m8-8H4"),
+              attribute2("stroke-width", "2"),
+              attribute2("stroke-linejoin", "round"),
+              attribute2("stroke-linecap", "round")
+            ])
+          )
+        ])
+      ),
+      text3("Add Ship\n                ")
+    ])
+  );
+}
+function get_section4(model) {
+  let ships_contents = map(
+    (() => {
+      let _pipe = model.ships;
+      return values(_pipe);
+    })(),
+    get_ship
+  );
+  let contents = prepend(
+    h3(
+      toList([class$("text-sm font-medium text-gray-700 mb-3")]),
+      toList([text3("Ships")])
+    ),
+    append(ships_contents, toList([get_add_ship_button()]))
+  );
+  return div(toList([class$("p-4")]), contents);
+}
+
 // build/dev/javascript/eve_arbitrage/mvu/view/sidebar.mjs
 function get_expanded_sidebar(model) {
   return aside(
@@ -8061,7 +8931,8 @@ function get_expanded_sidebar(model) {
         ])
       ),
       get_section3(model.collateral),
-      get_section2(model.accounting_level)
+      get_section2(model.accounting_level),
+      get_section4(model)
     ])
   );
 }
@@ -8114,7 +8985,7 @@ function get_collapsed_sidebar(_) {
     ])
   );
 }
-function get_section4(model) {
+function get_section5(model) {
   return (() => {
     let $ = model.sidebar_expanded;
     if (!$) {
@@ -8401,14 +9272,14 @@ function get_loaded_system(name2, system, is_source_system) {
     ])
   );
 }
-function get_source_systems(systems, selected) {
+function get_source_systems(systems, selected2) {
   let _pipe = map_values(
     systems,
     (name2, system) => {
       return (() => {
         let $ = system.sell_orders_status;
-        if (selected instanceof Some && selected[0] === name2) {
-          let selected_system = selected[0];
+        if (selected2 instanceof Some && selected2[0] === name2) {
+          let selected_system = selected2[0];
           return get_selected_system;
         } else if ($ instanceof Empty2) {
           return get_empty_system;
@@ -8422,8 +9293,8 @@ function get_source_systems(systems, selected) {
   );
   return values(_pipe);
 }
-function get_from_list(systems, selected) {
-  let systems_entries = get_source_systems(systems, selected);
+function get_from_list(systems, selected2) {
+  let systems_entries = get_source_systems(systems, selected2);
   return div(
     toList([class$("w-full md:w-1/2 bg-white rounded-lg shadow-md")]),
     toList([
@@ -8438,14 +9309,14 @@ function get_from_list(systems, selected) {
     ])
   );
 }
-function get_destination_systems(systems, selected) {
+function get_destination_systems(systems, selected2) {
   let _pipe = map_values(
     systems,
     (name2, system) => {
       return (() => {
         let $ = system.buy_orders_status;
-        if (selected instanceof Some && selected[0] === name2) {
-          let selected_system = selected[0];
+        if (selected2 instanceof Some && selected2[0] === name2) {
+          let selected_system = selected2[0];
           return get_selected_system;
         } else if ($ instanceof Empty2) {
           return get_empty_system;
@@ -8459,8 +9330,8 @@ function get_destination_systems(systems, selected) {
   );
   return values(_pipe);
 }
-function get_to_list(systems, selected) {
-  let systems_entries = get_destination_systems(systems, selected);
+function get_to_list(systems, selected2) {
+  let systems_entries = get_destination_systems(systems, selected2);
   return div(
     toList([class$("w-full md:w-1/2 bg-white rounded-lg shadow-md")]),
     toList([
@@ -8475,7 +9346,7 @@ function get_to_list(systems, selected) {
     ])
   );
 }
-function get_section5(model) {
+function get_section6(model) {
   let from_list2 = get_from_list(model.systems, model.source);
   let to_list2 = get_to_list(model.systems, model.destination);
   return section(
@@ -8495,8 +9366,8 @@ function get_section5(model) {
 
 // build/dev/javascript/eve_arbitrage/mvu/view.mjs
 function run3(model) {
-  let sidebar = get_section4(model);
-  let systems_lists = get_section5(model);
+  let sidebar = get_section5(model);
+  let systems_lists = get_section6(model);
   let multibuys = get_section(model);
   let page_contents = toList([systems_lists, multibuys]);
   let page = div(
@@ -8559,6 +9430,7 @@ function init(_) {
     new Model(
       new_map(),
       new None(),
+      0,
       systems,
       new None(),
       new None(),
