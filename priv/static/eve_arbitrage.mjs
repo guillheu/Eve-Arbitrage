@@ -1894,6 +1894,9 @@ function new_map() {
 function map_to_list(map6) {
   return List.fromArray(map6.entries());
 }
+function map_remove(key, map6) {
+  return map6.delete(key);
+}
 function map_get(map6, key) {
   const value3 = map6.get(key, NOT_FOUND);
   if (value3 === NOT_FOUND) {
@@ -2078,6 +2081,9 @@ function do_values_loop(loop$list, loop$acc) {
 function values(dict2) {
   let list_of_pairs = map_to_list(dict2);
   return do_values_loop(list_of_pairs, toList([]));
+}
+function delete$(dict2, key) {
+  return map_remove(key, dict2);
 }
 function upsert(dict2, key, fun) {
   let $ = map_get(dict2, key);
@@ -7066,14 +7072,24 @@ function user_selected_ship(selected_ship, model) {
   return [model$1, side_effect];
 }
 function user_deleted_ship(model, deleted_ship) {
-  throw makeError(
-    "todo",
-    "mvu/update/ships",
-    49,
-    "user_deleted_ship",
-    "`todo` expression evaluated. This code has not yet been implemented.",
-    {}
-  );
+  let ships = delete$(model.ships, deleted_ship);
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      ships,
+      _record.current_ship,
+      _record.count_ship_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
 }
 function user_updated_ship_name(model, id2) {
   let element_id = "ship-name-" + to_string(id2);
@@ -7089,7 +7105,7 @@ function user_updated_ship_name(model, id2) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      60,
+      62,
       "user_updated_ship_name",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7116,7 +7132,7 @@ function user_updated_ship_name(model, id2) {
       throw makeError(
         "let_assert",
         "mvu/update/ships",
-        68,
+        70,
         "user_updated_ship_name",
         "Pattern match failed, no pattern matched the value.",
         { value: $1 }
@@ -8473,12 +8489,13 @@ function get_add_hold_button() {
     ])
   );
 }
-function get_delete_ship_button() {
+function get_delete_ship_button(ship_id) {
   return button(
     toList([
       class$(
         "flex items-center justify-center w-full py-2 border border-red-200 text-red-600 rounded-md text-sm hover:bg-red-50 hover:border-red-300 transition-colors"
-      )
+      ),
+      on_click(new UserDeletedShip(ship_id))
     ]),
     toList([
       svg(
@@ -8508,7 +8525,10 @@ function get_delete_ship_button() {
   );
 }
 function get_expanded_ship(ship_id, ship) {
-  let holds_buttons = toList([get_add_hold_button(), get_delete_ship_button()]);
+  let holds_buttons = toList([
+    get_add_hold_button(),
+    get_delete_ship_button(ship_id)
+  ]);
   let holds = map(ship.holds, get_ship_hold);
   let holds_content = append(holds, holds_buttons);
   let attribute_id = "ship-name-" + to_string(ship_id);

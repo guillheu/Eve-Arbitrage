@@ -32,7 +32,7 @@ fn get_ship(ship_id: Int, ship: mvu.ShipEntry) -> element.Element(mvu.Msg) {
 }
 
 fn get_expanded_ship(ship_id: Int, ship: sde.Ship) -> element.Element(mvu.Msg) {
-  let holds_buttons = [get_add_hold_button(), get_delete_ship_button()]
+  let holds_buttons = [get_add_hold_button(), get_delete_ship_button(ship_id)]
   let holds = list.map(ship.holds, get_ship_hold)
   let holds_content = list.append(holds, holds_buttons)
   let attribute_id = "ship-name-" <> int.to_string(ship_id)
@@ -254,12 +254,13 @@ fn get_add_hold_button() -> element.Element(mvu.Msg) {
   )
 }
 
-fn get_delete_ship_button() -> element.Element(mvu.Msg) {
+fn get_delete_ship_button(ship_id: Int) -> element.Element(mvu.Msg) {
   html.button(
     [
       attribute.class(
         "flex items-center justify-center w-full py-2 border border-red-200 text-red-600 rounded-md text-sm hover:bg-red-50 hover:border-red-300 transition-colors",
       ),
+      event.on_click(mvu.UserDeletedShip(ship_id)),
     ],
     [
       svg.svg(

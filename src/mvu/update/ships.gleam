@@ -46,7 +46,9 @@ pub fn user_deleted_ship(
   model: mvu.Model,
   deleted_ship: Int,
 ) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
-  todo
+  let ships = dict.delete(model.ships, deleted_ship)
+  let model = mvu.Model(..model, ships: ships)
+  #(model, effect.none())
 }
 
 pub fn user_updated_ship_name(
