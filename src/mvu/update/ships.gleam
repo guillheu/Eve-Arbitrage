@@ -126,6 +126,25 @@ pub fn user_updated_ship_hold_capacity(
   #(model, effect.none())
 }
 
+pub fn user_updated_ship_hold_kind(
+  model: mvu.Model,
+  hold_kind: String,
+  hold_id: Int,
+  ship_id: Int,
+) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
+  let assert Ok(hold_kind) = sde.hold_kind_from_string(hold_kind)
+  let assert Ok(ship_entry) = dict.get(model.ships, ship_id)
+  let ship = ship_entry.ship
+  let assert Ok(hold) = dict.get(ship.holds, hold_id)
+  let hold = sde.Hold(..hold, kind: hold_kind)
+  let holds = dict.insert(ship.holds, hold_id, hold)
+  let ship = echo sde.Ship(..ship, holds: holds)
+  let ship_entry = mvu.ShipEntry(..ship_entry, ship: ship)
+  let ship_entries = dict.insert(model.ships, ship_id, ship_entry)
+  let model = mvu.Model(..model, ships: ship_entries)
+  #(model, effect.none())
+}
+
 fn fetch_input_value_from_element_id_or_default(
   element_id: String,
   default_value: String,

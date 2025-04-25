@@ -211,6 +211,7 @@ fn get_ship_hold(
           attribute.class(
             "border border-gray-300 rounded-md px-2 py-1 text-sm w-full",
           ),
+          event.on_input(mvu.UserUpdatedShipHoldKind(_, hold_id, ship_id)),
         ],
         hold_kinds,
       ),

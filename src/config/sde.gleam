@@ -1,5 +1,6 @@
 import gleam/dict.{type Dict}
 import gleam/list
+import gleam/string
 
 pub type Id =
   Int
@@ -116,4 +117,12 @@ pub fn hold_kind_to_string(hold_kind: HoldKind) -> String {
 
 pub fn get_all_hold_kinds() -> List(HoldKind) {
   [Generic, Infrastructure]
+}
+
+pub fn hold_kind_from_string(hold_kind_string: String) -> Result(HoldKind, Nil) {
+  case hold_kind_string |> string.lowercase |> string.trim {
+    "generic" -> Ok(Generic)
+    "infrastructure" -> Ok(Infrastructure)
+    _ -> Error(Nil)
+  }
 }

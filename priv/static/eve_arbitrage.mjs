@@ -5437,6 +5437,20 @@ function hold_kind_to_string(hold_kind) {
 function get_all_hold_kinds() {
   return toList([new Generic(), new Infrastructure()]);
 }
+function hold_kind_from_string(hold_kind_string) {
+  let $ = (() => {
+    let _pipe = hold_kind_string;
+    let _pipe$1 = lowercase(_pipe);
+    return trim(_pipe$1);
+  })();
+  if ($ === "generic") {
+    return new Ok(new Generic());
+  } else if ($ === "infrastructure") {
+    return new Ok(new Infrastructure());
+  } else {
+    return new Error(void 0);
+  }
+}
 var jita_contraband = /* @__PURE__ */ toList([3713, 3721, 17796]);
 var amarr_contraband = /* @__PURE__ */ toList([12478, 3727]);
 var rens_contraband = /* @__PURE__ */ toList([]);
@@ -7299,6 +7313,14 @@ var UserUpdatedShipHoldCapacity = class extends CustomType {
     this.ship_id = ship_id;
   }
 };
+var UserUpdatedShipHoldKind = class extends CustomType {
+  constructor(kind, hold_id, ship_id) {
+    super();
+    this.kind = kind;
+    this.hold_id = hold_id;
+    this.ship_id = ship_id;
+  }
+};
 function int_input_to_msg(input2, msg) {
   let value3 = (() => {
     let _pipe = parse_int(input2);
@@ -7429,6 +7451,81 @@ function user_deleted_ship(model, deleted_ship) {
     let _record = model;
     return new Model(
       ships,
+      _record.current_ship,
+      _record.count_ship_index,
+      _record.count_cargo_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
+}
+function user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id) {
+  let $ = hold_kind_from_string(hold_kind);
+  if (!$.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/update/ships",
+      135,
+      "user_updated_ship_hold_kind",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $ }
+    );
+  }
+  let hold_kind$1 = $[0];
+  let $1 = map_get(model.ships, ship_id);
+  if (!$1.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/update/ships",
+      136,
+      "user_updated_ship_hold_kind",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $1 }
+    );
+  }
+  let ship_entry = $1[0];
+  let ship = ship_entry.ship;
+  let $2 = map_get(ship.holds, hold_id);
+  if (!$2.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/update/ships",
+      138,
+      "user_updated_ship_hold_kind",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $2 }
+    );
+  }
+  let hold = $2[0];
+  let hold$1 = (() => {
+    let _record = hold;
+    return new Hold(_record.name, hold_kind$1, _record.capacity);
+  })();
+  let holds = insert(ship.holds, hold_id, hold$1);
+  let ship$1 = echo(
+    (() => {
+      let _record = ship;
+      return new Ship(_record.name, holds);
+    })(),
+    "src/mvu/update/ships.gleam",
+    141
+  );
+  let ship_entry$1 = (() => {
+    let _record = ship_entry;
+    return new ShipEntry(ship$1, _record.is_expanded);
+  })();
+  let ship_entries = insert(model.ships, ship_id, ship_entry$1);
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      ship_entries,
       _record.current_ship,
       _record.count_ship_index,
       _record.count_cargo_index,
@@ -8509,10 +8606,20 @@ function run2(model, msg) {
     let hold_id = msg.hold_id;
     let ship_id = msg.ship_id;
     return user_updated_ship_hold_name(model, hold_id, ship_id);
-  } else {
+  } else if (msg instanceof UserUpdatedShipHoldCapacity) {
     let hold_id = msg.hold_id;
     let ship_id = msg.ship_id;
     return user_updated_ship_hold_capacity(model, hold_id, ship_id);
+  } else {
+    let hold_kind = msg.kind;
+    let hold_id = msg.hold_id;
+    let ship_id = msg.ship_id;
+    return user_updated_ship_hold_kind(
+      model,
+      hold_kind,
+      hold_id,
+      ship_id
+    );
   }
 }
 
@@ -9066,6 +9173,15 @@ function get_ship_hold(hold_id, hold, ship_id) {
             toList([
               class$(
                 "border border-gray-300 rounded-md px-2 py-1 text-sm w-full"
+              ),
+              on_input(
+                (_capture) => {
+                  return new UserUpdatedShipHoldKind(
+                    _capture,
+                    hold_id,
+                    ship_id
+                  );
+                }
               )
             ]),
             hold_kinds
