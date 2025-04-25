@@ -35,5 +35,6 @@ pub fn run(
     mvu.UserCreatedShip -> ships.user_created_ship(model)
     mvu.UserDeletedShip(deleted_ship) ->
       ships.user_deleted_ship(model, deleted_ship)
+    mvu.UserUpdatedShipName(id) -> ships.user_updated_ship_name(model, id)
   }
 }

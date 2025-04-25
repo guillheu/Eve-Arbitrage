@@ -18,7 +18,7 @@ pub fn user_clicked_expand_sidebar(
 
 pub fn user_updated_collateral(
   model: mvu.Model,
-  value: Option(Float),
+  value: Option(Int),
 ) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
   let model = mvu.Model(..model, collateral: value)
   #(model, effect.none())

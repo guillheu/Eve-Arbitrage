@@ -2,7 +2,10 @@ import arbitrage
 import config/esi
 import config/sde
 import gleam/dict.{type Dict}
-import gleam/option.{type Option}
+import gleam/float
+import gleam/int
+import gleam/option.{type Option, None, Some}
+import gleam/result
 import gleam/time/timestamp
 import rsvp
 
@@ -17,7 +20,7 @@ pub type Model {
     accounting_level: Int,
     language: String,
     sidebar_expanded: Bool,
-    collateral: Option(Float),
+    collateral: Option(Int),
     multibuys: List(arbitrage.Multibuy),
   )
 }
@@ -63,6 +66,33 @@ pub type Msg {
   UserClickedCopyMultibuy(multibuy: arbitrage.Multibuy)
   UserClickedExpandSidebar
   UserClickedCollapseSidebar
-  UserUpdatedCollateral(value: Option(Float))
+  UserUpdatedCollateral(value: Option(Int))
   UserUpdatedAccountingLevel(level: Int)
+  UserUpdatedShipName(id: Int)
+}
+
+pub fn float_input_to_msg(input: String, msg: fn(Option(Float)) -> Msg) {
+  let value =
+    float.parse(input)
+    |> result.lazy_or(fn() {
+      use value <- result.map(int.parse(input))
+      int.to_float(value)
+    })
+    |> option.from_result
+  msg(value)
+}
+
+pub fn int_input_to_msg(input: String, msg: fn(Option(Int)) -> Msg) {
+  let value =
+    int.parse(input)
+    |> option.from_result
+  msg(value)
+}
+
+pub fn string_input_to_msg(input: String, msg: fn(Option(String)) -> Msg) {
+  case input {
+    "" -> None
+    any -> Some(any)
+  }
+  |> msg
 }

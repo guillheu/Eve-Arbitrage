@@ -1,7 +1,9 @@
 import config/sde
 import gleam/dict
 import gleam/float
+import gleam/int
 import gleam/list
+import gleam/result
 import gleam/string
 import lustre/attribute.{attribute}
 import lustre/element
@@ -9,9 +11,10 @@ import lustre/element/html
 import lustre/element/svg
 import lustre/event
 import mvu
+import util/element as dom_element
 
 pub fn get_section(model: mvu.Model) -> element.Element(mvu.Msg) {
-  let ships_contents = list.map(model.ships |> dict.values, get_ship)
+  let ships_contents = dict.map_values(model.ships, get_ship) |> dict.values
   let contents = [
     html.h3([attribute.class("text-sm font-medium text-gray-700 mb-3")], [
       html.text("Ships"),
@@ -21,17 +24,18 @@ pub fn get_section(model: mvu.Model) -> element.Element(mvu.Msg) {
   html.div([attribute.class("p-4")], contents)
 }
 
-fn get_ship(ship: mvu.ShipEntry) -> element.Element(mvu.Msg) {
+fn get_ship(ship_id: Int, ship: mvu.ShipEntry) -> element.Element(mvu.Msg) {
   case ship.is_expanded {
     False -> get_collapsed_ship(ship.ship)
-    True -> get_expanded_ship(ship.ship)
+    True -> get_expanded_ship(ship_id, ship.ship)
   }
 }
 
-fn get_expanded_ship(ship: sde.Ship) -> element.Element(mvu.Msg) {
+fn get_expanded_ship(ship_id: Int, ship: sde.Ship) -> element.Element(mvu.Msg) {
   let holds_buttons = [get_add_hold_button(), get_delete_ship_button()]
   let holds = list.map(ship.holds, get_ship_hold)
   let holds_content = list.append(holds, holds_buttons)
+  let attribute_id = "ship-name-" <> int.to_string(ship_id)
   html.div(
     [
       attribute.class(
@@ -46,7 +50,15 @@ fn get_expanded_ship(ship: sde.Ship) -> element.Element(mvu.Msg) {
           ),
         ],
         [
-          html.span([attribute.class("font-medium")], [html.text("Tayra")]),
+          html.input([
+            attribute.class(
+              "font-medium bg-transparent border-0 border-b border-gray-300 focus:ring-0 focus:border-gray-500 px-0 py-0 w-24",
+            ),
+            attribute.id(attribute_id),
+            attribute.value(ship.name),
+            attribute.type_("text"),
+            event.on_blur(mvu.UserUpdatedShipName(ship_id)),
+          ]),
           html.div([attribute.class("flex items-center")], [
             html.span([attribute.class("text-sm text-gray-600 mr-2")], [
               html.text("7,500 m³"),
@@ -90,6 +102,22 @@ fn get_expanded_ship(ship: sde.Ship) -> element.Element(mvu.Msg) {
     ],
   )
 }
+
+// fn get_on_blur_event(
+//   element_id: String,
+//   default_value: String,
+//   msg: fn(String) -> mvu.Msg,
+// ) -> attribute.Attribute(mvu.Msg) {
+//   let trigger = fn() {
+//     let element_result = dom_element.get_element_by_id(element_id)
+//     let value_result =
+//       result.try(element_result, fn(element) { dom_element.value(element) })
+//     let value = result.unwrap(value_result, default_value)
+//     msg(value)
+//   }
+
+//   event.on_blur(trigger())
+// }
 
 fn get_collapsed_ship(ship: sde.Ship) -> element.Element(mvu.Msg) {
   html.div(

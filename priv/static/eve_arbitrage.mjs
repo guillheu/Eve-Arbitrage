@@ -258,8 +258,8 @@ function bitArrayByteAt(buffer, bitOffset, index5) {
   }
 }
 var UtfCodepoint = class {
-  constructor(value2) {
-    this.value = value2;
+  constructor(value3) {
+    this.value = value3;
   }
 };
 var isBitArrayDeprecationMessagePrinted = {};
@@ -272,277 +272,6 @@ function bitArrayPrintDeprecationWarning(name2, message) {
   );
   isBitArrayDeprecationMessagePrinted[name2] = true;
 }
-function bitArraySlice(bitArray, start4, end) {
-  end ??= bitArray.bitSize;
-  bitArrayValidateRange(bitArray, start4, end);
-  if (start4 === end) {
-    return new BitArray(new Uint8Array());
-  }
-  if (start4 === 0 && end === bitArray.bitSize) {
-    return bitArray;
-  }
-  start4 += bitArray.bitOffset;
-  end += bitArray.bitOffset;
-  const startByteIndex = Math.trunc(start4 / 8);
-  const endByteIndex = Math.trunc((end + 7) / 8);
-  const byteLength = endByteIndex - startByteIndex;
-  let buffer;
-  if (startByteIndex === 0 && byteLength === bitArray.rawBuffer.byteLength) {
-    buffer = bitArray.rawBuffer;
-  } else {
-    buffer = new Uint8Array(
-      bitArray.rawBuffer.buffer,
-      bitArray.rawBuffer.byteOffset + startByteIndex,
-      byteLength
-    );
-  }
-  return new BitArray(buffer, end - start4, start4 % 8);
-}
-function bitArraySliceToInt(bitArray, start4, end, isBigEndian, isSigned) {
-  bitArrayValidateRange(bitArray, start4, end);
-  if (start4 === end) {
-    return 0;
-  }
-  start4 += bitArray.bitOffset;
-  end += bitArray.bitOffset;
-  const isStartByteAligned = start4 % 8 === 0;
-  const isEndByteAligned = end % 8 === 0;
-  if (isStartByteAligned && isEndByteAligned) {
-    return intFromAlignedSlice(
-      bitArray,
-      start4 / 8,
-      end / 8,
-      isBigEndian,
-      isSigned
-    );
-  }
-  const size2 = end - start4;
-  const startByteIndex = Math.trunc(start4 / 8);
-  const endByteIndex = Math.trunc((end - 1) / 8);
-  if (startByteIndex == endByteIndex) {
-    const mask2 = 255 >> start4 % 8;
-    const unusedLowBitCount = (8 - end % 8) % 8;
-    let value2 = (bitArray.rawBuffer[startByteIndex] & mask2) >> unusedLowBitCount;
-    if (isSigned) {
-      const highBit = 2 ** (size2 - 1);
-      if (value2 >= highBit) {
-        value2 -= highBit * 2;
-      }
-    }
-    return value2;
-  }
-  if (size2 <= 53) {
-    return intFromUnalignedSliceUsingNumber(
-      bitArray.rawBuffer,
-      start4,
-      end,
-      isBigEndian,
-      isSigned
-    );
-  } else {
-    return intFromUnalignedSliceUsingBigInt(
-      bitArray.rawBuffer,
-      start4,
-      end,
-      isBigEndian,
-      isSigned
-    );
-  }
-}
-function intFromAlignedSlice(bitArray, start4, end, isBigEndian, isSigned) {
-  const byteSize = end - start4;
-  if (byteSize <= 6) {
-    return intFromAlignedSliceUsingNumber(
-      bitArray.rawBuffer,
-      start4,
-      end,
-      isBigEndian,
-      isSigned
-    );
-  } else {
-    return intFromAlignedSliceUsingBigInt(
-      bitArray.rawBuffer,
-      start4,
-      end,
-      isBigEndian,
-      isSigned
-    );
-  }
-}
-function intFromAlignedSliceUsingNumber(buffer, start4, end, isBigEndian, isSigned) {
-  const byteSize = end - start4;
-  let value2 = 0;
-  if (isBigEndian) {
-    for (let i = start4; i < end; i++) {
-      value2 *= 256;
-      value2 += buffer[i];
-    }
-  } else {
-    for (let i = end - 1; i >= start4; i--) {
-      value2 *= 256;
-      value2 += buffer[i];
-    }
-  }
-  if (isSigned) {
-    const highBit = 2 ** (byteSize * 8 - 1);
-    if (value2 >= highBit) {
-      value2 -= highBit * 2;
-    }
-  }
-  return value2;
-}
-function intFromAlignedSliceUsingBigInt(buffer, start4, end, isBigEndian, isSigned) {
-  const byteSize = end - start4;
-  let value2 = 0n;
-  if (isBigEndian) {
-    for (let i = start4; i < end; i++) {
-      value2 *= 256n;
-      value2 += BigInt(buffer[i]);
-    }
-  } else {
-    for (let i = end - 1; i >= start4; i--) {
-      value2 *= 256n;
-      value2 += BigInt(buffer[i]);
-    }
-  }
-  if (isSigned) {
-    const highBit = 1n << BigInt(byteSize * 8 - 1);
-    if (value2 >= highBit) {
-      value2 -= highBit * 2n;
-    }
-  }
-  return Number(value2);
-}
-function intFromUnalignedSliceUsingNumber(buffer, start4, end, isBigEndian, isSigned) {
-  const isStartByteAligned = start4 % 8 === 0;
-  let size2 = end - start4;
-  let byteIndex = Math.trunc(start4 / 8);
-  let value2 = 0;
-  if (isBigEndian) {
-    if (!isStartByteAligned) {
-      const leadingBitsCount = 8 - start4 % 8;
-      value2 = buffer[byteIndex++] & (1 << leadingBitsCount) - 1;
-      size2 -= leadingBitsCount;
-    }
-    while (size2 >= 8) {
-      value2 *= 256;
-      value2 += buffer[byteIndex++];
-      size2 -= 8;
-    }
-    if (size2 > 0) {
-      value2 *= 2 ** size2;
-      value2 += buffer[byteIndex] >> 8 - size2;
-    }
-  } else {
-    if (isStartByteAligned) {
-      let size3 = end - start4;
-      let scale = 1;
-      while (size3 >= 8) {
-        value2 += buffer[byteIndex++] * scale;
-        scale *= 256;
-        size3 -= 8;
-      }
-      value2 += (buffer[byteIndex] >> 8 - size3) * scale;
-    } else {
-      const highBitsCount = start4 % 8;
-      const lowBitsCount = 8 - highBitsCount;
-      let size3 = end - start4;
-      let scale = 1;
-      while (size3 >= 8) {
-        const byte = buffer[byteIndex] << highBitsCount | buffer[byteIndex + 1] >> lowBitsCount;
-        value2 += (byte & 255) * scale;
-        scale *= 256;
-        size3 -= 8;
-        byteIndex++;
-      }
-      if (size3 > 0) {
-        const lowBitsUsed = size3 - Math.max(0, size3 - lowBitsCount);
-        let trailingByte = (buffer[byteIndex] & (1 << lowBitsCount) - 1) >> lowBitsCount - lowBitsUsed;
-        size3 -= lowBitsUsed;
-        if (size3 > 0) {
-          trailingByte *= 2 ** size3;
-          trailingByte += buffer[byteIndex + 1] >> 8 - size3;
-        }
-        value2 += trailingByte * scale;
-      }
-    }
-  }
-  if (isSigned) {
-    const highBit = 2 ** (end - start4 - 1);
-    if (value2 >= highBit) {
-      value2 -= highBit * 2;
-    }
-  }
-  return value2;
-}
-function intFromUnalignedSliceUsingBigInt(buffer, start4, end, isBigEndian, isSigned) {
-  const isStartByteAligned = start4 % 8 === 0;
-  let size2 = end - start4;
-  let byteIndex = Math.trunc(start4 / 8);
-  let value2 = 0n;
-  if (isBigEndian) {
-    if (!isStartByteAligned) {
-      const leadingBitsCount = 8 - start4 % 8;
-      value2 = BigInt(buffer[byteIndex++] & (1 << leadingBitsCount) - 1);
-      size2 -= leadingBitsCount;
-    }
-    while (size2 >= 8) {
-      value2 *= 256n;
-      value2 += BigInt(buffer[byteIndex++]);
-      size2 -= 8;
-    }
-    if (size2 > 0) {
-      value2 <<= BigInt(size2);
-      value2 += BigInt(buffer[byteIndex] >> 8 - size2);
-    }
-  } else {
-    if (isStartByteAligned) {
-      let size3 = end - start4;
-      let shift = 0n;
-      while (size3 >= 8) {
-        value2 += BigInt(buffer[byteIndex++]) << shift;
-        shift += 8n;
-        size3 -= 8;
-      }
-      value2 += BigInt(buffer[byteIndex] >> 8 - size3) << shift;
-    } else {
-      const highBitsCount = start4 % 8;
-      const lowBitsCount = 8 - highBitsCount;
-      let size3 = end - start4;
-      let shift = 0n;
-      while (size3 >= 8) {
-        const byte = buffer[byteIndex] << highBitsCount | buffer[byteIndex + 1] >> lowBitsCount;
-        value2 += BigInt(byte & 255) << shift;
-        shift += 8n;
-        size3 -= 8;
-        byteIndex++;
-      }
-      if (size3 > 0) {
-        const lowBitsUsed = size3 - Math.max(0, size3 - lowBitsCount);
-        let trailingByte = (buffer[byteIndex] & (1 << lowBitsCount) - 1) >> lowBitsCount - lowBitsUsed;
-        size3 -= lowBitsUsed;
-        if (size3 > 0) {
-          trailingByte <<= size3;
-          trailingByte += buffer[byteIndex + 1] >> 8 - size3;
-        }
-        value2 += BigInt(trailingByte) << shift;
-      }
-    }
-  }
-  if (isSigned) {
-    const highBit = 2n ** BigInt(end - start4 - 1);
-    if (value2 >= highBit) {
-      value2 -= highBit * 2n;
-    }
-  }
-  return Number(value2);
-}
-function bitArrayValidateRange(bitArray, start4, end) {
-  if (start4 < 0 || start4 > bitArray.bitSize || end < start4 || end > bitArray.bitSize) {
-    const msg = `Invalid bit array slice: start = ${start4}, end = ${end}, bit size = ${bitArray.bitSize}`;
-    throw new globalThis.Error(msg);
-  }
-}
 var Result = class _Result extends CustomType {
   // @internal
   static isResult(data) {
@@ -550,9 +279,9 @@ var Result = class _Result extends CustomType {
   }
 };
 var Ok = class extends Result {
-  constructor(value2) {
+  constructor(value3) {
     super();
-    this[0] = value2;
+    this[0] = value3;
   }
   // @internal
   isOk() {
@@ -1179,10 +908,10 @@ function key_find(keyword_list, desired_key) {
     keyword_list,
     (keyword) => {
       let key = keyword[0];
-      let value2 = keyword[1];
+      let value3 = keyword[1];
       let $ = isEqual(key, desired_key);
       if ($) {
-        return new Ok(value2);
+        return new Ok(value3);
       } else {
         return new Error(void 0);
       }
@@ -1241,6 +970,11 @@ function concat_loop(loop$strings, loop$accumulator) {
 function concat2(strings) {
   return concat_loop(strings, "");
 }
+function trim(string5) {
+  let _pipe = string5;
+  let _pipe$1 = trim_start(_pipe);
+  return trim_end(_pipe$1);
+}
 function inspect2(term) {
   let _pipe = inspect(term);
   return identity(_pipe);
@@ -1284,6 +1018,14 @@ function try$(result, fun) {
 function then$(result, fun) {
   return try$(result, fun);
 }
+function unwrap2(result, default$) {
+  if (result.isOk()) {
+    let v = result[0];
+    return v;
+  } else {
+    return default$;
+  }
+}
 function unwrap_both(result) {
   if (result.isOk()) {
     let a2 = result[0];
@@ -1291,13 +1033,6 @@ function unwrap_both(result) {
   } else {
     let a2 = result[0];
     return a2;
-  }
-}
-function lazy_or(first, second) {
-  if (first.isOk()) {
-    return first;
-  } else {
-    return second();
   }
 }
 function replace_error(result, error) {
@@ -2019,16 +1754,9 @@ var NOT_FOUND = {};
 function identity(x) {
   return x;
 }
-function parse_int(value2) {
-  if (/^[-+]?(\d+)$/.test(value2)) {
-    return new Ok(parseInt(value2));
-  } else {
-    return new Error(Nil);
-  }
-}
-function parse_float(value2) {
-  if (/^[-+]?(\d+)\.(\d+)([eE][-+]?\d+)?$/.test(value2)) {
-    return new Ok(parseFloat(value2));
+function parse_int(value3) {
+  if (/^[-+]?(\d+)$/.test(value3)) {
+    return new Ok(parseInt(value3));
   } else {
     return new Error(Nil);
   }
@@ -2139,6 +1867,12 @@ var trim_start_regex = /* @__PURE__ */ new RegExp(
   `^[${unicode_whitespaces}]*`
 );
 var trim_end_regex = /* @__PURE__ */ new RegExp(`[${unicode_whitespaces}]*$`);
+function trim_start(string5) {
+  return string5.replace(trim_start_regex, "");
+}
+function trim_end(string5) {
+  return string5.replace(trim_end_regex, "");
+}
 function console_log(term) {
   console.log(term);
 }
@@ -2161,14 +1895,14 @@ function map_to_list(map6) {
   return List.fromArray(map6.entries());
 }
 function map_get(map6, key) {
-  const value2 = map6.get(key, NOT_FOUND);
-  if (value2 === NOT_FOUND) {
+  const value3 = map6.get(key, NOT_FOUND);
+  if (value3 === NOT_FOUND) {
     return new Error(Nil);
   }
-  return new Ok(value2);
+  return new Ok(value3);
 }
-function map_insert(key, value2, map6) {
-  return map6.set(key, value2);
+function map_insert(key, value3, map6) {
+  return map6.set(key, value3);
 }
 function classify_dynamic(data) {
   if (typeof data === "string") {
@@ -2261,9 +1995,9 @@ function inspectString(str) {
 function inspectDict(map6) {
   let body = "dict.from_list([";
   let first = true;
-  map6.forEach((value2, key) => {
+  map6.forEach((value3, key) => {
     if (!first) body = body + ", ";
-    body = body + "#(" + inspect(key) + ", " + inspect(value2) + ")";
+    body = body + "#(" + inspect(key) + ", " + inspect(value3) + ")";
     first = false;
   });
   return body + "])";
@@ -2280,8 +2014,8 @@ function inspectObject(v) {
 }
 function inspectCustomType(record) {
   const props = Object.keys(record).map((label2) => {
-    const value2 = inspect(record[label2]);
-    return isNaN(parseInt(label2)) ? `${label2}: ${value2}` : value2;
+    const value3 = inspect(record[label2]);
+    return isNaN(parseInt(label2)) ? `${label2}: ${value3}` : value3;
   }).join(", ");
   return props ? `${record.constructor.name}(${props})` : record.constructor.name;
 }
@@ -2310,8 +2044,8 @@ function bit_array_inspect(bits, acc) {
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/dict.mjs
-function insert(dict2, key, value2) {
-  return map_insert(key, value2, dict2);
+function insert(dict2, key, value3) {
+  return map_insert(key, value3, dict2);
 }
 function reverse_and_concat(loop$remaining, loop$accumulator) {
   while (true) {
@@ -2334,10 +2068,10 @@ function do_values_loop(loop$list, loop$acc) {
     if (list4.hasLength(0)) {
       return reverse_and_concat(acc, toList([]));
     } else {
-      let value2 = list4.head[1];
+      let value3 = list4.head[1];
       let rest = list4.tail;
       loop$list = rest;
-      loop$acc = prepend(value2, acc);
+      loop$acc = prepend(value3, acc);
     }
   }
 }
@@ -2348,8 +2082,8 @@ function values(dict2) {
 function upsert(dict2, key, fun) {
   let $ = map_get(dict2, key);
   if ($.isOk()) {
-    let value2 = $[0];
-    return insert(dict2, key, fun(new Some(value2)));
+    let value3 = $[0];
+    return insert(dict2, key, fun(new Some(value3)));
   } else {
     return insert(dict2, key, fun(new None()));
   }
@@ -2395,8 +2129,8 @@ function index2(data, key) {
   const key_is_int = Number.isInteger(key);
   if (key_is_int && key >= 0 && key < 8 && data instanceof List) {
     let i = 0;
-    for (const value2 of data) {
-      if (i === key) return new Ok(new Some(value2));
+    for (const value3 of data) {
+      if (i === key) return new Ok(new Some(value3));
       i++;
     }
     return new Error("Indexable");
@@ -2846,7 +2580,7 @@ var EMPTY_SET = /* @__PURE__ */ new$();
 function empty_set() {
   return EMPTY_SET;
 }
-var document = globalThis?.document;
+var document2 = globalThis?.document;
 var NAMESPACE_HTML = "http://www.w3.org/1999/xhtml";
 var ELEMENT_NODE = 1;
 var TEXT_NODE = 3;
@@ -2873,19 +2607,19 @@ function compare3(a2, b) {
 
 // build/dev/javascript/lustre/lustre/vdom/vattr.mjs
 var Attribute = class extends CustomType {
-  constructor(kind, name2, value2) {
+  constructor(kind, name2, value3) {
     super();
     this.kind = kind;
     this.name = name2;
-    this.value = value2;
+    this.value = value3;
   }
 };
 var Property = class extends CustomType {
-  constructor(kind, name2, value2) {
+  constructor(kind, name2, value3) {
     super();
     this.kind = kind;
     this.name = name2;
-    this.value = value2;
+    this.value = value3;
   }
 };
 var Event2 = class extends CustomType {
@@ -2947,8 +2681,8 @@ function merge(loop$attributes, loop$merged) {
       let class1 = attributes.head.value;
       let class2 = attributes.tail.head.value;
       let rest = attributes.tail.tail;
-      let value2 = class1 + " " + class2;
-      let attribute$1 = new Attribute(kind, "class", value2);
+      let value3 = class1 + " " + class2;
+      let attribute$1 = new Attribute(kind, "class", value3);
       loop$attributes = prepend(attribute$1, rest);
       loop$merged = merged;
     } else if (attributes.atLeastLength(2) && attributes.head instanceof Attribute && attributes.head.name === "style" && attributes.tail.head instanceof Attribute && attributes.tail.head.name === "style") {
@@ -2956,8 +2690,8 @@ function merge(loop$attributes, loop$merged) {
       let style1 = attributes.head.value;
       let style2 = attributes.tail.head.value;
       let rest = attributes.tail.tail;
-      let value2 = style1 + ";" + style2;
-      let attribute$1 = new Attribute(kind, "style", value2);
+      let value3 = style1 + ";" + style2;
+      let attribute$1 = new Attribute(kind, "style", value3);
       loop$attributes = prepend(attribute$1, rest);
       loop$merged = merged;
     } else {
@@ -2982,12 +2716,12 @@ function prepare(attributes) {
   }
 }
 var attribute_kind = 0;
-function attribute(name2, value2) {
-  return new Attribute(attribute_kind, name2, value2);
+function attribute(name2, value3) {
+  return new Attribute(attribute_kind, name2, value3);
 }
 var property_kind = 1;
-function property(name2, value2) {
-  return new Property(property_kind, name2, value2);
+function property(name2, value3) {
+  return new Property(property_kind, name2, value3);
 }
 var event_kind = 2;
 function event(name2, handler, include, prevent_default, stop_propagation, immediate2, limit) {
@@ -3006,14 +2740,14 @@ var debounce_kind = 1;
 var throttle_kind = 2;
 
 // build/dev/javascript/lustre/lustre/attribute.mjs
-function attribute2(name2, value2) {
-  return attribute(name2, value2);
+function attribute2(name2, value3) {
+  return attribute(name2, value3);
 }
-function property2(name2, value2) {
-  return property(name2, value2);
+function property2(name2, value3) {
+  return property(name2, value3);
 }
-function boolean_attribute(name2, value2) {
-  if (value2) {
+function boolean_attribute(name2, value3) {
+  if (value3) {
     return attribute2(name2, "");
   } else {
     return property2(name2, bool2(false));
@@ -3022,8 +2756,8 @@ function boolean_attribute(name2, value2) {
 function class$(name2) {
   return attribute2("class", name2);
 }
-function id(value2) {
-  return attribute2("id", value2);
+function id(value3) {
+  return attribute2("id", value3);
 }
 function href(url) {
   return attribute2("href", url);
@@ -3031,11 +2765,11 @@ function href(url) {
 function for$(id2) {
   return attribute2("for", id2);
 }
-function max(value2) {
-  return attribute2("max", value2);
+function max(value3) {
+  return attribute2("max", value3);
 }
-function min(value2) {
-  return attribute2("min", value2);
+function min(value3) {
+  return attribute2("min", value3);
 }
 function name(element_name) {
   return attribute2("name", element_name);
@@ -3046,8 +2780,8 @@ function placeholder(text4) {
 function selected(is_selected) {
   return boolean_attribute("selected", is_selected);
 }
-function step(value2) {
-  return attribute2("step", value2);
+function step(value3) {
+  return attribute2("step", value3);
 }
 function type_(control_type) {
   return attribute2("type", control_type);
@@ -3087,16 +2821,16 @@ function empty2() {
   return null;
 }
 function get(map6, key) {
-  const value2 = map6?.get(key);
-  if (value2 != null) {
-    return new Ok(value2);
+  const value3 = map6?.get(key);
+  if (value3 != null) {
+    return new Ok(value3);
   } else {
     return new Error(void 0);
   }
 }
-function insert3(map6, key, value2) {
+function insert3(map6, key, value3) {
   map6 ??= /* @__PURE__ */ new Map();
-  map6.set(key, value2);
+  map6.set(key, value3);
   return map6;
 }
 function remove(map6, key) {
@@ -4460,11 +4194,11 @@ var Reconciler = class {
     switch (attribute3.kind) {
       case attribute_kind: {
         const name2 = attribute3.name;
-        const value2 = attribute3.value ?? "";
-        if (value2 !== node.getAttribute(name2)) {
-          node.setAttribute(name2, value2);
+        const value3 = attribute3.value ?? "";
+        if (value3 !== node.getAttribute(name2)) {
+          node.setAttribute(name2, value3);
         }
-        ATTRIBUTE_HOOKS[name2]?.added?.(node, value2);
+        ATTRIBUTE_HOOKS[name2]?.added?.(node, value3);
         break;
       }
       case property_kind:
@@ -4556,12 +4290,12 @@ var iterate = (list4, callback) => {
 var appendChild = (node, child) => node.appendChild(child);
 var insertBefore = (parent, node, referenceNode) => parent.insertBefore(node, referenceNode ?? null);
 var createElement = ({ key, tag, namespace: namespace2 }) => {
-  const node = document.createElementNS(namespace2 || NAMESPACE_HTML, tag);
+  const node = document2.createElementNS(namespace2 || NAMESPACE_HTML, tag);
   initialiseMetadata(node, key);
   return node;
 };
-var createTextNode = (text4) => document.createTextNode(text4 ?? "");
-var createDocumentFragment = () => document.createDocumentFragment();
+var createTextNode = (text4) => document2.createTextNode(text4 ?? "");
+var createDocumentFragment = () => document2.createDocumentFragment();
 var childAt = (node, at) => node.childNodes[at | 0];
 var meta = Symbol("lustre");
 var initialiseMetadata = (node, key = "") => {
@@ -4636,8 +4370,8 @@ var syncedBooleanAttribute = (name2) => {
 };
 var syncedAttribute = (name2) => {
   return {
-    added(node, value2) {
-      node[name2] = value2;
+    added(node, value3) {
+      node[name2] = value3;
     }
   };
 };
@@ -4679,7 +4413,7 @@ var virtualise = (root3) => {
   }
 };
 var empty_text_node = () => {
-  return document.createTextNode("");
+  return document2.createTextNode("");
 };
 var virtualise_node = (node) => {
   switch (node.nodeType) {
@@ -4712,17 +4446,17 @@ var virtualise_node = (node) => {
 };
 var input_elements = ["input", "select", "textarea"];
 var virtualise_input_events = (tag, node) => {
-  const value2 = node.value;
+  const value3 = node.value;
   const checked = node.checked;
   if (tag === "input" && node.type === "checkbox" && !checked) return;
   if (tag === "input" && node.type === "radio" && !checked) return;
-  if (node.type !== "checkbox" && node.type !== "radio" && !value2) return;
+  if (node.type !== "checkbox" && node.type !== "radio" && !value3) return;
   queueMicrotask(() => {
-    node.value = value2;
+    node.value = value3;
     node.checked = checked;
     node.dispatchEvent(new Event("input", { bubbles: true }));
     node.dispatchEvent(new Event("change", { bubbles: true }));
-    if (document.activeElement !== node) {
+    if (document2.activeElement !== node) {
       node.dispatchEvent(new Event("blur", { bubbles: true }));
     }
   });
@@ -4755,12 +4489,12 @@ var virtualise_attributes = (node) => {
 };
 var virtualise_attribute = (attr) => {
   const name2 = attr.localName;
-  const value2 = attr.value;
-  return attribute2(name2, value2);
+  const value3 = attr.value;
+  return attribute2(name2, value3);
 };
 
 // build/dev/javascript/lustre/lustre/runtime/client/runtime.ffi.mjs
-var is_browser = () => !!document;
+var is_browser = () => !!document2;
 var is_reference_equal = (a2, b) => a2 === b;
 var Runtime = class {
   constructor(root3, [model, effects], view, update2) {
@@ -5299,7 +5033,7 @@ function new$6(options) {
 var Spa = class _Spa {
   static start({ init: init2, update: update2, view }, selector, flags) {
     if (!is_browser()) return new Error(new NotABrowser());
-    const root3 = selector instanceof HTMLElement ? selector : document.querySelector(selector);
+    const root3 = selector instanceof HTMLElement ? selector : document2.querySelector(selector);
     if (!root3) return new Error(new ElementNotFound(selector));
     return new Ok(new _Spa(root3, init2(flags), update2, view));
   }
@@ -6549,22 +6283,22 @@ var PromiseLayer = class _PromiseLayer {
   constructor(promise) {
     this.promise = promise;
   }
-  static wrap(value2) {
-    return value2 instanceof Promise ? new _PromiseLayer(value2) : value2;
+  static wrap(value3) {
+    return value3 instanceof Promise ? new _PromiseLayer(value3) : value3;
   }
-  static unwrap(value2) {
-    return value2 instanceof _PromiseLayer ? value2.promise : value2;
+  static unwrap(value3) {
+    return value3 instanceof _PromiseLayer ? value3.promise : value3;
   }
 };
-function resolve(value2) {
-  return Promise.resolve(PromiseLayer.wrap(value2));
+function resolve(value3) {
+  return Promise.resolve(PromiseLayer.wrap(value3));
 }
 function then_await(promise, fn) {
-  return promise.then((value2) => fn(PromiseLayer.unwrap(value2)));
+  return promise.then((value3) => fn(PromiseLayer.unwrap(value3)));
 }
 function map_promise(promise, fn) {
   return promise.then(
-    (value2) => PromiseLayer.wrap(fn(PromiseLayer.unwrap(value2)))
+    (value3) => PromiseLayer.wrap(fn(PromiseLayer.unwrap(value3)))
   );
 }
 
@@ -6668,7 +6402,7 @@ var from_relative_url = (url_string) => {
   return new Ok(uri);
 };
 var uri_from_url = (url) => {
-  const optional = (value2) => value2 ? new Some(value2) : new None();
+  const optional = (value3) => value3 ? new Some(value3) : new None();
   return new Uri(
     /* scheme   */
     optional(url.protocol?.slice(0, -1)),
@@ -7192,6 +6926,12 @@ var UserLoadedDestination = class extends CustomType {
 };
 var UserCreatedShip = class extends CustomType {
 };
+var UserDeletedShip = class extends CustomType {
+  constructor(deleted_ship) {
+    super();
+    this.deleted_ship = deleted_ship;
+  }
+};
 var UserSelectedShip = class extends CustomType {
   constructor(selected_ship) {
     super();
@@ -7225,9 +6965,9 @@ var UserClickedExpandSidebar = class extends CustomType {
 var UserClickedCollapseSidebar = class extends CustomType {
 };
 var UserUpdatedCollateral = class extends CustomType {
-  constructor(value2) {
+  constructor(value3) {
     super();
-    this.value = value2;
+    this.value = value3;
   }
 };
 var UserUpdatedAccountingLevel = class extends CustomType {
@@ -7236,6 +6976,19 @@ var UserUpdatedAccountingLevel = class extends CustomType {
     this.level = level;
   }
 };
+var UserUpdatedShipName = class extends CustomType {
+  constructor(id2) {
+    super();
+    this.id = id2;
+  }
+};
+function int_input_to_msg(input2, msg) {
+  let value3 = (() => {
+    let _pipe = parse_int(input2);
+    return from_result(_pipe);
+  })();
+  return msg(value3);
+}
 
 // build/dev/javascript/eve_arbitrage/clipboard_ffi.mjs
 async function writeText(clipText) {
@@ -7269,6 +7022,22 @@ function user_clicked_copy_multibuy(model, multibuy) {
   return [model, side_effect];
 }
 
+// build/dev/javascript/eve_arbitrage/element_ffi.mjs
+function value2(element3) {
+  let value3 = element3.value;
+  if (value3 != void 0) {
+    return new Ok(value3);
+  }
+  return new Error();
+}
+function getElementById(id2) {
+  let found = document.getElementById(id2);
+  if (!found) {
+    return new Error();
+  }
+  return new Ok(found);
+}
+
 // build/dev/javascript/eve_arbitrage/mvu/update/ships.mjs
 function user_selected_ship(selected_ship, model) {
   let model$1 = (() => {
@@ -7300,11 +7069,85 @@ function user_deleted_ship(model, deleted_ship) {
   throw makeError(
     "todo",
     "mvu/update/ships",
-    48,
+    49,
     "user_deleted_ship",
     "`todo` expression evaluated. This code has not yet been implemented.",
     {}
   );
+}
+function user_updated_ship_name(model, id2) {
+  let element_id = "ship-name-" + to_string(id2);
+  let element_result = getElementById(element_id);
+  let value_result = try$(
+    element_result,
+    (element3) => {
+      return value2(element3);
+    }
+  );
+  let $ = map_get(model.ships, id2);
+  if (!$.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/update/ships",
+      60,
+      "user_updated_ship_name",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $ }
+    );
+  }
+  let ship = $[0];
+  let default_value = ship.ship.name;
+  let name2 = unwrap2(value_result, default_value);
+  let name$1 = (() => {
+    let $1 = (() => {
+      let _pipe = name2;
+      return trim(_pipe);
+    })();
+    if ($1 === "") {
+      return default_value;
+    } else {
+      let any = $1;
+      return any;
+    }
+  })();
+  let model$1 = (() => {
+    let $1 = map_get(model.ships, id2);
+    if (!$1.isOk()) {
+      throw makeError(
+        "let_assert",
+        "mvu/update/ships",
+        68,
+        "user_updated_ship_name",
+        "Pattern match failed, no pattern matched the value.",
+        { value: $1 }
+      );
+    }
+    let ship_entry = $1[0];
+    let ship$1 = ship_entry.ship;
+    let ship$2 = (() => {
+      let _record2 = ship$1;
+      return new Ship(name$1, _record2.holds);
+    })();
+    let ship_entry$1 = (() => {
+      let _record2 = ship_entry;
+      return new ShipEntry(ship$2, _record2.is_expanded);
+    })();
+    let _record = model;
+    return new Model(
+      insert(model.ships, id2, ship_entry$1),
+      _record.current_ship,
+      _record.count_ship_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
 }
 var default_ship_entry = /* @__PURE__ */ new ShipEntry(
   /* @__PURE__ */ new Ship(
@@ -7320,8 +7163,6 @@ var default_ship_entry = /* @__PURE__ */ new ShipEntry(
   true
 );
 function user_created_ship(model) {
-  echo("creating ship", "src/mvu/update/ships.gleam", 31);
-  echo(default_ship_entry, "src/mvu/update/ships.gleam", 32);
   let ships = insert(
     model.ships,
     model.count_ship_index,
@@ -7344,127 +7185,6 @@ function user_created_ship(model) {
     );
   })();
   return [model$1, none()];
-}
-function echo(value2, file, line) {
-  const grey = "\x1B[90m";
-  const reset_color = "\x1B[39m";
-  const file_line = `${file}:${line}`;
-  const string_value = echo$inspect(value2);
-  if (typeof process === "object" && process.stderr?.write) {
-    const string5 = `${grey}${file_line}${reset_color}
-${string_value}
-`;
-    process.stderr.write(string5);
-  } else if (typeof Deno === "object") {
-    const string5 = `${grey}${file_line}${reset_color}
-${string_value}
-`;
-    Deno.stderr.writeSync(new TextEncoder().encode(string5));
-  } else {
-    const string5 = `${file_line}
-${string_value}`;
-    console.log(string5);
-  }
-  return value2;
-}
-function echo$inspectString(str) {
-  let new_str = '"';
-  for (let i = 0; i < str.length; i++) {
-    let char = str[i];
-    if (char == "\n") new_str += "\\n";
-    else if (char == "\r") new_str += "\\r";
-    else if (char == "	") new_str += "\\t";
-    else if (char == "\f") new_str += "\\f";
-    else if (char == "\\") new_str += "\\\\";
-    else if (char == '"') new_str += '\\"';
-    else if (char < " " || char > "~" && char < "\xA0") {
-      new_str += "\\u{" + char.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0") + "}";
-    } else {
-      new_str += char;
-    }
-  }
-  new_str += '"';
-  return new_str;
-}
-function echo$inspectDict(map6) {
-  let body = "dict.from_list([";
-  let first = true;
-  let key_value_pairs = [];
-  map6.forEach((value2, key) => {
-    key_value_pairs.push([key, value2]);
-  });
-  key_value_pairs.sort();
-  key_value_pairs.forEach(([key, value2]) => {
-    if (!first) body = body + ", ";
-    body = body + "#(" + echo$inspect(key) + ", " + echo$inspect(value2) + ")";
-    first = false;
-  });
-  return body + "])";
-}
-function echo$inspectCustomType(record) {
-  const props = Object.keys(record).map((label2) => {
-    const value2 = echo$inspect(record[label2]);
-    return isNaN(parseInt(label2)) ? `${label2}: ${value2}` : value2;
-  }).join(", ");
-  return props ? `${record.constructor.name}(${props})` : record.constructor.name;
-}
-function echo$inspectObject(v) {
-  const name2 = Object.getPrototypeOf(v)?.constructor?.name || "Object";
-  const props = [];
-  for (const k of Object.keys(v)) {
-    props.push(`${echo$inspect(k)}: ${echo$inspect(v[k])}`);
-  }
-  const body = props.length ? " " + props.join(", ") + " " : "";
-  const head = name2 === "Object" ? "" : name2 + " ";
-  return `//js(${head}{${body}})`;
-}
-function echo$inspect(v) {
-  const t = typeof v;
-  if (v === true) return "True";
-  if (v === false) return "False";
-  if (v === null) return "//js(null)";
-  if (v === void 0) return "Nil";
-  if (t === "string") return echo$inspectString(v);
-  if (t === "bigint" || t === "number") return v.toString();
-  if (Array.isArray(v)) return `#(${v.map(echo$inspect).join(", ")})`;
-  if (v instanceof List) return `[${v.toArray().map(echo$inspect).join(", ")}]`;
-  if (v instanceof UtfCodepoint) return `//utfcodepoint(${String.fromCodePoint(v.value)})`;
-  if (v instanceof BitArray) return echo$inspectBitArray(v);
-  if (v instanceof CustomType) return echo$inspectCustomType(v);
-  if (echo$isDict(v)) return echo$inspectDict(v);
-  if (v instanceof Set) return `//js(Set(${[...v].map(echo$inspect).join(", ")}))`;
-  if (v instanceof RegExp) return `//js(${v})`;
-  if (v instanceof Date) return `//js(Date("${v.toISOString()}"))`;
-  if (v instanceof Function) {
-    const args = [];
-    for (const i of Array(v.length).keys()) args.push(String.fromCharCode(i + 97));
-    return `//fn(${args.join(", ")}) { ... }`;
-  }
-  return echo$inspectObject(v);
-}
-function echo$inspectBitArray(bitArray) {
-  let endOfAlignedBytes = bitArray.bitOffset + 8 * Math.trunc(bitArray.bitSize / 8);
-  let alignedBytes = bitArraySlice(bitArray, bitArray.bitOffset, endOfAlignedBytes);
-  let remainingUnalignedBits = bitArray.bitSize % 8;
-  if (remainingUnalignedBits > 0) {
-    let remainingBits = bitArraySliceToInt(bitArray, endOfAlignedBytes, bitArray.bitSize, false, false);
-    let alignedBytesArray = Array.from(alignedBytes.rawBuffer);
-    let suffix = `${remainingBits}:size(${remainingUnalignedBits})`;
-    if (alignedBytesArray.length === 0) {
-      return `<<${suffix}>>`;
-    } else {
-      return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}, ${suffix}>>`;
-    }
-  } else {
-    return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}>>`;
-  }
-}
-function echo$isDict(value2) {
-  try {
-    return value2 instanceof Dict;
-  } catch {
-    return false;
-  }
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/update/sidebar.mjs
@@ -7506,7 +7226,7 @@ function user_clicked_expand_sidebar(model) {
   })();
   return [model$1, none()];
 }
-function user_updated_collateral(model, value2) {
+function user_updated_collateral(model, value3) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
@@ -7519,7 +7239,7 @@ function user_updated_collateral(model, value2) {
       _record.accounting_level,
       _record.language,
       _record.sidebar_expanded,
-      value2,
+      value3,
       _record.multibuys
     );
   })();
@@ -8155,16 +7875,19 @@ function run2(model, msg) {
   } else if (msg instanceof UserClickedExpandSidebar) {
     return user_clicked_expand_sidebar(model);
   } else if (msg instanceof UserUpdatedCollateral) {
-    let value2 = msg.value;
-    return user_updated_collateral(model, value2);
+    let value3 = msg.value;
+    return user_updated_collateral(model, value3);
   } else if (msg instanceof UserUpdatedAccountingLevel) {
     let level = msg.level;
     return user_updated_accounting_level(model, level);
   } else if (msg instanceof UserCreatedShip) {
     return user_created_ship(model);
-  } else {
+  } else if (msg instanceof UserDeletedShip) {
     let deleted_ship = msg.deleted_ship;
     return user_deleted_ship(model, deleted_ship);
+  } else {
+    let id2 = msg.id;
+    return user_updated_ship_name(model, id2);
   }
 }
 
@@ -8217,11 +7940,14 @@ function on_input(msg) {
     subfield(
       toList(["target", "value"]),
       string2,
-      (value2) => {
-        return success(msg(value2));
+      (value3) => {
+        return success(msg(value3));
       }
     )
   );
+}
+function on_blur(msg) {
+  return on("blur", success(msg));
 }
 
 // build/dev/javascript/eve_arbitrage/util/numbers.mjs
@@ -8426,7 +8152,7 @@ function get_section2(level) {
                     throw makeError(
                       "let_assert",
                       "mvu/view/sidebar/accounting",
-                      41,
+                      44,
                       "",
                       "Pattern match failed, no pattern matched the value.",
                       { value: $ }
@@ -8468,7 +8194,67 @@ function get_section2(level) {
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/view/sidebar/collateral.mjs
+function get_empty_collateral() {
+  return input(
+    toList([
+      placeholder("0"),
+      step("1"),
+      class$(
+        "focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-12 pr-12 sm:text-sm border-gray-300 rounded-md p-2 border"
+      ),
+      id("max-collateral"),
+      name("max-collateral"),
+      type_("number"),
+      on_input(
+        (_capture) => {
+          return int_input_to_msg(
+            _capture,
+            (var0) => {
+              return new UserUpdatedCollateral(var0);
+            }
+          );
+        }
+      )
+    ])
+  );
+}
+function get_set_collateral(value3) {
+  return input(
+    toList([
+      placeholder("0"),
+      class$(
+        "focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-12 pr-12 sm:text-sm border-gray-300 rounded-md p-2 border"
+      ),
+      id("max-collateral"),
+      name("max-collateral"),
+      type_("number"),
+      value(
+        (() => {
+          let _pipe = value3;
+          return to_string(_pipe);
+        })()
+      ),
+      on_input(
+        (input2) => {
+          let value$1 = (() => {
+            let _pipe = parse_int(input2);
+            return from_result(_pipe);
+          })();
+          return new UserUpdatedCollateral(value$1);
+        }
+      )
+    ])
+  );
+}
 function get_section3(collateral) {
+  let collateral_input = (() => {
+    if (collateral instanceof None) {
+      return get_empty_collateral();
+    } else {
+      let value3 = collateral[0];
+      return get_set_collateral(value3);
+    }
+  })();
   return div(
     toList([class$("p-4 border-b border-gray-200")]),
     toList([
@@ -8495,37 +8281,7 @@ function get_section3(collateral) {
               )
             ])
           ),
-          input(
-            toList([
-              placeholder("0.00"),
-              class$(
-                "focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-12 pr-12 sm:text-sm border-gray-300 rounded-md p-2 border"
-              ),
-              id("max-collateral"),
-              name("max-collateral"),
-              type_("number"),
-              on_input(
-                (input2) => {
-                  let value2 = (() => {
-                    let _pipe = parse_float(input2);
-                    let _pipe$1 = lazy_or(
-                      _pipe,
-                      () => {
-                        return map2(
-                          parse_int(input2),
-                          (value3) => {
-                            return identity(value3);
-                          }
-                        );
-                      }
-                    );
-                    return from_result(_pipe$1);
-                  })();
-                  return new UserUpdatedCollateral(value2);
-                }
-              )
-            ])
-          ),
+          collateral_input,
           div(
             toList([
               class$(
@@ -8751,10 +8507,11 @@ function get_delete_ship_button() {
     ])
   );
 }
-function get_expanded_ship(ship) {
+function get_expanded_ship(ship_id, ship) {
   let holds_buttons = toList([get_add_hold_button(), get_delete_ship_button()]);
   let holds = map(ship.holds, get_ship_hold);
   let holds_content = append(holds, holds_buttons);
+  let attribute_id = "ship-name-" + to_string(ship_id);
   return div(
     toList([
       class$(
@@ -8769,9 +8526,16 @@ function get_expanded_ship(ship) {
           )
         ]),
         toList([
-          span(
-            toList([class$("font-medium")]),
-            toList([text3("Tayra")])
+          input(
+            toList([
+              class$(
+                "font-medium bg-transparent border-0 border-b border-gray-300 focus:ring-0 focus:border-gray-500 px-0 py-0 w-24"
+              ),
+              id(attribute_id),
+              value(ship.name),
+              type_("text"),
+              on_blur(new UserUpdatedShipName(ship_id))
+            ])
           ),
           div(
             toList([class$("flex items-center")]),
@@ -8822,12 +8586,12 @@ function get_expanded_ship(ship) {
     ])
   );
 }
-function get_ship(ship) {
+function get_ship(ship_id, ship) {
   let $ = ship.is_expanded;
   if (!$) {
     return get_collapsed_ship(ship.ship);
   } else {
-    return get_expanded_ship(ship.ship);
+    return get_expanded_ship(ship_id, ship.ship);
   }
 }
 function get_add_ship_button() {
@@ -8863,13 +8627,10 @@ function get_add_ship_button() {
   );
 }
 function get_section4(model) {
-  let ships_contents = map(
-    (() => {
-      let _pipe = model.ships;
-      return values(_pipe);
-    })(),
-    get_ship
-  );
+  let ships_contents = (() => {
+    let _pipe = map_values(model.ships, get_ship);
+    return values(_pipe);
+  })();
   let contents = prepend(
     h3(
       toList([class$("text-sm font-medium text-gray-700 mb-3")]),

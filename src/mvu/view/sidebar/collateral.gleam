@@ -5,11 +5,14 @@ import gleam/result
 import lustre/attribute.{attribute}
 import lustre/element
 import lustre/element/html
-import lustre/element/svg
 import lustre/event
 import mvu
 
-pub fn get_section(collateral: Option(Float)) -> element.Element(mvu.Msg) {
+pub fn get_section(collateral: Option(Int)) -> element.Element(mvu.Msg) {
+  let collateral_input = case collateral {
+    None -> get_empty_collateral()
+    Some(value) -> get_set_collateral(value)
+  }
   html.div([attribute.class("p-4 border-b border-gray-200")], [
     html.label(
       [
@@ -31,25 +34,7 @@ pub fn get_section(collateral: Option(Float)) -> element.Element(mvu.Msg) {
           ]),
         ],
       ),
-      html.input([
-        attribute.placeholder("0.00"),
-        attribute.class(
-          "focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-12 pr-12 sm:text-sm border-gray-300 rounded-md p-2 border",
-        ),
-        attribute.id("max-collateral"),
-        attribute.name("max-collateral"),
-        attribute.type_("number"),
-        event.on_input(fn(input) {
-          let value =
-            float.parse(input)
-            |> result.lazy_or(fn() {
-              use value <- result.map(int.parse(input))
-              int.to_float(value)
-            })
-            |> option.from_result
-          mvu.UserUpdatedCollateral(value)
-        }),
-      ]),
+      collateral_input,
       html.div(
         [
           attribute.class(
@@ -63,5 +48,38 @@ pub fn get_section(collateral: Option(Float)) -> element.Element(mvu.Msg) {
         ],
       ),
     ]),
+  ])
+}
+
+fn get_empty_collateral() -> element.Element(mvu.Msg) {
+  html.input([
+    attribute.placeholder("0"),
+    attribute.step("1"),
+    attribute.class(
+      "focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-12 pr-12 sm:text-sm border-gray-300 rounded-md p-2 border",
+    ),
+    attribute.id("max-collateral"),
+    attribute.name("max-collateral"),
+    attribute.type_("number"),
+    event.on_input(mvu.int_input_to_msg(_, mvu.UserUpdatedCollateral)),
+  ])
+}
+
+fn get_set_collateral(value: Int) -> element.Element(mvu.Msg) {
+  html.input([
+    attribute.placeholder("0"),
+    attribute.class(
+      "focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-12 pr-12 sm:text-sm border-gray-300 rounded-md p-2 border",
+    ),
+    attribute.id("max-collateral"),
+    attribute.name("max-collateral"),
+    attribute.type_("number"),
+    attribute.value(value |> int.to_string),
+    event.on_input(fn(input) {
+      let value =
+        int.parse(input)
+        |> option.from_result
+      mvu.UserUpdatedCollateral(value)
+    }),
   ])
 }

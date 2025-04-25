@@ -1,11 +1,14 @@
 import arbitrage
 import gleam/float
 import gleam/int
+import gleam/option
+import gleam/result
 import lustre/attribute.{attribute}
 import lustre/element
 import lustre/element/html
 import lustre/event
 import mvu
+import util/element as dom_element
 
 pub fn get_section(level: Int) -> element.Element(mvu.Msg) {
   let level_string = level |> int.to_string
