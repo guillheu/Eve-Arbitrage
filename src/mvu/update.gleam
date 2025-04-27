@@ -51,26 +51,23 @@ pub fn run(
     mvu.UserExpandedShip(ship_id) -> ships.user_expanded_ship(model, ship_id)
     mvu.StoreWriteFailed(storage_key, value) ->
       store.store_write_failed(model, storage_key, value)
-    mvu.StoreReadFailed(storage_key) ->
+    mvu.InitStoreReadFailed(storage_key) ->
       store.store_read_failed(model, storage_key)
-    mvu.StoreReadShipName(name, id) ->
+    mvu.InitStoreReadShipName(name, id) ->
       store.store_read_ship_name(model, name, id)
-    mvu.StoreReadAccountingLevel(accounting_level) ->
+    mvu.InitStoreReadAccountingLevel(accounting_level) ->
       store.store_read_accounting_level(model, accounting_level)
-    mvu.StoreReadCollateral(collateral) ->
+    mvu.InitStoreReadCollateral(collateral) ->
       store.store_read_collateral(model, collateral)
-    mvu.StoreReadHoldCapacity(capacity, ship_id, hold_id) ->
+    mvu.InitStoreReadHoldCapacity(capacity, ship_id, hold_id) ->
       store.store_read_hold_capacity(model, capacity, ship_id, hold_id)
-    mvu.StoreReadHoldIndices(hold_indices) ->
+    mvu.InitStoreReadHoldIndices(hold_indices) ->
       store.store_read_hold_indices(model, hold_indices)
-    mvu.StoreReadHoldKind(kind, ship_id, hold_id) ->
+    mvu.InitStoreReadHoldKind(kind, ship_id, hold_id) ->
       store.store_read_hold_kind(model, kind, ship_id, hold_id)
-    mvu.StoreReadHoldName(name, ship_id, hold_id) ->
+    mvu.InitStoreReadHoldName(name, ship_id, hold_id) ->
       store.store_read_hold_name(model, name, ship_id, hold_id)
-    mvu.StoreReadShipIndices(ship_indices) ->
-      store.store_read_ship_indices(model, ship_indices)
-    mvu.StoreLoadedStorage(storage) ->
-      store.store_loaded_storage(model, storage)
-    mvu.StoreLoadFailed -> store.store_load_failed(model)
+    mvu.InitLoadStorage(storage) -> store.init_load_storage(model, storage)
+    mvu.InitStoreLoadFailed -> store.store_load_failed(model)
   }
 }

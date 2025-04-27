@@ -91,18 +91,17 @@ pub type Msg {
   UserExpandedShip(ship_id: Int)
 
   // storage messages
-  StoreLoadedStorage(storage: storage.Storage)
-  StoreLoadFailed
+  InitLoadStorage(storage: storage.Storage)
+  InitStoreLoadFailed
   StoreWriteFailed(storage_key: String, value: String)
-  StoreReadFailed(storage_key: String)
-  StoreReadShipName(name: String, id: Int)
-  StoreReadHoldName(name: String, ship_id: Int, hold_id: Int)
-  StoreReadHoldCapacity(capacity: Float, ship_id: Int, hold_id: Int)
-  StoreReadHoldKind(kind: sde.HoldKind, ship_id: Int, hold_id: Int)
-  StoreReadCollateral(collateral: Option(Int))
-  StoreReadAccountingLevel(accounting_level: Int)
-  StoreReadShipIndices(ship_indices: List(Int))
-  StoreReadHoldIndices(hold_indices: Dict(Int, List(Int)))
+  InitStoreReadFailed(storage_key: String)
+  InitStoreReadShipName(name: String, id: Int)
+  InitStoreReadHoldName(name: String, ship_id: Int, hold_id: Int)
+  InitStoreReadHoldCapacity(capacity: Float, ship_id: Int, hold_id: Int)
+  InitStoreReadHoldKind(kind: sde.HoldKind, ship_id: Int, hold_id: Int)
+  InitStoreReadCollateral(collateral: Option(Int))
+  InitStoreReadAccountingLevel(accounting_level: Int)
+  InitStoreReadHoldIndices(hold_indices: Dict(Int, List(Int)))
 }
 
 pub fn float_input_to_msg(input: String, msg: fn(Option(Float)) -> Msg) {

@@ -3,12 +3,12 @@ import gleam/dict
 import gleam/float
 import gleam/int
 import gleam/io
-import gleam/option.{type Option, None, Some}
+import gleam/option.{None, Some}
 import gleam/result
 import gleam/string
 import lustre/effect
 import mvu
-import util/alert
+import mvu/update/side_effects/config_to_storage
 import util/element as dom_element
 
 pub fn user_selected_ship(
@@ -48,7 +48,44 @@ pub fn user_created_ship(
       count_ship_index: model.count_ship_index + 1,
       count_hold_index: model.count_hold_index + 1,
     )
-  #(model, effect.none())
+  let effect = case model.storage {
+    None -> effect.none()
+    Some(storage) ->
+      effect.batch([
+        config_to_storage.write_ship_indices(storage, model.ships |> dict.keys),
+        config_to_storage.write_ship_name(
+          storage,
+          model.count_ship_index - 1,
+          "New Ship",
+        ),
+        config_to_storage.write_hold_indices(
+          storage,
+          model.ships
+            |> dict.map_values(fn(_, ship_entry) {
+              ship_entry.ship.holds |> dict.keys
+            }),
+        ),
+        config_to_storage.write_ship_hold_name(
+          storage,
+          model.count_ship_index - 1,
+          model.count_hold_index - 1,
+          "Cargo",
+        ),
+        config_to_storage.write_ship_hold_capacity(
+          storage,
+          model.count_ship_index - 1,
+          model.count_hold_index - 1,
+          1000.0,
+        ),
+        config_to_storage.write_ship_hold_kind(
+          storage,
+          model.count_ship_index - 1,
+          model.count_hold_index - 1,
+          sde.Generic,
+        ),
+      ])
+  }
+  #(model, effect)
 }
 
 pub fn user_deleted_ship(
@@ -61,7 +98,22 @@ pub fn user_deleted_ship(
     any -> any
   }
   let model = mvu.Model(..model, ships: ships, current_ship: selected_ship)
-  #(model, effect.none())
+  let effect = case model.storage {
+    None -> effect.none()
+    Some(storage) ->
+      effect.batch([
+        config_to_storage.write_ship_indices(storage, model.ships |> dict.keys),
+        config_to_storage.delete_ship(storage, deleted_ship),
+        config_to_storage.write_hold_indices(
+          storage,
+          model.ships
+            |> dict.map_values(fn(_, ship_entry) {
+              ship_entry.ship.holds |> dict.keys
+            }),
+        ),
+      ])
+  }
+  #(model, effect)
 }
 
 pub fn user_updated_ship_name(
@@ -82,7 +134,11 @@ pub fn user_updated_ship_name(
     let ship_entry = mvu.ShipEntry(..ship_entry, ship: ship)
     mvu.Model(..model, ships: dict.insert(model.ships, id, ship_entry))
   }
-  #(model, effect.none())
+  let effect = case model.storage {
+    None -> effect.none()
+    Some(storage) -> config_to_storage.write_ship_name(storage, id, name)
+  }
+  #(model, effect)
 }
 
 pub fn user_updated_ship_hold_name(
@@ -103,7 +159,13 @@ pub fn user_updated_ship_hold_name(
   let ship_entry = mvu.ShipEntry(..ship_entry, ship: new_ship)
   let ship_entries = dict.insert(model.ships, ship_id, ship_entry)
   let model = mvu.Model(..model, ships: ship_entries)
-  #(model, effect.none())
+
+  let effect = case model.storage {
+    None -> effect.none()
+    Some(storage) ->
+      config_to_storage.write_ship_hold_name(storage, ship_id, hold_id, name)
+  }
+  #(model, effect)
 }
 
 pub fn user_updated_ship_hold_capacity(
@@ -127,7 +189,18 @@ pub fn user_updated_ship_hold_capacity(
   let ship_entry = mvu.ShipEntry(..ship_entry, ship: new_ship)
   let ship_entries = dict.insert(model.ships, ship_id, ship_entry)
   let model = mvu.Model(..model, ships: ship_entries)
-  #(model, effect.none())
+
+  let effect = case model.storage {
+    None -> effect.none()
+    Some(storage) ->
+      config_to_storage.write_ship_hold_capacity(
+        storage,
+        ship_id,
+        hold_id,
+        capacity,
+      )
+  }
+  #(model, effect)
 }
 
 pub fn user_updated_ship_hold_kind(
@@ -146,7 +219,18 @@ pub fn user_updated_ship_hold_kind(
   let ship_entry = mvu.ShipEntry(..ship_entry, ship: ship)
   let ship_entries = dict.insert(model.ships, ship_id, ship_entry)
   let model = mvu.Model(..model, ships: ship_entries)
-  #(model, effect.none())
+
+  let effect = case model.storage {
+    None -> effect.none()
+    Some(storage) ->
+      config_to_storage.write_ship_hold_kind(
+        storage,
+        ship_id,
+        hold_id,
+        hold_kind,
+      )
+  }
+  #(model, effect)
 }
 
 pub fn user_added_hold_to_ship(
@@ -166,7 +250,39 @@ pub fn user_added_hold_to_ship(
       ships: ship_entries,
       count_hold_index: model.count_hold_index + 1,
     )
-  #(model, effect.none())
+
+  let effect = case model.storage {
+    None -> effect.none()
+    Some(storage) ->
+      effect.batch([
+        config_to_storage.write_hold_indices(
+          storage,
+          model.ships
+            |> dict.map_values(fn(_, ship_entry) {
+              ship_entry.ship.holds |> dict.keys
+            }),
+        ),
+        config_to_storage.write_ship_hold_name(
+          storage,
+          ship_id,
+          model.count_hold_index - 1,
+          "New Hold",
+        ),
+        config_to_storage.write_ship_hold_capacity(
+          storage,
+          ship_id,
+          model.count_hold_index - 1,
+          100.0,
+        ),
+        config_to_storage.write_ship_hold_kind(
+          storage,
+          ship_id,
+          model.count_hold_index - 1,
+          sde.Generic,
+        ),
+      ])
+  }
+  #(model, effect)
 }
 
 pub fn user_deleted_hold_from_ship(
@@ -180,7 +296,12 @@ pub fn user_deleted_hold_from_ship(
   let ship_entry = mvu.ShipEntry(..ship_entry, ship: ship)
   let ship_entries = dict.insert(model.ships, ship_id, ship_entry)
   let model = mvu.Model(..model, ships: ship_entries)
-  #(model, effect.none())
+
+  let effect = case model.storage {
+    None -> effect.none()
+    Some(storage) -> config_to_storage.delete_hold(storage, ship_id, hold_id)
+  }
+  #(model, effect)
 }
 
 pub fn user_collapsed_ship(

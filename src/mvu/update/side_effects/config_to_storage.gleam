@@ -14,8 +14,8 @@ import util/storage
 pub fn get_store() -> effect.Effect(mvu.Msg) {
   effect.from(fn(dispatch) {
     case storage.local() {
-      Error(_) -> mvu.StoreLoadFailed
-      Ok(store) -> mvu.StoreLoadedStorage(store)
+      Error(_) -> mvu.InitStoreLoadFailed
+      Ok(store) -> mvu.InitLoadStorage(store)
     }
     |> dispatch
   })
@@ -30,7 +30,7 @@ pub fn write_ship_name(
 ) -> effect.Effect(mvu.Msg) {
   store_write_to_effect(
     storage,
-    get_ship_id_storage_key_string(ship_id),
+    get_ship_id_storage_key_string(ship_id) <> "/name",
     new_name,
   )
 }
@@ -43,7 +43,7 @@ pub fn write_ship_hold_name(
 ) -> effect.Effect(mvu.Msg) {
   store_write_to_effect(
     storage,
-    get_hold_id_storage_key_string(ship_id, hold_id),
+    get_hold_id_storage_key_string(ship_id, hold_id) <> "/name",
     new_name,
   )
 }
@@ -56,7 +56,7 @@ pub fn write_ship_hold_capacity(
 ) -> effect.Effect(mvu.Msg) {
   store_write_to_effect(
     storage,
-    get_hold_id_storage_key_string(ship_id, hold_id),
+    get_hold_id_storage_key_string(ship_id, hold_id) <> "/capacity",
     new_capacity |> float.to_string,
   )
 }
@@ -69,7 +69,7 @@ pub fn write_ship_hold_kind(
 ) -> effect.Effect(mvu.Msg) {
   store_write_to_effect(
     storage,
-    get_hold_id_storage_key_string(ship_id, hold_id),
+    get_hold_id_storage_key_string(ship_id, hold_id) <> "/kind",
     new_kind |> sde.hold_kind_to_string,
   )
 }
@@ -124,9 +124,9 @@ pub fn read_ship_name(
 ) -> effect.Effect(mvu.Msg) {
   store_read_to_effect(
     storage,
-    get_ship_id_storage_key_string(ship_id),
+    get_ship_id_storage_key_string(ship_id) <> "/name",
     Ok,
-    mvu.StoreReadShipName(_, ship_id),
+    mvu.InitStoreReadShipName(_, ship_id),
   )
 }
 
@@ -137,9 +137,9 @@ pub fn read_ship_hold_name(
 ) -> effect.Effect(mvu.Msg) {
   store_read_to_effect(
     storage,
-    get_hold_id_storage_key_string(ship_id, hold_id),
+    get_hold_id_storage_key_string(ship_id, hold_id) <> "/name",
     Ok,
-    mvu.StoreReadHoldName(_, ship_id, hold_id),
+    mvu.InitStoreReadHoldName(_, ship_id, hold_id),
   )
 }
 
@@ -150,9 +150,9 @@ pub fn read_ship_hold_capacity(
 ) -> effect.Effect(mvu.Msg) {
   store_read_to_effect(
     storage,
-    get_hold_id_storage_key_string(ship_id, hold_id),
+    get_hold_id_storage_key_string(ship_id, hold_id) <> "/capacity",
     float.parse,
-    mvu.StoreReadHoldCapacity(_, ship_id, hold_id),
+    mvu.InitStoreReadHoldCapacity(_, ship_id, hold_id),
   )
 }
 
@@ -163,9 +163,9 @@ pub fn read_ship_hold_kind(
 ) -> effect.Effect(mvu.Msg) {
   store_read_to_effect(
     storage,
-    get_hold_id_storage_key_string(ship_id, hold_id),
+    get_hold_id_storage_key_string(ship_id, hold_id) <> "/kind",
     sde.hold_kind_from_string,
-    mvu.StoreReadHoldKind(_, ship_id, hold_id),
+    mvu.InitStoreReadHoldKind(_, ship_id, hold_id),
   )
 }
 
@@ -174,7 +174,7 @@ pub fn read_collateral(storage: storage.Storage) -> effect.Effect(mvu.Msg) {
     storage,
     "collateral",
     fn(value) { int.parse(value) |> option.from_result |> Ok },
-    mvu.StoreReadCollateral,
+    mvu.InitStoreReadCollateral,
   )
 }
 
@@ -183,16 +183,7 @@ pub fn read_accounting_level(storage: storage.Storage) -> effect.Effect(mvu.Msg)
     storage,
     "accounting_level",
     int.parse,
-    mvu.StoreReadAccountingLevel,
-  )
-}
-
-pub fn read_ship_indices(storage: storage.Storage) -> effect.Effect(mvu.Msg) {
-  store_read_to_effect(
-    storage,
-    "ship_indices",
-    numbers.string_to_ints,
-    mvu.StoreReadShipIndices,
+    mvu.InitStoreReadAccountingLevel,
   )
 }
 
@@ -201,8 +192,68 @@ pub fn read_hold_indices(storage: storage.Storage) -> effect.Effect(mvu.Msg) {
     storage,
     "hold_indices",
     numbers.string_to_ints_dict,
-    mvu.StoreReadHoldIndices,
+    mvu.InitStoreReadHoldIndices,
   )
+}
+
+// Delete functions
+
+pub fn delete_ship(
+  storage: storage.Storage,
+  ship_id: Int,
+) -> effect.Effect(mvu.Msg) {
+  effect.from(fn(_dispatch) {
+    storage.remove_many_items(
+      storage,
+      get_ship_id_storage_key_string(ship_id) <> "*",
+    )
+  })
+}
+
+pub fn delete_hold(
+  storage: storage.Storage,
+  ship_id: Int,
+  hold_id: Int,
+) -> effect.Effect(mvu.Msg) {
+  effect.from(fn(_dispatch) {
+    storage.remove_many_items(
+      storage,
+      get_hold_id_storage_key_string(ship_id, hold_id) <> "*",
+    )
+  })
+}
+
+pub fn delete_ship_name(
+  storage: storage.Storage,
+  ship_id: Int,
+) -> effect.Effect(mvu.Msg) {
+  effect.from(fn(_dispatch) {
+    storage.remove_item(
+      storage,
+      get_ship_id_storage_key_string(ship_id) <> "/name",
+    )
+  })
+}
+
+pub fn delete_ship_hold(
+  storage: storage.Storage,
+  ship_id: Int,
+  hold_id: Int,
+) -> effect.Effect(mvu.Msg) {
+  effect.from(fn(_dispatch) {
+    storage.remove_item(
+      storage,
+      echo get_hold_id_storage_key_string(ship_id, hold_id) <> "/name",
+    )
+    storage.remove_item(
+      storage,
+      get_hold_id_storage_key_string(ship_id, hold_id) <> "/capacity",
+    )
+    storage.remove_item(
+      storage,
+      get_hold_id_storage_key_string(ship_id, hold_id) <> "/kind",
+    )
+  })
 }
 
 // pub fn ships_to_storage_strings(
@@ -284,7 +335,7 @@ fn store_read_to_effect(
         parser(value)
       }
     {
-      Error(_) -> dispatch(mvu.StoreReadFailed(storage_key))
+      Error(_) -> dispatch(mvu.InitStoreReadFailed(storage_key))
       Ok(value) -> dispatch(msg(value))
     }
   })

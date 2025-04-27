@@ -15,3 +15,6 @@ pub fn set_item(
 
 @external(javascript, "../storage_ffi.mjs", "removeItem")
 pub fn remove_item(storage: Storage, key: String) -> Nil
+
+@external(javascript, "../storage_ffi.mjs", "removeManyItems")
+pub fn remove_many_items(storage: Storage, pattern: String) -> Nil

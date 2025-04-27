@@ -1,4 +1,3 @@
-import gleam/int
 import gleam/option.{type Option}
 import lustre/effect
 import mvu
@@ -35,5 +34,10 @@ pub fn user_updated_accounting_level(
   level: Int,
 ) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
   let model = mvu.Model(..model, accounting_level: level)
-  #(model, effect.none())
+  let effect = case model.storage {
+    option.None -> effect.none()
+    option.Some(storage) ->
+      config_to_storage.write_accounting_level(storage, level)
+  }
+  #(model, effect)
 }

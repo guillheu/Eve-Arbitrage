@@ -524,6 +524,32 @@ function map_loop(loop$list, loop$fun, loop$acc) {
 function map2(list4, fun) {
   return map_loop(list4, fun, toList([]));
 }
+function try_map_loop(loop$list, loop$fun, loop$acc) {
+  while (true) {
+    let list4 = loop$list;
+    let fun = loop$fun;
+    let acc = loop$acc;
+    if (list4.hasLength(0)) {
+      return new Ok(reverse(acc));
+    } else {
+      let first$1 = list4.head;
+      let rest$1 = list4.tail;
+      let $ = fun(first$1);
+      if ($.isOk()) {
+        let first$2 = $[0];
+        loop$list = rest$1;
+        loop$fun = fun;
+        loop$acc = prepend(first$2, acc);
+      } else {
+        let error = $[0];
+        return new Error(error);
+      }
+    }
+  }
+}
+function try_map(list4, fun) {
+  return try_map_loop(list4, fun, toList([]));
+}
 function append_loop(loop$first, loop$second) {
   while (true) {
     let first = loop$first;
@@ -1020,6 +1046,16 @@ function trim(string5) {
   let _pipe$1 = trim_start(_pipe);
   return trim_end(_pipe$1);
 }
+function split2(x, substring) {
+  if (substring === "") {
+    return graphemes(x);
+  } else {
+    let _pipe = x;
+    let _pipe$1 = identity(_pipe);
+    let _pipe$2 = split(_pipe$1, substring);
+    return map2(_pipe$2, identity);
+  }
+}
 function inspect2(term) {
   let _pipe = inspect(term);
   return identity(_pipe);
@@ -1086,6 +1122,11 @@ function or(first, second) {
   } else {
     return second;
   }
+}
+function all(results) {
+  return try_map(results, (x) => {
+    return x;
+  });
 }
 function replace_error(result, error) {
   if (result.isOk()) {
@@ -1861,6 +1902,14 @@ function string_length(string5) {
     return string5.match(/./gsu).length;
   }
 }
+function graphemes(string5) {
+  const iterator = graphemes_iterator(string5);
+  if (iterator) {
+    return List.fromArray(Array.from(iterator).map((item) => item.segment));
+  } else {
+    return List.fromArray(string5.match(/./gsu));
+  }
+}
 var segmenter = void 0;
 function graphemes_iterator(string5) {
   if (globalThis.Intl && Intl.Segmenter) {
@@ -1887,6 +1936,9 @@ function pop_codeunit(str) {
 }
 function lowercase(string5) {
   return string5.toLowerCase();
+}
+function split(xs, pattern) {
+  return List.fromArray(xs.split(pattern));
 }
 function string_slice(string5, idx, len) {
   if (len <= 0 || idx >= string5.length) {
@@ -1915,6 +1967,16 @@ function string_codeunit_slice(str, from2, length4) {
 }
 function starts_with(haystack, needle) {
   return haystack.startsWith(needle);
+}
+function split_once(haystack, needle) {
+  const index5 = haystack.indexOf(needle);
+  if (index5 >= 0) {
+    const before = haystack.slice(0, index5);
+    const after = haystack.slice(index5 + needle.length);
+    return new Ok([before, after]);
+  } else {
+    return new Error(Nil);
+  }
 }
 var unicode_whitespaces = [
   " ",
@@ -2154,6 +2216,23 @@ function reverse_and_concat(loop$remaining, loop$accumulator) {
       loop$accumulator = prepend(first, accumulator);
     }
   }
+}
+function do_keys_loop(loop$list, loop$acc) {
+  while (true) {
+    let list4 = loop$list;
+    let acc = loop$acc;
+    if (list4.hasLength(0)) {
+      return reverse_and_concat(acc, toList([]));
+    } else {
+      let key = list4.head[0];
+      let rest = list4.tail;
+      loop$list = rest;
+      loop$acc = prepend(key, acc);
+    }
+  }
+}
+function keys(dict2) {
+  return do_keys_loop(map_to_list(dict2), toList([]));
 }
 function do_values_loop(loop$list, loop$acc) {
   while (true) {
@@ -7010,6 +7089,18 @@ function null_or(val) {
     return new Error(null);
   }
 }
+function removeManyItems(storage, pattern) {
+  const regex = new RegExp(pattern.replace(/\*/g, ".*"));
+  const keysToDelete = [];
+  for (let i = 0; i < storage.length; i++) {
+    const key = storage.key(i);
+    if (regex.test(key)) {
+      keysToDelete.push(key);
+    }
+  }
+  keysToDelete.forEach((key) => storage.removeItem(key));
+  return;
+}
 
 // build/dev/javascript/eve_arbitrage/mvu.mjs
 var Model = class extends CustomType {
@@ -7186,13 +7277,13 @@ var UserExpandedShip = class extends CustomType {
     this.ship_id = ship_id;
   }
 };
-var StoreLoadedStorage = class extends CustomType {
+var InitLoadStorage = class extends CustomType {
   constructor(storage) {
     super();
     this.storage = storage;
   }
 };
-var StoreLoadFailed = class extends CustomType {
+var InitStoreLoadFailed = class extends CustomType {
 };
 var StoreWriteFailed = class extends CustomType {
   constructor(storage_key, value3) {
@@ -7201,20 +7292,20 @@ var StoreWriteFailed = class extends CustomType {
     this.value = value3;
   }
 };
-var StoreReadFailed = class extends CustomType {
+var InitStoreReadFailed = class extends CustomType {
   constructor(storage_key) {
     super();
     this.storage_key = storage_key;
   }
 };
-var StoreReadShipName = class extends CustomType {
+var InitStoreReadShipName = class extends CustomType {
   constructor(name2, id2) {
     super();
     this.name = name2;
     this.id = id2;
   }
 };
-var StoreReadHoldName = class extends CustomType {
+var InitStoreReadHoldName = class extends CustomType {
   constructor(name2, ship_id, hold_id) {
     super();
     this.name = name2;
@@ -7222,7 +7313,7 @@ var StoreReadHoldName = class extends CustomType {
     this.hold_id = hold_id;
   }
 };
-var StoreReadHoldCapacity = class extends CustomType {
+var InitStoreReadHoldCapacity = class extends CustomType {
   constructor(capacity, ship_id, hold_id) {
     super();
     this.capacity = capacity;
@@ -7230,7 +7321,7 @@ var StoreReadHoldCapacity = class extends CustomType {
     this.hold_id = hold_id;
   }
 };
-var StoreReadHoldKind = class extends CustomType {
+var InitStoreReadHoldKind = class extends CustomType {
   constructor(kind, ship_id, hold_id) {
     super();
     this.kind = kind;
@@ -7238,25 +7329,19 @@ var StoreReadHoldKind = class extends CustomType {
     this.hold_id = hold_id;
   }
 };
-var StoreReadCollateral = class extends CustomType {
+var InitStoreReadCollateral = class extends CustomType {
   constructor(collateral) {
     super();
     this.collateral = collateral;
   }
 };
-var StoreReadAccountingLevel = class extends CustomType {
+var InitStoreReadAccountingLevel = class extends CustomType {
   constructor(accounting_level) {
     super();
     this.accounting_level = accounting_level;
   }
 };
-var StoreReadShipIndices = class extends CustomType {
-  constructor(ship_indices) {
-    super();
-    this.ship_indices = ship_indices;
-  }
-};
-var StoreReadHoldIndices = class extends CustomType {
+var InitStoreReadHoldIndices = class extends CustomType {
   constructor(hold_indices) {
     super();
     this.hold_indices = hold_indices;
@@ -7302,9 +7387,369 @@ function user_clicked_copy_multibuy(model, multibuy) {
   return [model, side_effect];
 }
 
-// build/dev/javascript/eve_arbitrage/window_ffi.mjs
-function alert(message) {
-  window.alert(message);
+// build/dev/javascript/eve_arbitrage/util/numbers.mjs
+function int_to_segments(loop$acc, loop$from) {
+  while (true) {
+    let acc = loop$acc;
+    let from2 = loop$from;
+    let $ = divideInt(from2, 1e3);
+    if ($ > 0) {
+      let x = $;
+      let segment = "," + (() => {
+        let _pipe = to_string(remainderInt(from2, 1e3));
+        return pad_start(_pipe, 3, "0");
+      })();
+      loop$acc = prepend(segment, acc);
+      loop$from = x;
+    } else {
+      let _pipe = prepend(
+        (() => {
+          let _pipe2 = from2;
+          return to_string(_pipe2);
+        })(),
+        acc
+      );
+      return reverse(_pipe);
+    }
+  }
+}
+function float_to_human_string(from2) {
+  let truncated = truncate(from2);
+  let _pipe = int_to_segments(toList([]), truncated);
+  let _pipe$1 = reverse(_pipe);
+  return concat2(_pipe$1);
+}
+function millions_to_unit_string(from2) {
+  let thousands = int_to_segments(toList([]), from2);
+  let $ = (() => {
+    if (thousands.hasLength(0)) {
+      throw makeError(
+        "panic",
+        "util/numbers",
+        41,
+        "millions_to_unit_string",
+        "shouldnt be able to find an empty value",
+        {}
+      );
+    } else if (thousands.hasLength(1)) {
+      let v = thousands.head;
+      return [v, "M"];
+    } else {
+      let v = thousands.tail;
+      return [
+        (() => {
+          let _pipe = v;
+          let _pipe$1 = reverse(_pipe);
+          return concat2(_pipe$1);
+        })(),
+        "B"
+      ];
+    }
+  })();
+  let value3 = $[0];
+  let units = $[1];
+  return value3 + " " + units;
+}
+function ints_to_string(from2) {
+  let _pipe = map2(
+    from2,
+    (value3) => {
+      return (() => {
+        let _pipe2 = value3;
+        return to_string(_pipe2);
+      })() + ",";
+    }
+  );
+  return concat2(_pipe);
+}
+function string_to_ints(from2) {
+  let _pipe = from2;
+  let _pipe$1 = drop_end(_pipe, 1);
+  let _pipe$2 = split2(_pipe$1, ",");
+  let _pipe$3 = map2(_pipe$2, parse_int);
+  return all(_pipe$3);
+}
+function ints_dict_to_string(from2) {
+  return fold2(
+    from2,
+    "",
+    (acc, index5, ints) => {
+      return acc + (() => {
+        let _pipe = index5;
+        return to_string(_pipe);
+      })() + ":" + (() => {
+        let _pipe = ints;
+        return ints_to_string(_pipe);
+      })() + ";";
+    }
+  );
+}
+function string_to_ints_dict(from2) {
+  let sections = (() => {
+    let _pipe2 = from2;
+    let _pipe$12 = drop_end(_pipe2, 1);
+    return split2(_pipe$12, ";");
+  })();
+  let _pipe = map2(
+    sections,
+    (section2) => {
+      return try$(
+        split_once(section2, ":"),
+        (_use0) => {
+          let index_string = _use0[0];
+          let int_list_string = _use0[1];
+          return try$(
+            parse_int(index_string),
+            (index5) => {
+              return map3(
+                string_to_ints(int_list_string),
+                (int_list) => {
+                  return [index5, int_list];
+                }
+              );
+            }
+          );
+        }
+      );
+    }
+  );
+  let _pipe$1 = all(_pipe);
+  return map3(_pipe$1, from_list);
+}
+function int_to_human_string(from2) {
+  let $ = divideInt(from2, 1e3);
+  if ($ > 10) {
+    let thousands = $;
+    return to_string(thousands) + "k";
+  } else {
+    return to_string(from2);
+  }
+}
+
+// build/dev/javascript/eve_arbitrage/mvu/update/side_effects/config_to_storage.mjs
+function get_store() {
+  return from(
+    (dispatch) => {
+      let _pipe = (() => {
+        let $ = localStorage();
+        if (!$.isOk()) {
+          return new InitStoreLoadFailed();
+        } else {
+          let store = $[0];
+          return new InitLoadStorage(store);
+        }
+      })();
+      return dispatch(_pipe);
+    }
+  );
+}
+function get_ship_id_storage_key_string(ship_id) {
+  return "ships/" + to_string(ship_id);
+}
+function delete_ship(storage, ship_id) {
+  return from(
+    (_) => {
+      return removeManyItems(
+        storage,
+        get_ship_id_storage_key_string(ship_id) + "*"
+      );
+    }
+  );
+}
+function get_hold_id_storage_key_string(ship_id, hold_id) {
+  return get_ship_id_storage_key_string(ship_id) + "/holds/" + (() => {
+    let _pipe = hold_id;
+    return to_string(_pipe);
+  })();
+}
+function delete_hold(storage, ship_id, hold_id) {
+  return from(
+    (_) => {
+      return removeManyItems(
+        storage,
+        get_hold_id_storage_key_string(ship_id, hold_id) + "*"
+      );
+    }
+  );
+}
+function store_write_to_effect(storage, storage_key, value3) {
+  return from(
+    (dispatch) => {
+      let $ = setItem(storage, storage_key, value3);
+      if (!$.isOk()) {
+        return dispatch(new StoreWriteFailed(storage_key, value3));
+      } else {
+        return void 0;
+      }
+    }
+  );
+}
+function write_ship_name(storage, ship_id, new_name) {
+  return store_write_to_effect(
+    storage,
+    get_ship_id_storage_key_string(ship_id) + "/name",
+    new_name
+  );
+}
+function write_ship_hold_name(storage, ship_id, hold_id, new_name) {
+  return store_write_to_effect(
+    storage,
+    get_hold_id_storage_key_string(ship_id, hold_id) + "/name",
+    new_name
+  );
+}
+function write_ship_hold_capacity(storage, ship_id, hold_id, new_capacity) {
+  return store_write_to_effect(
+    storage,
+    get_hold_id_storage_key_string(ship_id, hold_id) + "/capacity",
+    (() => {
+      let _pipe = new_capacity;
+      return float_to_string(_pipe);
+    })()
+  );
+}
+function write_ship_hold_kind(storage, ship_id, hold_id, new_kind) {
+  return store_write_to_effect(
+    storage,
+    get_hold_id_storage_key_string(ship_id, hold_id) + "/kind",
+    (() => {
+      let _pipe = new_kind;
+      return hold_kind_to_string(_pipe);
+    })()
+  );
+}
+function write_collateral(storage, collateral) {
+  let string_to_store = (() => {
+    let _pipe = map(collateral, to_string);
+    return unwrap(_pipe, "");
+  })();
+  return store_write_to_effect(storage, "collateral", string_to_store);
+}
+function write_accounting_level(storage, accounting_level) {
+  return store_write_to_effect(
+    storage,
+    "accounting_level",
+    (() => {
+      let _pipe = accounting_level;
+      return to_string(_pipe);
+    })()
+  );
+}
+function write_ship_indices(storage, ship_indices) {
+  return store_write_to_effect(
+    storage,
+    "ship_indices",
+    (() => {
+      let _pipe = ship_indices;
+      return ints_to_string(_pipe);
+    })()
+  );
+}
+function write_hold_indices(storage, hold_indices) {
+  return store_write_to_effect(
+    storage,
+    "hold_indices",
+    (() => {
+      let _pipe = hold_indices;
+      return ints_dict_to_string(_pipe);
+    })()
+  );
+}
+function store_read_to_effect(storage, storage_key, parser, msg) {
+  return from(
+    (dispatch) => {
+      let $ = try$(
+        getItem(storage, storage_key),
+        (value3) => {
+          return parser(value3);
+        }
+      );
+      if (!$.isOk()) {
+        return dispatch(new InitStoreReadFailed(storage_key));
+      } else {
+        let value3 = $[0];
+        return dispatch(msg(value3));
+      }
+    }
+  );
+}
+function read_ship_name(storage, ship_id) {
+  return store_read_to_effect(
+    storage,
+    get_ship_id_storage_key_string(ship_id) + "/name",
+    (var0) => {
+      return new Ok(var0);
+    },
+    (_capture) => {
+      return new InitStoreReadShipName(_capture, ship_id);
+    }
+  );
+}
+function read_ship_hold_name(storage, ship_id, hold_id) {
+  return store_read_to_effect(
+    storage,
+    get_hold_id_storage_key_string(ship_id, hold_id) + "/name",
+    (var0) => {
+      return new Ok(var0);
+    },
+    (_capture) => {
+      return new InitStoreReadHoldName(_capture, ship_id, hold_id);
+    }
+  );
+}
+function read_ship_hold_capacity(storage, ship_id, hold_id) {
+  return store_read_to_effect(
+    storage,
+    get_hold_id_storage_key_string(ship_id, hold_id) + "/capacity",
+    parse_float,
+    (_capture) => {
+      return new InitStoreReadHoldCapacity(_capture, ship_id, hold_id);
+    }
+  );
+}
+function read_ship_hold_kind(storage, ship_id, hold_id) {
+  return store_read_to_effect(
+    storage,
+    get_hold_id_storage_key_string(ship_id, hold_id) + "/kind",
+    hold_kind_from_string,
+    (_capture) => {
+      return new InitStoreReadHoldKind(_capture, ship_id, hold_id);
+    }
+  );
+}
+function read_collateral(storage) {
+  return store_read_to_effect(
+    storage,
+    "collateral",
+    (value3) => {
+      let _pipe = parse_int(value3);
+      let _pipe$1 = from_result(_pipe);
+      return new Ok(_pipe$1);
+    },
+    (var0) => {
+      return new InitStoreReadCollateral(var0);
+    }
+  );
+}
+function read_accounting_level(storage) {
+  return store_read_to_effect(
+    storage,
+    "accounting_level",
+    parse_int,
+    (var0) => {
+      return new InitStoreReadAccountingLevel(var0);
+    }
+  );
+}
+function read_hold_indices(storage) {
+  return store_read_to_effect(
+    storage,
+    "hold_indices",
+    string_to_ints_dict,
+    (var0) => {
+      return new InitStoreReadHoldIndices(var0);
+    }
+  );
 }
 
 // build/dev/javascript/eve_arbitrage/element_ffi.mjs
@@ -7391,7 +7836,62 @@ function user_created_ship(model) {
       _record.multibuys
     );
   })();
-  return [model$1, none()];
+  let effect = (() => {
+    let $ = model$1.storage;
+    if ($ instanceof None) {
+      return none();
+    } else {
+      let storage = $[0];
+      return batch(
+        toList([
+          write_ship_indices(
+            storage,
+            (() => {
+              let _pipe = model$1.ships;
+              return keys(_pipe);
+            })()
+          ),
+          write_ship_name(
+            storage,
+            model$1.count_ship_index - 1,
+            "New Ship"
+          ),
+          write_hold_indices(
+            storage,
+            (() => {
+              let _pipe = model$1.ships;
+              return map_values(
+                _pipe,
+                (_, ship_entry) => {
+                  let _pipe$1 = ship_entry.ship.holds;
+                  return keys(_pipe$1);
+                }
+              );
+            })()
+          ),
+          write_ship_hold_name(
+            storage,
+            model$1.count_ship_index - 1,
+            model$1.count_hold_index - 1,
+            "Cargo"
+          ),
+          write_ship_hold_capacity(
+            storage,
+            model$1.count_ship_index - 1,
+            model$1.count_hold_index - 1,
+            1e3
+          ),
+          write_ship_hold_kind(
+            storage,
+            model$1.count_ship_index - 1,
+            model$1.count_hold_index - 1,
+            new Generic()
+          )
+        ])
+      );
+    }
+  })();
+  return [model$1, effect];
 }
 function user_deleted_ship(model, deleted_ship) {
   let ships = delete$(model.ships, deleted_ship);
@@ -7423,7 +7923,40 @@ function user_deleted_ship(model, deleted_ship) {
       _record.multibuys
     );
   })();
-  return [model$1, none()];
+  let effect = (() => {
+    let $ = model$1.storage;
+    if ($ instanceof None) {
+      return none();
+    } else {
+      let storage = $[0];
+      return batch(
+        toList([
+          write_ship_indices(
+            storage,
+            (() => {
+              let _pipe = model$1.ships;
+              return keys(_pipe);
+            })()
+          ),
+          delete_ship(storage, deleted_ship),
+          write_hold_indices(
+            storage,
+            (() => {
+              let _pipe = model$1.ships;
+              return map_values(
+                _pipe,
+                (_, ship_entry) => {
+                  let _pipe$1 = ship_entry.ship.holds;
+                  return keys(_pipe$1);
+                }
+              );
+            })()
+          )
+        ])
+      );
+    }
+  })();
+  return [model$1, effect];
 }
 function user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id) {
   let $ = hold_kind_from_string(hold_kind);
@@ -7431,7 +7964,7 @@ function user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      139,
+      212,
       "user_updated_ship_hold_kind",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7443,7 +7976,7 @@ function user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      140,
+      213,
       "user_updated_ship_hold_kind",
       "Pattern match failed, no pattern matched the value.",
       { value: $1 }
@@ -7456,7 +7989,7 @@ function user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      142,
+      215,
       "user_updated_ship_hold_kind",
       "Pattern match failed, no pattern matched the value.",
       { value: $2 }
@@ -7495,7 +8028,21 @@ function user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id) {
       _record.multibuys
     );
   })();
-  return [model$1, none()];
+  let effect = (() => {
+    let $3 = model$1.storage;
+    if ($3 instanceof None) {
+      return none();
+    } else {
+      let storage = $3[0];
+      return write_ship_hold_kind(
+        storage,
+        ship_id,
+        hold_id,
+        hold_kind$1
+      );
+    }
+  })();
+  return [model$1, effect];
 }
 function user_added_hold_to_ship(model, ship_id) {
   let new_hold = new Hold("New Hold", new Generic(), 100);
@@ -7504,7 +8051,7 @@ function user_added_hold_to_ship(model, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      157,
+      241,
       "user_added_hold_to_ship",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7540,7 +8087,50 @@ function user_added_hold_to_ship(model, ship_id) {
       _record.multibuys
     );
   })();
-  return [model$1, none()];
+  let effect = (() => {
+    let $1 = model$1.storage;
+    if ($1 instanceof None) {
+      return none();
+    } else {
+      let storage = $1[0];
+      return batch(
+        toList([
+          write_hold_indices(
+            storage,
+            (() => {
+              let _pipe = model$1.ships;
+              return map_values(
+                _pipe,
+                (_, ship_entry2) => {
+                  let _pipe$1 = ship_entry2.ship.holds;
+                  return keys(_pipe$1);
+                }
+              );
+            })()
+          ),
+          write_ship_hold_name(
+            storage,
+            ship_id,
+            model$1.count_hold_index - 1,
+            "New Hold"
+          ),
+          write_ship_hold_capacity(
+            storage,
+            ship_id,
+            model$1.count_hold_index - 1,
+            100
+          ),
+          write_ship_hold_kind(
+            storage,
+            ship_id,
+            model$1.count_hold_index - 1,
+            new Generic()
+          )
+        ])
+      );
+    }
+  })();
+  return [model$1, effect];
 }
 function user_deleted_hold_from_ship(model, hold_id, ship_id) {
   let $ = map_get(model.ships, ship_id);
@@ -7548,7 +8138,7 @@ function user_deleted_hold_from_ship(model, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      177,
+      293,
       "user_deleted_hold_from_ship",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7583,7 +8173,16 @@ function user_deleted_hold_from_ship(model, hold_id, ship_id) {
       _record.multibuys
     );
   })();
-  return [model$1, none()];
+  let effect = (() => {
+    let $1 = model$1.storage;
+    if ($1 instanceof None) {
+      return none();
+    } else {
+      let storage = $1[0];
+      return delete_hold(storage, ship_id, hold_id);
+    }
+  })();
+  return [model$1, effect];
 }
 function user_collapsed_ship(model, ship_id) {
   let $ = map_get(model.ships, ship_id);
@@ -7591,7 +8190,7 @@ function user_collapsed_ship(model, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      190,
+      311,
       "user_collapsed_ship",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7629,7 +8228,7 @@ function user_expanded_ship(model, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      201,
+      322,
       "user_expanded_ship",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7688,7 +8287,7 @@ function user_updated_ship_name(model, id2) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      72,
+      124,
       "user_updated_ship_name",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7706,7 +8305,7 @@ function user_updated_ship_name(model, id2) {
       throw makeError(
         "let_assert",
         "mvu/update/ships",
-        79,
+        131,
         "user_updated_ship_name",
         "Pattern match failed, no pattern matched the value.",
         { value: $1 }
@@ -7739,7 +8338,16 @@ function user_updated_ship_name(model, id2) {
       _record.multibuys
     );
   })();
-  return [model$1, none()];
+  let effect = (() => {
+    let $1 = model$1.storage;
+    if ($1 instanceof None) {
+      return none();
+    } else {
+      let storage = $1[0];
+      return write_ship_name(storage, id2, name2);
+    }
+  })();
+  return [model$1, effect];
 }
 function user_updated_ship_hold_name(model, hold_id, ship_id) {
   let element_id = "hold-name-" + to_string(hold_id);
@@ -7748,7 +8356,7 @@ function user_updated_ship_hold_name(model, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      94,
+      150,
       "user_updated_ship_hold_name",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7761,7 +8369,7 @@ function user_updated_ship_hold_name(model, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      96,
+      152,
       "user_updated_ship_hold_name",
       "Pattern match failed, no pattern matched the value.",
       { value: $1 }
@@ -7805,7 +8413,21 @@ function user_updated_ship_hold_name(model, hold_id, ship_id) {
       _record.multibuys
     );
   })();
-  return [model$1, none()];
+  let effect = (() => {
+    let $2 = model$1.storage;
+    if ($2 instanceof None) {
+      return none();
+    } else {
+      let storage = $2[0];
+      return write_ship_hold_name(
+        storage,
+        ship_id,
+        hold_id,
+        name2
+      );
+    }
+  })();
+  return [model$1, effect];
 }
 function fetch_float_input_value_from_element_id_or_default(element_id, default_value) {
   let element_result = getElementById(element_id);
@@ -7833,7 +8455,7 @@ function user_updated_ship_hold_capacity(model, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      115,
+      177,
       "user_updated_ship_hold_capacity",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7846,7 +8468,7 @@ function user_updated_ship_hold_capacity(model, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      117,
+      179,
       "user_updated_ship_hold_capacity",
       "Pattern match failed, no pattern matched the value.",
       { value: $1 }
@@ -7890,149 +8512,21 @@ function user_updated_ship_hold_capacity(model, hold_id, ship_id) {
       _record.multibuys
     );
   })();
-  return [model$1, none()];
-}
-
-// build/dev/javascript/eve_arbitrage/util/numbers.mjs
-function int_to_segments(loop$acc, loop$from) {
-  while (true) {
-    let acc = loop$acc;
-    let from2 = loop$from;
-    let $ = divideInt(from2, 1e3);
-    if ($ > 0) {
-      let x = $;
-      let segment = "," + (() => {
-        let _pipe = to_string(remainderInt(from2, 1e3));
-        return pad_start(_pipe, 3, "0");
-      })();
-      loop$acc = prepend(segment, acc);
-      loop$from = x;
+  let effect = (() => {
+    let $2 = model$1.storage;
+    if ($2 instanceof None) {
+      return none();
     } else {
-      let _pipe = prepend(
-        (() => {
-          let _pipe2 = from2;
-          return to_string(_pipe2);
-        })(),
-        acc
+      let storage = $2[0];
+      return write_ship_hold_capacity(
+        storage,
+        ship_id,
+        hold_id,
+        capacity
       );
-      return reverse(_pipe);
-    }
-  }
-}
-function float_to_human_string(from2) {
-  let truncated = truncate(from2);
-  let _pipe = int_to_segments(toList([]), truncated);
-  let _pipe$1 = reverse(_pipe);
-  return concat2(_pipe$1);
-}
-function millions_to_unit_string(from2) {
-  let thousands = int_to_segments(toList([]), from2);
-  let $ = (() => {
-    if (thousands.hasLength(0)) {
-      throw makeError(
-        "panic",
-        "util/numbers",
-        41,
-        "millions_to_unit_string",
-        "shouldnt be able to find an empty value",
-        {}
-      );
-    } else if (thousands.hasLength(1)) {
-      let v = thousands.head;
-      return [v, "M"];
-    } else {
-      let v = thousands.tail;
-      return [
-        (() => {
-          let _pipe = v;
-          let _pipe$1 = reverse(_pipe);
-          return concat2(_pipe$1);
-        })(),
-        "B"
-      ];
     }
   })();
-  let value3 = $[0];
-  let units = $[1];
-  return value3 + " " + units;
-}
-function int_to_human_string(from2) {
-  let $ = divideInt(from2, 1e3);
-  if ($ > 10) {
-    let thousands = $;
-    return to_string(thousands) + "k";
-  } else {
-    return to_string(from2);
-  }
-}
-
-// build/dev/javascript/eve_arbitrage/mvu/update/side_effects/config_to_storage.mjs
-function get_store() {
-  return from(
-    (dispatch) => {
-      let _pipe = (() => {
-        let $ = localStorage();
-        if (!$.isOk()) {
-          return new StoreLoadFailed();
-        } else {
-          let store = $[0];
-          return new StoreLoadedStorage(store);
-        }
-      })();
-      return dispatch(_pipe);
-    }
-  );
-}
-function store_write_to_effect(storage, storage_key, value3) {
-  return from(
-    (dispatch) => {
-      let $ = setItem(storage, storage_key, value3);
-      if (!$.isOk()) {
-        return dispatch(new StoreWriteFailed(storage_key, value3));
-      } else {
-        return void 0;
-      }
-    }
-  );
-}
-function write_collateral(storage, collateral) {
-  let string_to_store = (() => {
-    let _pipe = map(collateral, to_string);
-    return unwrap(_pipe, "");
-  })();
-  return store_write_to_effect(storage, "collateral", string_to_store);
-}
-function store_read_to_effect(storage, storage_key, parser, msg) {
-  return from(
-    (dispatch) => {
-      let $ = try$(
-        getItem(storage, storage_key),
-        (value3) => {
-          return parser(value3);
-        }
-      );
-      if (!$.isOk()) {
-        return dispatch(new StoreReadFailed(storage_key));
-      } else {
-        let value3 = $[0];
-        return dispatch(msg(value3));
-      }
-    }
-  );
-}
-function read_collateral(storage) {
-  return store_read_to_effect(
-    storage,
-    "collateral",
-    (value3) => {
-      let _pipe = parse_int(value3);
-      let _pipe$1 = from_result(_pipe);
-      return new Ok(_pipe$1);
-    },
-    (var0) => {
-      return new StoreReadCollateral(var0);
-    }
-  );
+  return [model$1, effect];
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/update/sidebar.mjs
@@ -8127,11 +8621,25 @@ function user_updated_accounting_level(model, level) {
       _record.multibuys
     );
   })();
-  return [model$1, none()];
+  let effect = (() => {
+    let $ = model$1.storage;
+    if ($ instanceof None) {
+      return none();
+    } else {
+      let storage = $[0];
+      return write_accounting_level(storage, level);
+    }
+  })();
+  return [model$1, effect];
+}
+
+// build/dev/javascript/eve_arbitrage/window_ffi.mjs
+function alert(message) {
+  window.alert(message);
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/update/store.mjs
-function store_loaded_storage(model, storage) {
+function init_load_storage(model, storage) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
@@ -8151,7 +8659,11 @@ function store_loaded_storage(model, storage) {
     );
   })();
   let effect = batch(
-    toList([read_collateral(storage)])
+    toList([
+      read_collateral(storage),
+      read_accounting_level(storage),
+      read_hold_indices(storage)
+    ])
   );
   return [model$1, effect];
 }
@@ -8172,24 +8684,67 @@ function store_read_failed(model, storage_key) {
   return [model, none()];
 }
 function store_read_ship_name(model, name2, id2) {
-  throw makeError(
-    "todo",
-    "mvu/update/store",
-    58,
-    "store_read_ship_name",
-    "`todo` expression evaluated. This code has not yet been implemented.",
-    {}
-  );
+  let model$1 = (() => {
+    let $ = map_get(model.ships, id2);
+    if (!$.isOk()) {
+      throw makeError(
+        "let_assert",
+        "mvu/update/store",
+        67,
+        "store_read_ship_name",
+        "Pattern match failed, no pattern matched the value.",
+        { value: $ }
+      );
+    }
+    let ship_entry = $[0];
+    let ship = ship_entry.ship;
+    let ship$1 = (() => {
+      let _record2 = ship;
+      return new Ship(name2, _record2.holds);
+    })();
+    let ship_entry$1 = (() => {
+      let _record2 = ship_entry;
+      return new ShipEntry(ship$1, _record2.is_expanded);
+    })();
+    let _record = model;
+    return new Model(
+      _record.storage,
+      insert(model.ships, id2, ship_entry$1),
+      _record.current_ship,
+      _record.count_ship_index,
+      _record.count_hold_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
 }
 function store_read_accounting_level(model, accounting_level) {
-  throw makeError(
-    "todo",
-    "mvu/update/store",
-    65,
-    "store_read_accounting_level",
-    "`todo` expression evaluated. This code has not yet been implemented.",
-    {}
-  );
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      _record.storage,
+      _record.ships,
+      _record.current_ship,
+      _record.count_ship_index,
+      _record.count_hold_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
 }
 function store_read_collateral(model, collateral) {
   let model$1 = (() => {
@@ -8213,54 +8768,271 @@ function store_read_collateral(model, collateral) {
   return [model$1, none()];
 }
 function store_read_hold_capacity(model, capacity, ship_id, hold_id) {
-  throw makeError(
-    "todo",
-    "mvu/update/store",
-    82,
-    "store_read_hold_capacity",
-    "`todo` expression evaluated. This code has not yet been implemented.",
-    {}
-  );
+  let $ = map_get(model.ships, ship_id);
+  if (!$.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/update/store",
+      98,
+      "store_read_hold_capacity",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $ }
+    );
+  }
+  let ship_entry = $[0];
+  let ship = ship_entry.ship;
+  let $1 = map_get(ship.holds, hold_id);
+  if (!$1.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/update/store",
+      100,
+      "store_read_hold_capacity",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $1 }
+    );
+  }
+  let hold = $1[0];
+  let hold$1 = (() => {
+    let _record = hold;
+    return new Hold(_record.name, _record.kind, capacity);
+  })();
+  let holds = insert(ship.holds, hold_id, hold$1);
+  let new_ship = (() => {
+    let _record = ship;
+    return new Ship(_record.name, holds);
+  })();
+  let ship_entry$1 = (() => {
+    let _record = ship_entry;
+    return new ShipEntry(new_ship, _record.is_expanded);
+  })();
+  let ship_entries = insert(model.ships, ship_id, ship_entry$1);
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      _record.storage,
+      ship_entries,
+      _record.current_ship,
+      _record.count_ship_index,
+      _record.count_hold_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
 }
 function store_read_hold_indices(model, hold_indices) {
-  throw makeError(
-    "todo",
-    "mvu/update/store",
-    89,
-    "store_read_hold_indices",
-    "`todo` expression evaluated. This code has not yet been implemented.",
-    {}
-  );
+  let $ = model.storage;
+  if ($ instanceof Some) {
+    let storage = $[0];
+    let ship_entries = map_values(
+      hold_indices,
+      (_, hold_ids) => {
+        let holds = (() => {
+          let _pipe = map2(
+            hold_ids,
+            (hold_id) => {
+              return [
+                hold_id,
+                new Hold("New Hold", new Generic(), 100)
+              ];
+            }
+          );
+          return from_list(_pipe);
+        })();
+        let ship = new Ship("New Ship", holds);
+        return new ShipEntry(ship, false);
+      }
+    );
+    let model$1 = (() => {
+      let _record = model;
+      return new Model(
+        _record.storage,
+        ship_entries,
+        _record.current_ship,
+        _record.count_ship_index,
+        _record.count_hold_index,
+        _record.systems,
+        _record.source,
+        _record.destination,
+        _record.accounting_level,
+        _record.language,
+        _record.sidebar_expanded,
+        _record.collateral,
+        _record.multibuys
+      );
+    })();
+    let effect = (() => {
+      let _pipe = map_values(
+        hold_indices,
+        (ship_id, hold_ids) => {
+          let ship_read_effects = toList([
+            read_ship_name(storage, ship_id)
+          ]);
+          return fold(
+            hold_ids,
+            ship_read_effects,
+            (effects, hold_id) => {
+              return prepend(
+                read_ship_hold_name(
+                  storage,
+                  ship_id,
+                  hold_id
+                ),
+                prepend(
+                  read_ship_hold_capacity(
+                    storage,
+                    ship_id,
+                    hold_id
+                  ),
+                  prepend(
+                    read_ship_hold_kind(
+                      storage,
+                      ship_id,
+                      hold_id
+                    ),
+                    effects
+                  )
+                )
+              );
+            }
+          );
+        }
+      );
+      let _pipe$1 = values(_pipe);
+      let _pipe$2 = flatten(_pipe$1);
+      return batch(_pipe$2);
+    })();
+    return [model$1, effect];
+  } else {
+    return [model, none()];
+  }
 }
 function store_read_hold_kind(model, hold_kind, ship_id, hold_id) {
-  throw makeError(
-    "todo",
-    "mvu/update/store",
-    98,
-    "store_read_hold_kind",
-    "`todo` expression evaluated. This code has not yet been implemented.",
-    {}
-  );
+  let $ = map_get(model.ships, ship_id);
+  if (!$.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/update/store",
+      160,
+      "store_read_hold_kind",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $ }
+    );
+  }
+  let ship_entry = $[0];
+  let ship = ship_entry.ship;
+  let $1 = map_get(ship.holds, hold_id);
+  if (!$1.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/update/store",
+      162,
+      "store_read_hold_kind",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $1 }
+    );
+  }
+  let hold = $1[0];
+  let hold$1 = (() => {
+    let _record = hold;
+    return new Hold(_record.name, hold_kind, _record.capacity);
+  })();
+  let holds = insert(ship.holds, hold_id, hold$1);
+  let ship$1 = (() => {
+    let _record = ship;
+    return new Ship(_record.name, holds);
+  })();
+  let ship_entry$1 = (() => {
+    let _record = ship_entry;
+    return new ShipEntry(ship$1, _record.is_expanded);
+  })();
+  let ship_entries = insert(model.ships, ship_id, ship_entry$1);
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      _record.storage,
+      ship_entries,
+      _record.current_ship,
+      _record.count_ship_index,
+      _record.count_hold_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
 }
 function store_read_hold_name(model, hold_name, ship_id, hold_id) {
-  throw makeError(
-    "todo",
-    "mvu/update/store",
-    107,
-    "store_read_hold_name",
-    "`todo` expression evaluated. This code has not yet been implemented.",
-    {}
-  );
-}
-function store_read_ship_indices(model, ship_indices) {
-  throw makeError(
-    "todo",
-    "mvu/update/store",
-    114,
-    "store_read_ship_indices",
-    "`todo` expression evaluated. This code has not yet been implemented.",
-    {}
-  );
+  let $ = map_get(model.ships, ship_id);
+  if (!$.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/update/store",
+      178,
+      "store_read_hold_name",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $ }
+    );
+  }
+  let ship_entry = $[0];
+  let ship = ship_entry.ship;
+  let $1 = map_get(ship.holds, hold_id);
+  if (!$1.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/update/store",
+      180,
+      "store_read_hold_name",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $1 }
+    );
+  }
+  let hold = $1[0];
+  let hold$1 = (() => {
+    let _record = hold;
+    return new Hold(hold_name, _record.kind, _record.capacity);
+  })();
+  let holds = insert(ship.holds, hold_id, hold$1);
+  let new_ship = (() => {
+    let _record = ship;
+    return new Ship(_record.name, holds);
+  })();
+  let ship_entry$1 = (() => {
+    let _record = ship_entry;
+    return new ShipEntry(new_ship, _record.is_expanded);
+  })();
+  let ship_entries = insert(model.ships, ship_id, ship_entry$1);
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      _record.storage,
+      ship_entries,
+      _record.current_ship,
+      _record.count_ship_index,
+      _record.count_hold_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/update/side_effects/fetch_orders.mjs
@@ -8941,43 +9713,40 @@ function run2(model, msg) {
     let storage_key = msg.storage_key;
     let value3 = msg.value;
     return store_write_failed(model, storage_key, value3);
-  } else if (msg instanceof StoreReadFailed) {
+  } else if (msg instanceof InitStoreReadFailed) {
     let storage_key = msg.storage_key;
     return store_read_failed(model, storage_key);
-  } else if (msg instanceof StoreReadShipName) {
+  } else if (msg instanceof InitStoreReadShipName) {
     let name2 = msg.name;
     let id2 = msg.id;
     return store_read_ship_name(model, name2, id2);
-  } else if (msg instanceof StoreReadAccountingLevel) {
+  } else if (msg instanceof InitStoreReadAccountingLevel) {
     let accounting_level = msg.accounting_level;
     return store_read_accounting_level(model, accounting_level);
-  } else if (msg instanceof StoreReadCollateral) {
+  } else if (msg instanceof InitStoreReadCollateral) {
     let collateral = msg.collateral;
     return store_read_collateral(model, collateral);
-  } else if (msg instanceof StoreReadHoldCapacity) {
+  } else if (msg instanceof InitStoreReadHoldCapacity) {
     let capacity = msg.capacity;
     let ship_id = msg.ship_id;
     let hold_id = msg.hold_id;
     return store_read_hold_capacity(model, capacity, ship_id, hold_id);
-  } else if (msg instanceof StoreReadHoldIndices) {
+  } else if (msg instanceof InitStoreReadHoldIndices) {
     let hold_indices = msg.hold_indices;
     return store_read_hold_indices(model, hold_indices);
-  } else if (msg instanceof StoreReadHoldKind) {
+  } else if (msg instanceof InitStoreReadHoldKind) {
     let kind = msg.kind;
     let ship_id = msg.ship_id;
     let hold_id = msg.hold_id;
     return store_read_hold_kind(model, kind, ship_id, hold_id);
-  } else if (msg instanceof StoreReadHoldName) {
+  } else if (msg instanceof InitStoreReadHoldName) {
     let name2 = msg.name;
     let ship_id = msg.ship_id;
     let hold_id = msg.hold_id;
     return store_read_hold_name(model, name2, ship_id, hold_id);
-  } else if (msg instanceof StoreReadShipIndices) {
-    let ship_indices = msg.ship_indices;
-    return store_read_ship_indices(model, ship_indices);
-  } else if (msg instanceof StoreLoadedStorage) {
+  } else if (msg instanceof InitLoadStorage) {
     let storage = msg.storage;
-    return store_loaded_storage(model, storage);
+    return init_load_storage(model, storage);
   } else {
     return store_load_failed(model);
   }

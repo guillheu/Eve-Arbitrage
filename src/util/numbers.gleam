@@ -51,7 +51,9 @@ pub fn ints_to_string(from: List(Int)) -> String {
 }
 
 pub fn string_to_ints(from: String) -> Result(List(Int), Nil) {
-  string.split(from, ",")
+  from
+  |> string.drop_end(1)
+  |> string.split(",")
   |> list.map(int.parse)
   |> result.all
 }
@@ -63,7 +65,10 @@ pub fn ints_dict_to_string(from: Dict(Int, List(Int))) -> String {
 
 pub fn string_to_ints_dict(from: String) -> Result(Dict(Int, List(Int)), Nil) {
   // from: "1:1,2,3;2:4,5,6"
-  let sections = string.split(from, ";")
+  let sections =
+    from
+    |> string.drop_end(1)
+    |> string.split(";")
   // sections: ["1:1,2,3", "2:4,5,6"]
 
   {

@@ -39,3 +39,23 @@ function null_or(val) {
     return new Error(null);
   }
 }
+
+export function removeManyItems(storage, pattern) {
+    // Convert glob pattern to regex
+    const regex = new RegExp(pattern.replace(/\*/g, '.*'));
+    
+    // Get all keys that match the pattern
+    const keysToDelete = [];
+    for (let i = 0; i < storage.length; i++) {
+      const key = storage.key(i);
+      if (regex.test(key)) {
+        keysToDelete.push(key);
+      }
+    }
+    
+    // Delete matched keys
+    keysToDelete.forEach(key => storage.removeItem(key));
+    
+    return;
+  }
+  
