@@ -7,7 +7,9 @@ import lustre
 import lustre/effect
 import mvu
 import mvu/update
+import mvu/update/side_effects/config_to_storage
 import mvu/view
+import util/storage
 
 const default_language = "en"
 
@@ -37,8 +39,12 @@ fn init(_args) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
     [arbitrage.new_purchase("Heavy Water", 112_764, 120.8)]
       |> arbitrage.multibuy_from_purchases,
   ]
+
+  let effect = config_to_storage.get_store()
+
   #(
     mvu.Model(
+      storage: storage.local() |> option.from_result,
       ships: dict.new(),
       current_ship: None,
       count_ship_index: 0,
@@ -52,6 +58,6 @@ fn init(_args) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
       collateral: None,
       multibuys: debug_multibuys,
     ),
-    effect.none(),
+    effect,
   )
 }

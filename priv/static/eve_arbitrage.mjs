@@ -427,6 +427,14 @@ function lazy_unwrap(option2, default$) {
     return default$();
   }
 }
+function map(option2, fun) {
+  if (option2 instanceof Some) {
+    let x = option2[0];
+    return new Some(fun(x));
+  } else {
+    return new None();
+  }
+}
 
 // build/dev/javascript/gleam_stdlib/gleam/order.mjs
 var Lt = class extends CustomType {
@@ -513,7 +521,7 @@ function map_loop(loop$list, loop$fun, loop$acc) {
     }
   }
 }
-function map(list4, fun) {
+function map2(list4, fun) {
   return map_loop(list4, fun, toList([]));
 }
 function append_loop(loop$first, loop$second) {
@@ -532,6 +540,9 @@ function append_loop(loop$first, loop$second) {
 }
 function append(first, second) {
   return append_loop(reverse(first), second);
+}
+function prepend2(list4, item) {
+  return prepend(item, list4);
 }
 function flatten_loop(loop$lists, loop$acc) {
   while (true) {
@@ -1022,7 +1033,7 @@ function is_ok(result) {
     return true;
   }
 }
-function map2(result, fun) {
+function map3(result, fun) {
   if (result.isOk()) {
     let x = result[0];
     return new Ok(fun(x));
@@ -2288,7 +2299,7 @@ function success(data) {
     return [data, toList([])];
   });
 }
-function map3(decoder, transformer) {
+function map4(decoder, transformer) {
   return new Decoder(
     (d) => {
       let $ = decoder.function(d);
@@ -2400,11 +2411,11 @@ function push_path(layer, path2) {
     toList([
       (() => {
         let _pipe = int2;
-        return map3(_pipe, to_string);
+        return map4(_pipe, to_string);
       })()
     ])
   );
-  let path$1 = map(
+  let path$1 = map2(
     path2,
     (key) => {
       let key$1 = identity(key);
@@ -2417,7 +2428,7 @@ function push_path(layer, path2) {
       }
     }
   );
-  let errors = map(
+  let errors = map2(
     layer[1],
     (error) => {
       let _record = error;
@@ -2900,6 +2911,19 @@ function from(effect) {
   };
   let _record = empty;
   return new Effect(toList([task]), _record.before_paint, _record.after_paint);
+}
+function batch(effects) {
+  return fold(
+    effects,
+    empty,
+    (acc, eff) => {
+      return new Effect(
+        fold(eff.synchronous, acc.synchronous, prepend2),
+        fold(eff.before_paint, acc.before_paint, prepend2),
+        fold(eff.after_paint, acc.after_paint, prepend2)
+      );
+    }
+  );
 }
 
 // build/dev/javascript/lustre/lustre/internals/mutable_map.ffi.mjs
@@ -4789,7 +4813,7 @@ function do_add_event(handlers, mapper, path2, name2, handler) {
   return insert3(
     handlers,
     event2(path2, name2),
-    map3(handler, identity2(mapper))
+    map4(handler, identity2(mapper))
   );
 }
 function add_event(events, mapper, path2, name2, handler) {
@@ -5356,7 +5380,7 @@ function purchase_to_string(purchase) {
   ) + "	" + float_to_string(purchase.total_price);
 }
 function multibuy_to_string(multibuy) {
-  let _pipe = map(
+  let _pipe = map2(
     multibuy.purchases,
     (purchase) => {
       return purchase_to_string(purchase) + "\n";
@@ -6678,7 +6702,7 @@ function get2(url, handler) {
   if ($.isOk()) {
     let uri = $[0];
     let _pipe = from_uri(uri);
-    let _pipe$1 = map2(
+    let _pipe$1 = map3(
       _pipe,
       (_capture) => {
         return send3(_capture, handler);
@@ -6956,10 +6980,42 @@ function get_market_orders_url(from2, is_buy_order, page) {
   );
 }
 
+// build/dev/javascript/eve_arbitrage/storage_ffi.mjs
+function localStorage() {
+  try {
+    if (globalThis.Storage && globalThis.localStorage instanceof globalThis.Storage) {
+      return new Ok(globalThis.localStorage);
+    } else {
+      return new Error(null);
+    }
+  } catch {
+    return new Error(null);
+  }
+}
+function getItem(storage, keyName) {
+  return null_or(storage.getItem(keyName));
+}
+function setItem(storage, keyName, keyValue) {
+  try {
+    storage.setItem(keyName, keyValue);
+    return new Ok(null);
+  } catch {
+    return new Error(null);
+  }
+}
+function null_or(val) {
+  if (val !== null) {
+    return new Ok(val);
+  } else {
+    return new Error(null);
+  }
+}
+
 // build/dev/javascript/eve_arbitrage/mvu.mjs
 var Model = class extends CustomType {
-  constructor(ships, current_ship, count_ship_index, count_hold_index, systems, source, destination, accounting_level, language, sidebar_expanded, collateral, multibuys) {
+  constructor(storage, ships, current_ship, count_ship_index, count_hold_index, systems, source, destination, accounting_level, language, sidebar_expanded, collateral, multibuys) {
     super();
+    this.storage = storage;
     this.ships = ships;
     this.current_ship = current_ship;
     this.count_ship_index = count_ship_index;
@@ -7130,6 +7186,82 @@ var UserExpandedShip = class extends CustomType {
     this.ship_id = ship_id;
   }
 };
+var StoreLoadedStorage = class extends CustomType {
+  constructor(storage) {
+    super();
+    this.storage = storage;
+  }
+};
+var StoreLoadFailed = class extends CustomType {
+};
+var StoreWriteFailed = class extends CustomType {
+  constructor(storage_key, value3) {
+    super();
+    this.storage_key = storage_key;
+    this.value = value3;
+  }
+};
+var StoreReadFailed = class extends CustomType {
+  constructor(storage_key) {
+    super();
+    this.storage_key = storage_key;
+  }
+};
+var StoreReadShipName = class extends CustomType {
+  constructor(name2, id2) {
+    super();
+    this.name = name2;
+    this.id = id2;
+  }
+};
+var StoreReadHoldName = class extends CustomType {
+  constructor(name2, ship_id, hold_id) {
+    super();
+    this.name = name2;
+    this.ship_id = ship_id;
+    this.hold_id = hold_id;
+  }
+};
+var StoreReadHoldCapacity = class extends CustomType {
+  constructor(capacity, ship_id, hold_id) {
+    super();
+    this.capacity = capacity;
+    this.ship_id = ship_id;
+    this.hold_id = hold_id;
+  }
+};
+var StoreReadHoldKind = class extends CustomType {
+  constructor(kind, ship_id, hold_id) {
+    super();
+    this.kind = kind;
+    this.ship_id = ship_id;
+    this.hold_id = hold_id;
+  }
+};
+var StoreReadCollateral = class extends CustomType {
+  constructor(collateral) {
+    super();
+    this.collateral = collateral;
+  }
+};
+var StoreReadAccountingLevel = class extends CustomType {
+  constructor(accounting_level) {
+    super();
+    this.accounting_level = accounting_level;
+  }
+};
+var StoreReadShipIndices = class extends CustomType {
+  constructor(ship_indices) {
+    super();
+    this.ship_indices = ship_indices;
+  }
+};
+var StoreReadHoldIndices = class extends CustomType {
+  constructor(hold_indices) {
+    super();
+    this.hold_indices = hold_indices;
+  }
+};
 function int_input_to_msg(input2, msg) {
   let value3 = (() => {
     let _pipe = parse_int(input2);
@@ -7170,6 +7302,11 @@ function user_clicked_copy_multibuy(model, multibuy) {
   return [model, side_effect];
 }
 
+// build/dev/javascript/eve_arbitrage/window_ffi.mjs
+function alert(message) {
+  window.alert(message);
+}
+
 // build/dev/javascript/eve_arbitrage/element_ffi.mjs
 function value2(element3) {
   let value3 = element3.value;
@@ -7191,6 +7328,7 @@ function user_selected_ship(selected_ship, model) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
+      _record.storage,
       _record.ships,
       new Some(selected_ship),
       _record.count_ship_index,
@@ -7238,6 +7376,7 @@ function user_created_ship(model) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
+      _record.storage,
       ships,
       _record.current_ship,
       model.count_ship_index + 1,
@@ -7269,6 +7408,7 @@ function user_deleted_ship(model, deleted_ship) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
+      _record.storage,
       ships,
       selected_ship,
       _record.count_ship_index,
@@ -7340,6 +7480,7 @@ function user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
+      _record.storage,
       ship_entries,
       _record.current_ship,
       _record.count_ship_index,
@@ -7384,6 +7525,7 @@ function user_added_hold_to_ship(model, ship_id) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
+      _record.storage,
       ship_entries,
       _record.current_ship,
       _record.count_ship_index,
@@ -7426,6 +7568,7 @@ function user_deleted_hold_from_ship(model, hold_id, ship_id) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
+      _record.storage,
       ship_entries,
       _record.current_ship,
       _record.count_ship_index,
@@ -7463,6 +7606,7 @@ function user_collapsed_ship(model, ship_id) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
+      _record.storage,
       ship_entries,
       _record.current_ship,
       _record.count_ship_index,
@@ -7500,6 +7644,7 @@ function user_expanded_ship(model, ship_id) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
+      _record.storage,
       ship_entries,
       _record.current_ship,
       _record.count_ship_index,
@@ -7579,6 +7724,7 @@ function user_updated_ship_name(model, id2) {
     })();
     let _record = model;
     return new Model(
+      _record.storage,
       insert(model.ships, id2, ship_entry$1),
       _record.current_ship,
       _record.count_ship_index,
@@ -7644,6 +7790,7 @@ function user_updated_ship_hold_name(model, hold_id, ship_id) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
+      _record.storage,
       ship_entries,
       _record.current_ship,
       _record.count_ship_index,
@@ -7671,7 +7818,7 @@ function fetch_float_input_value_from_element_id_or_default(element_id, default_
   let float_parse_result = try$(value_result, parse_float);
   let int_parse_result = (() => {
     let _pipe = try$(value_result, parse_int);
-    return map2(_pipe, identity);
+    return map3(_pipe, identity);
   })();
   let value_result$1 = (() => {
     let _pipe = float_parse_result;
@@ -7728,6 +7875,7 @@ function user_updated_ship_hold_capacity(model, hold_id, ship_id) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
+      _record.storage,
       ship_entries,
       _record.current_ship,
       _record.count_ship_index,
@@ -7745,11 +7893,154 @@ function user_updated_ship_hold_capacity(model, hold_id, ship_id) {
   return [model$1, none()];
 }
 
+// build/dev/javascript/eve_arbitrage/util/numbers.mjs
+function int_to_segments(loop$acc, loop$from) {
+  while (true) {
+    let acc = loop$acc;
+    let from2 = loop$from;
+    let $ = divideInt(from2, 1e3);
+    if ($ > 0) {
+      let x = $;
+      let segment = "," + (() => {
+        let _pipe = to_string(remainderInt(from2, 1e3));
+        return pad_start(_pipe, 3, "0");
+      })();
+      loop$acc = prepend(segment, acc);
+      loop$from = x;
+    } else {
+      let _pipe = prepend(
+        (() => {
+          let _pipe2 = from2;
+          return to_string(_pipe2);
+        })(),
+        acc
+      );
+      return reverse(_pipe);
+    }
+  }
+}
+function float_to_human_string(from2) {
+  let truncated = truncate(from2);
+  let _pipe = int_to_segments(toList([]), truncated);
+  let _pipe$1 = reverse(_pipe);
+  return concat2(_pipe$1);
+}
+function millions_to_unit_string(from2) {
+  let thousands = int_to_segments(toList([]), from2);
+  let $ = (() => {
+    if (thousands.hasLength(0)) {
+      throw makeError(
+        "panic",
+        "util/numbers",
+        41,
+        "millions_to_unit_string",
+        "shouldnt be able to find an empty value",
+        {}
+      );
+    } else if (thousands.hasLength(1)) {
+      let v = thousands.head;
+      return [v, "M"];
+    } else {
+      let v = thousands.tail;
+      return [
+        (() => {
+          let _pipe = v;
+          let _pipe$1 = reverse(_pipe);
+          return concat2(_pipe$1);
+        })(),
+        "B"
+      ];
+    }
+  })();
+  let value3 = $[0];
+  let units = $[1];
+  return value3 + " " + units;
+}
+function int_to_human_string(from2) {
+  let $ = divideInt(from2, 1e3);
+  if ($ > 10) {
+    let thousands = $;
+    return to_string(thousands) + "k";
+  } else {
+    return to_string(from2);
+  }
+}
+
+// build/dev/javascript/eve_arbitrage/mvu/update/side_effects/config_to_storage.mjs
+function get_store() {
+  return from(
+    (dispatch) => {
+      let _pipe = (() => {
+        let $ = localStorage();
+        if (!$.isOk()) {
+          return new StoreLoadFailed();
+        } else {
+          let store = $[0];
+          return new StoreLoadedStorage(store);
+        }
+      })();
+      return dispatch(_pipe);
+    }
+  );
+}
+function store_write_to_effect(storage, storage_key, value3) {
+  return from(
+    (dispatch) => {
+      let $ = setItem(storage, storage_key, value3);
+      if (!$.isOk()) {
+        return dispatch(new StoreWriteFailed(storage_key, value3));
+      } else {
+        return void 0;
+      }
+    }
+  );
+}
+function write_collateral(storage, collateral) {
+  let string_to_store = (() => {
+    let _pipe = map(collateral, to_string);
+    return unwrap(_pipe, "");
+  })();
+  return store_write_to_effect(storage, "collateral", string_to_store);
+}
+function store_read_to_effect(storage, storage_key, parser, msg) {
+  return from(
+    (dispatch) => {
+      let $ = try$(
+        getItem(storage, storage_key),
+        (value3) => {
+          return parser(value3);
+        }
+      );
+      if (!$.isOk()) {
+        return dispatch(new StoreReadFailed(storage_key));
+      } else {
+        let value3 = $[0];
+        return dispatch(msg(value3));
+      }
+    }
+  );
+}
+function read_collateral(storage) {
+  return store_read_to_effect(
+    storage,
+    "collateral",
+    (value3) => {
+      let _pipe = parse_int(value3);
+      let _pipe$1 = from_result(_pipe);
+      return new Ok(_pipe$1);
+    },
+    (var0) => {
+      return new StoreReadCollateral(var0);
+    }
+  );
+}
+
 // build/dev/javascript/eve_arbitrage/mvu/update/sidebar.mjs
 function user_clicked_collapse_sidebar(model) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
+      _record.storage,
       _record.ships,
       _record.current_ship,
       _record.count_ship_index,
@@ -7770,6 +8061,7 @@ function user_clicked_expand_sidebar(model) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
+      _record.storage,
       _record.ships,
       _record.current_ship,
       _record.count_ship_index,
@@ -7790,6 +8082,7 @@ function user_updated_collateral(model, value3) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
+      _record.storage,
       _record.ships,
       _record.current_ship,
       _record.count_ship_index,
@@ -7804,12 +8097,22 @@ function user_updated_collateral(model, value3) {
       _record.multibuys
     );
   })();
-  return [model$1, none()];
+  let effect = (() => {
+    let $ = model$1.storage;
+    if ($ instanceof None) {
+      return none();
+    } else {
+      let storage = $[0];
+      return write_collateral(storage, value3);
+    }
+  })();
+  return [model$1, effect];
 }
 function user_updated_accounting_level(model, level) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
+      _record.storage,
       _record.ships,
       _record.current_ship,
       _record.count_ship_index,
@@ -7825,6 +8128,139 @@ function user_updated_accounting_level(model, level) {
     );
   })();
   return [model$1, none()];
+}
+
+// build/dev/javascript/eve_arbitrage/mvu/update/store.mjs
+function store_loaded_storage(model, storage) {
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      new Some(storage),
+      _record.ships,
+      _record.current_ship,
+      _record.count_ship_index,
+      _record.count_hold_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  let effect = batch(
+    toList([read_collateral(storage)])
+  );
+  return [model$1, effect];
+}
+function store_load_failed(model) {
+  alert("Failed to load local storage\nCheck console log for more info");
+  return [model, none()];
+}
+function store_write_failed(model, storage_key, value3) {
+  alert(
+    'Failed to write storage key "' + storage_key + '" with value "' + value3 + '"\nCheck console log for more info'
+  );
+  return [model, none()];
+}
+function store_read_failed(model, storage_key) {
+  alert(
+    'Failed to read storage key "' + storage_key + '"\nCheck console log for more info'
+  );
+  return [model, none()];
+}
+function store_read_ship_name(model, name2, id2) {
+  throw makeError(
+    "todo",
+    "mvu/update/store",
+    58,
+    "store_read_ship_name",
+    "`todo` expression evaluated. This code has not yet been implemented.",
+    {}
+  );
+}
+function store_read_accounting_level(model, accounting_level) {
+  throw makeError(
+    "todo",
+    "mvu/update/store",
+    65,
+    "store_read_accounting_level",
+    "`todo` expression evaluated. This code has not yet been implemented.",
+    {}
+  );
+}
+function store_read_collateral(model, collateral) {
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      _record.storage,
+      _record.ships,
+      _record.current_ship,
+      _record.count_ship_index,
+      _record.count_hold_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
+}
+function store_read_hold_capacity(model, capacity, ship_id, hold_id) {
+  throw makeError(
+    "todo",
+    "mvu/update/store",
+    82,
+    "store_read_hold_capacity",
+    "`todo` expression evaluated. This code has not yet been implemented.",
+    {}
+  );
+}
+function store_read_hold_indices(model, hold_indices) {
+  throw makeError(
+    "todo",
+    "mvu/update/store",
+    89,
+    "store_read_hold_indices",
+    "`todo` expression evaluated. This code has not yet been implemented.",
+    {}
+  );
+}
+function store_read_hold_kind(model, hold_kind, ship_id, hold_id) {
+  throw makeError(
+    "todo",
+    "mvu/update/store",
+    98,
+    "store_read_hold_kind",
+    "`todo` expression evaluated. This code has not yet been implemented.",
+    {}
+  );
+}
+function store_read_hold_name(model, hold_name, ship_id, hold_id) {
+  throw makeError(
+    "todo",
+    "mvu/update/store",
+    107,
+    "store_read_hold_name",
+    "`todo` expression evaluated. This code has not yet been implemented.",
+    {}
+  );
+}
+function store_read_ship_indices(model, ship_indices) {
+  throw makeError(
+    "todo",
+    "mvu/update/store",
+    114,
+    "store_read_ship_indices",
+    "`todo` expression evaluated. This code has not yet been implemented.",
+    {}
+  );
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/update/side_effects/fetch_orders.mjs
@@ -7854,6 +8290,7 @@ function user_selected_source(new_source, model) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
+      _record.storage,
       _record.ships,
       _record.current_ship,
       _record.count_ship_index,
@@ -7876,6 +8313,7 @@ function user_selected_destination(new_dest, model) {
   let model$1 = (() => {
     let _record = model;
     return new Model(
+      _record.storage,
       _record.ships,
       _record.current_ship,
       _record.count_ship_index,
@@ -7961,6 +8399,7 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
     let model$1 = (() => {
       let _record = model;
       return new Model(
+        _record.storage,
         _record.ships,
         _record.current_ship,
         _record.count_ship_index,
@@ -8036,6 +8475,7 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
       (() => {
         let _record = model;
         return new Model(
+          _record.storage,
           _record.ships,
           _record.current_ship,
           _record.count_ship_index,
@@ -8125,6 +8565,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
     let model$1 = (() => {
       let _record = model;
       return new Model(
+        _record.storage,
         _record.ships,
         _record.current_ship,
         _record.count_ship_index,
@@ -8200,6 +8641,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
       (() => {
         let _record = model;
         return new Model(
+          _record.storage,
           _record.ships,
           _record.current_ship,
           _record.count_ship_index,
@@ -8276,6 +8718,7 @@ function user_loaded_source(model, from2) {
       let current_source = $1[0];
       let _record = model;
       return new Model(
+        _record.storage,
         _record.ships,
         _record.current_ship,
         _record.count_ship_index,
@@ -8297,6 +8740,7 @@ function user_loaded_source(model, from2) {
     (() => {
       let _record = model$1;
       return new Model(
+        _record.storage,
         _record.ships,
         _record.current_ship,
         _record.count_ship_index,
@@ -8368,6 +8812,7 @@ function user_loaded_destination(model, to) {
       let current_destination = $1[0];
       let _record = model;
       return new Model(
+        _record.storage,
         _record.ships,
         _record.current_ship,
         _record.count_ship_index,
@@ -8389,6 +8834,7 @@ function user_loaded_destination(model, to) {
     (() => {
       let _record = model$1;
       return new Model(
+        _record.storage,
         _record.ships,
         _record.current_ship,
         _record.count_ship_index,
@@ -8488,9 +8934,52 @@ function run2(model, msg) {
   } else if (msg instanceof UserCollapsedShip) {
     let ship_id = msg.ship_id;
     return user_collapsed_ship(model, ship_id);
-  } else {
+  } else if (msg instanceof UserExpandedShip) {
     let ship_id = msg.ship_id;
     return user_expanded_ship(model, ship_id);
+  } else if (msg instanceof StoreWriteFailed) {
+    let storage_key = msg.storage_key;
+    let value3 = msg.value;
+    return store_write_failed(model, storage_key, value3);
+  } else if (msg instanceof StoreReadFailed) {
+    let storage_key = msg.storage_key;
+    return store_read_failed(model, storage_key);
+  } else if (msg instanceof StoreReadShipName) {
+    let name2 = msg.name;
+    let id2 = msg.id;
+    return store_read_ship_name(model, name2, id2);
+  } else if (msg instanceof StoreReadAccountingLevel) {
+    let accounting_level = msg.accounting_level;
+    return store_read_accounting_level(model, accounting_level);
+  } else if (msg instanceof StoreReadCollateral) {
+    let collateral = msg.collateral;
+    return store_read_collateral(model, collateral);
+  } else if (msg instanceof StoreReadHoldCapacity) {
+    let capacity = msg.capacity;
+    let ship_id = msg.ship_id;
+    let hold_id = msg.hold_id;
+    return store_read_hold_capacity(model, capacity, ship_id, hold_id);
+  } else if (msg instanceof StoreReadHoldIndices) {
+    let hold_indices = msg.hold_indices;
+    return store_read_hold_indices(model, hold_indices);
+  } else if (msg instanceof StoreReadHoldKind) {
+    let kind = msg.kind;
+    let ship_id = msg.ship_id;
+    let hold_id = msg.hold_id;
+    return store_read_hold_kind(model, kind, ship_id, hold_id);
+  } else if (msg instanceof StoreReadHoldName) {
+    let name2 = msg.name;
+    let ship_id = msg.ship_id;
+    let hold_id = msg.hold_id;
+    return store_read_hold_name(model, name2, ship_id, hold_id);
+  } else if (msg instanceof StoreReadShipIndices) {
+    let ship_indices = msg.ship_indices;
+    return store_read_ship_indices(model, ship_indices);
+  } else if (msg instanceof StoreLoadedStorage) {
+    let storage = msg.storage;
+    return store_loaded_storage(model, storage);
+  } else {
+    return store_load_failed(model);
   }
 }
 
@@ -8553,79 +9042,6 @@ function on_blur(msg) {
   return on("blur", success(msg));
 }
 
-// build/dev/javascript/eve_arbitrage/util/numbers.mjs
-function int_to_segments(loop$acc, loop$from) {
-  while (true) {
-    let acc = loop$acc;
-    let from2 = loop$from;
-    let $ = divideInt(from2, 1e3);
-    if ($ > 0) {
-      let x = $;
-      let segment = "," + (() => {
-        let _pipe = to_string(remainderInt(from2, 1e3));
-        return pad_start(_pipe, 3, "0");
-      })();
-      loop$acc = prepend(segment, acc);
-      loop$from = x;
-    } else {
-      let _pipe = prepend(
-        (() => {
-          let _pipe2 = from2;
-          return to_string(_pipe2);
-        })(),
-        acc
-      );
-      return reverse(_pipe);
-    }
-  }
-}
-function float_to_human_string(from2) {
-  let truncated = truncate(from2);
-  let _pipe = int_to_segments(toList([]), truncated);
-  let _pipe$1 = reverse(_pipe);
-  return concat2(_pipe$1);
-}
-function millions_to_unit_string(from2) {
-  let thousands = int_to_segments(toList([]), from2);
-  let $ = (() => {
-    if (thousands.hasLength(0)) {
-      throw makeError(
-        "panic",
-        "util/numbers",
-        39,
-        "millions_to_unit_string",
-        "shouldnt be able to find an empty value",
-        {}
-      );
-    } else if (thousands.hasLength(1)) {
-      let v = thousands.head;
-      return [v, "M"];
-    } else {
-      let v = thousands.tail;
-      return [
-        (() => {
-          let _pipe = v;
-          let _pipe$1 = reverse(_pipe);
-          return concat2(_pipe$1);
-        })(),
-        "B"
-      ];
-    }
-  })();
-  let value3 = $[0];
-  let units = $[1];
-  return value3 + " " + units;
-}
-function int_to_human_string(from2) {
-  let $ = divideInt(from2, 1e3);
-  if ($ > 10) {
-    let thousands = $;
-    return to_string(thousands) + "k";
-  } else {
-    return to_string(from2);
-  }
-}
-
 // build/dev/javascript/eve_arbitrage/mvu/view/multibuys.mjs
 function get_multibuy(multibuy) {
   return div(
@@ -8678,7 +9094,7 @@ function get_multibuy(multibuy) {
               )
             ]),
             (() => {
-              let _pipe = map(
+              let _pipe = map2(
                 get_multibuy_purchases(multibuy),
                 (purchase) => {
                   return toList([
@@ -8733,7 +9149,7 @@ function get_section(model) {
           toList([text3("Arbitrage Multibuys")])
         )
       ]);
-      return append(_pipe, map(model.multibuys, get_multibuy));
+      return append(_pipe, map2(model.multibuys, get_multibuy));
     })()
   );
 }
@@ -9024,7 +9440,7 @@ function get_ship_hold(hold_id, hold, ship_id) {
   let capacity_element_id = "hold-capacity-" + to_string(hold_id);
   let hold_kinds = (() => {
     let _pipe = get_all_hold_kinds();
-    return map(
+    return map2(
       _pipe,
       (hold_kind) => {
         let hold_kind_string = hold_kind_to_string(hold_kind);
@@ -9499,7 +9915,7 @@ function get_ship_selected_icon(ship_entry) {
     throw makeError(
       "let_assert",
       "mvu/view/sidebar",
-      237,
+      246,
       "get_ship_selected_icon",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -9534,6 +9950,13 @@ function get_collapsed_sidebar(model) {
     let _pipe = model.accounting_level;
     return to_string(_pipe);
   })();
+  let tax_rate_string = (() => {
+    let _pipe = tax_percent_from_accounting_level(
+      model.accounting_level
+    );
+    let _pipe$1 = to_precision(_pipe, 3);
+    return float_to_string(_pipe$1);
+  })() + "%";
   let ship_icon = (() => {
     let $ = model.current_ship;
     if ($ instanceof None) {
@@ -9545,7 +9968,7 @@ function get_collapsed_sidebar(model) {
         throw makeError(
           "let_assert",
           "mvu/view/sidebar",
-          86,
+          92,
           "get_collapsed_sidebar",
           "Pattern match failed, no pattern matched the value.",
           { value: $1 }
@@ -9680,6 +10103,10 @@ function get_collapsed_sidebar(model) {
               span(
                 toList([class$("text-xs font-medium text-selected")]),
                 toList([text3(accounting_level_string)])
+              ),
+              span(
+                toList([class$("text-[10px] text-gray-500")]),
+                toList([text3(tax_rate_string)])
               )
             ])
           ),
@@ -10130,8 +10557,13 @@ function init(_) {
       return multibuy_from_purchases(_pipe);
     })()
   ]);
+  let effect = get_store();
   return [
     new Model(
+      (() => {
+        let _pipe = localStorage();
+        return from_result(_pipe);
+      })(),
       new_map(),
       new None(),
       0,
@@ -10145,7 +10577,7 @@ function init(_) {
       new None(),
       debug_multibuys
     ),
-    none()
+    effect
   ];
 }
 function main() {
@@ -10155,7 +10587,7 @@ function main() {
     throw makeError(
       "let_assert",
       "eve_arbitrage",
-      18,
+      20,
       "main",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }

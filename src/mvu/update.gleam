@@ -3,6 +3,7 @@ import mvu
 import mvu/update/multibuys
 import mvu/update/ships
 import mvu/update/sidebar
+import mvu/update/store
 import mvu/update/systems
 
 pub fn run(
@@ -48,5 +49,28 @@ pub fn run(
       ships.user_deleted_hold_from_ship(model, hold_id, ship_id)
     mvu.UserCollapsedShip(ship_id) -> ships.user_collapsed_ship(model, ship_id)
     mvu.UserExpandedShip(ship_id) -> ships.user_expanded_ship(model, ship_id)
+    mvu.StoreWriteFailed(storage_key, value) ->
+      store.store_write_failed(model, storage_key, value)
+    mvu.StoreReadFailed(storage_key) ->
+      store.store_read_failed(model, storage_key)
+    mvu.StoreReadShipName(name, id) ->
+      store.store_read_ship_name(model, name, id)
+    mvu.StoreReadAccountingLevel(accounting_level) ->
+      store.store_read_accounting_level(model, accounting_level)
+    mvu.StoreReadCollateral(collateral) ->
+      store.store_read_collateral(model, collateral)
+    mvu.StoreReadHoldCapacity(capacity, ship_id, hold_id) ->
+      store.store_read_hold_capacity(model, capacity, ship_id, hold_id)
+    mvu.StoreReadHoldIndices(hold_indices) ->
+      store.store_read_hold_indices(model, hold_indices)
+    mvu.StoreReadHoldKind(kind, ship_id, hold_id) ->
+      store.store_read_hold_kind(model, kind, ship_id, hold_id)
+    mvu.StoreReadHoldName(name, ship_id, hold_id) ->
+      store.store_read_hold_name(model, name, ship_id, hold_id)
+    mvu.StoreReadShipIndices(ship_indices) ->
+      store.store_read_ship_indices(model, ship_indices)
+    mvu.StoreLoadedStorage(storage) ->
+      store.store_loaded_storage(model, storage)
+    mvu.StoreLoadFailed -> store.store_load_failed(model)
   }
 }

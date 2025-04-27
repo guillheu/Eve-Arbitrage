@@ -1,3 +1,4 @@
+import arbitrage
 import gleam/dict
 import gleam/float
 import gleam/int
@@ -80,6 +81,11 @@ fn get_collapsed_sidebar(model: mvu.Model) -> element.Element(mvu.Msg) {
   let collateral_amount_string = numbers.millions_to_unit_string(collateral)
   let accounting_level_string =
     "LvL " <> model.accounting_level |> int.to_string
+  let tax_rate_string =
+    arbitrage.tax_percent_from_accounting_level(model.accounting_level)
+    |> float.to_precision(3)
+    |> float.to_string
+    <> "%"
   let ship_icon = case model.current_ship {
     option.None -> get_ship_no_selected_icon()
     option.Some(ship_id) -> {
@@ -197,6 +203,9 @@ fn get_collapsed_sidebar(model: mvu.Model) -> element.Element(mvu.Msg) {
           ),
           html.span([attribute.class("text-xs font-medium text-selected")], [
             html.text(accounting_level_string),
+          ]),
+          html.span([attribute.class("text-[10px] text-gray-500")], [
+            html.text(tax_rate_string),
           ]),
         ]),
         ship_icon,

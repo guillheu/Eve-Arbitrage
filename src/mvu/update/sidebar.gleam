@@ -1,6 +1,8 @@
+import gleam/int
 import gleam/option.{type Option}
 import lustre/effect
 import mvu
+import mvu/update/side_effects/config_to_storage
 
 pub fn user_clicked_collapse_sidebar(
   model: mvu.Model,
@@ -21,7 +23,11 @@ pub fn user_updated_collateral(
   value: Option(Int),
 ) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
   let model = mvu.Model(..model, collateral: value)
-  #(model, effect.none())
+  let effect = case model.storage {
+    option.None -> effect.none()
+    option.Some(storage) -> config_to_storage.write_collateral(storage, value)
+  }
+  #(model, effect)
 }
 
 pub fn user_updated_accounting_level(

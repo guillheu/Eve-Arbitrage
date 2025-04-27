@@ -8,9 +8,11 @@ import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/time/timestamp
 import rsvp
+import util/storage
 
 pub type Model {
   Model(
+    storage: Option(storage.Storage),
     ships: Dict(Int, ShipEntry),
     current_ship: Option(Int),
     count_ship_index: Int,
@@ -87,6 +89,20 @@ pub type Msg {
   UserDeletedHoldFromShip(hold_id: Int, ship_id: Int)
   UserCollapsedShip(ship_id: Int)
   UserExpandedShip(ship_id: Int)
+
+  // storage messages
+  StoreLoadedStorage(storage: storage.Storage)
+  StoreLoadFailed
+  StoreWriteFailed(storage_key: String, value: String)
+  StoreReadFailed(storage_key: String)
+  StoreReadShipName(name: String, id: Int)
+  StoreReadHoldName(name: String, ship_id: Int, hold_id: Int)
+  StoreReadHoldCapacity(capacity: Float, ship_id: Int, hold_id: Int)
+  StoreReadHoldKind(kind: sde.HoldKind, ship_id: Int, hold_id: Int)
+  StoreReadCollateral(collateral: Option(Int))
+  StoreReadAccountingLevel(accounting_level: Int)
+  StoreReadShipIndices(ship_indices: List(Int))
+  StoreReadHoldIndices(hold_indices: Dict(Int, List(Int)))
 }
 
 pub fn float_input_to_msg(input: String, msg: fn(Option(Float)) -> Msg) {
