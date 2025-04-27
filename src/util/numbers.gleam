@@ -1,3 +1,4 @@
+import gleam/bool
 import gleam/dict.{type Dict}
 import gleam/float
 import gleam/int
@@ -64,6 +65,7 @@ pub fn ints_dict_to_string(from: Dict(Int, List(Int))) -> String {
 }
 
 pub fn string_to_ints_dict(from: String) -> Result(Dict(Int, List(Int)), Nil) {
+  use <- bool.guard(string.is_empty(from), Ok(dict.from_list([])))
   // from: "1:1,2,3;2:4,5,6"
   let sections =
     from
@@ -74,14 +76,12 @@ pub fn string_to_ints_dict(from: String) -> Result(Dict(Int, List(Int)), Nil) {
   {
     use section <- list.map(sections)
     // section: "1:1,2,3"
-    use #(index_string, int_list_string) <- result.try(string.split_once(
-      section,
-      ":",
-    ))
+    let assert [index_string, int_list_string] = echo string.split(section, ":")
     // index_string: "1"
     // int_list_string: "1,2,3"
     use index <- result.try(int.parse(index_string))
     // index: 1
+    use <- bool.guard(string.is_empty(int_list_string), Ok(#(index, [])))
     use int_list <- result.map(string_to_ints(int_list_string))
     // int_list: [1, 2, 3]
     #(index, int_list)

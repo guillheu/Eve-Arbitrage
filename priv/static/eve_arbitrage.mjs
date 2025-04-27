@@ -272,6 +272,277 @@ function bitArrayPrintDeprecationWarning(name2, message) {
   );
   isBitArrayDeprecationMessagePrinted[name2] = true;
 }
+function bitArraySlice(bitArray, start4, end) {
+  end ??= bitArray.bitSize;
+  bitArrayValidateRange(bitArray, start4, end);
+  if (start4 === end) {
+    return new BitArray(new Uint8Array());
+  }
+  if (start4 === 0 && end === bitArray.bitSize) {
+    return bitArray;
+  }
+  start4 += bitArray.bitOffset;
+  end += bitArray.bitOffset;
+  const startByteIndex = Math.trunc(start4 / 8);
+  const endByteIndex = Math.trunc((end + 7) / 8);
+  const byteLength = endByteIndex - startByteIndex;
+  let buffer;
+  if (startByteIndex === 0 && byteLength === bitArray.rawBuffer.byteLength) {
+    buffer = bitArray.rawBuffer;
+  } else {
+    buffer = new Uint8Array(
+      bitArray.rawBuffer.buffer,
+      bitArray.rawBuffer.byteOffset + startByteIndex,
+      byteLength
+    );
+  }
+  return new BitArray(buffer, end - start4, start4 % 8);
+}
+function bitArraySliceToInt(bitArray, start4, end, isBigEndian, isSigned) {
+  bitArrayValidateRange(bitArray, start4, end);
+  if (start4 === end) {
+    return 0;
+  }
+  start4 += bitArray.bitOffset;
+  end += bitArray.bitOffset;
+  const isStartByteAligned = start4 % 8 === 0;
+  const isEndByteAligned = end % 8 === 0;
+  if (isStartByteAligned && isEndByteAligned) {
+    return intFromAlignedSlice(
+      bitArray,
+      start4 / 8,
+      end / 8,
+      isBigEndian,
+      isSigned
+    );
+  }
+  const size2 = end - start4;
+  const startByteIndex = Math.trunc(start4 / 8);
+  const endByteIndex = Math.trunc((end - 1) / 8);
+  if (startByteIndex == endByteIndex) {
+    const mask2 = 255 >> start4 % 8;
+    const unusedLowBitCount = (8 - end % 8) % 8;
+    let value3 = (bitArray.rawBuffer[startByteIndex] & mask2) >> unusedLowBitCount;
+    if (isSigned) {
+      const highBit = 2 ** (size2 - 1);
+      if (value3 >= highBit) {
+        value3 -= highBit * 2;
+      }
+    }
+    return value3;
+  }
+  if (size2 <= 53) {
+    return intFromUnalignedSliceUsingNumber(
+      bitArray.rawBuffer,
+      start4,
+      end,
+      isBigEndian,
+      isSigned
+    );
+  } else {
+    return intFromUnalignedSliceUsingBigInt(
+      bitArray.rawBuffer,
+      start4,
+      end,
+      isBigEndian,
+      isSigned
+    );
+  }
+}
+function intFromAlignedSlice(bitArray, start4, end, isBigEndian, isSigned) {
+  const byteSize = end - start4;
+  if (byteSize <= 6) {
+    return intFromAlignedSliceUsingNumber(
+      bitArray.rawBuffer,
+      start4,
+      end,
+      isBigEndian,
+      isSigned
+    );
+  } else {
+    return intFromAlignedSliceUsingBigInt(
+      bitArray.rawBuffer,
+      start4,
+      end,
+      isBigEndian,
+      isSigned
+    );
+  }
+}
+function intFromAlignedSliceUsingNumber(buffer, start4, end, isBigEndian, isSigned) {
+  const byteSize = end - start4;
+  let value3 = 0;
+  if (isBigEndian) {
+    for (let i = start4; i < end; i++) {
+      value3 *= 256;
+      value3 += buffer[i];
+    }
+  } else {
+    for (let i = end - 1; i >= start4; i--) {
+      value3 *= 256;
+      value3 += buffer[i];
+    }
+  }
+  if (isSigned) {
+    const highBit = 2 ** (byteSize * 8 - 1);
+    if (value3 >= highBit) {
+      value3 -= highBit * 2;
+    }
+  }
+  return value3;
+}
+function intFromAlignedSliceUsingBigInt(buffer, start4, end, isBigEndian, isSigned) {
+  const byteSize = end - start4;
+  let value3 = 0n;
+  if (isBigEndian) {
+    for (let i = start4; i < end; i++) {
+      value3 *= 256n;
+      value3 += BigInt(buffer[i]);
+    }
+  } else {
+    for (let i = end - 1; i >= start4; i--) {
+      value3 *= 256n;
+      value3 += BigInt(buffer[i]);
+    }
+  }
+  if (isSigned) {
+    const highBit = 1n << BigInt(byteSize * 8 - 1);
+    if (value3 >= highBit) {
+      value3 -= highBit * 2n;
+    }
+  }
+  return Number(value3);
+}
+function intFromUnalignedSliceUsingNumber(buffer, start4, end, isBigEndian, isSigned) {
+  const isStartByteAligned = start4 % 8 === 0;
+  let size2 = end - start4;
+  let byteIndex = Math.trunc(start4 / 8);
+  let value3 = 0;
+  if (isBigEndian) {
+    if (!isStartByteAligned) {
+      const leadingBitsCount = 8 - start4 % 8;
+      value3 = buffer[byteIndex++] & (1 << leadingBitsCount) - 1;
+      size2 -= leadingBitsCount;
+    }
+    while (size2 >= 8) {
+      value3 *= 256;
+      value3 += buffer[byteIndex++];
+      size2 -= 8;
+    }
+    if (size2 > 0) {
+      value3 *= 2 ** size2;
+      value3 += buffer[byteIndex] >> 8 - size2;
+    }
+  } else {
+    if (isStartByteAligned) {
+      let size3 = end - start4;
+      let scale = 1;
+      while (size3 >= 8) {
+        value3 += buffer[byteIndex++] * scale;
+        scale *= 256;
+        size3 -= 8;
+      }
+      value3 += (buffer[byteIndex] >> 8 - size3) * scale;
+    } else {
+      const highBitsCount = start4 % 8;
+      const lowBitsCount = 8 - highBitsCount;
+      let size3 = end - start4;
+      let scale = 1;
+      while (size3 >= 8) {
+        const byte = buffer[byteIndex] << highBitsCount | buffer[byteIndex + 1] >> lowBitsCount;
+        value3 += (byte & 255) * scale;
+        scale *= 256;
+        size3 -= 8;
+        byteIndex++;
+      }
+      if (size3 > 0) {
+        const lowBitsUsed = size3 - Math.max(0, size3 - lowBitsCount);
+        let trailingByte = (buffer[byteIndex] & (1 << lowBitsCount) - 1) >> lowBitsCount - lowBitsUsed;
+        size3 -= lowBitsUsed;
+        if (size3 > 0) {
+          trailingByte *= 2 ** size3;
+          trailingByte += buffer[byteIndex + 1] >> 8 - size3;
+        }
+        value3 += trailingByte * scale;
+      }
+    }
+  }
+  if (isSigned) {
+    const highBit = 2 ** (end - start4 - 1);
+    if (value3 >= highBit) {
+      value3 -= highBit * 2;
+    }
+  }
+  return value3;
+}
+function intFromUnalignedSliceUsingBigInt(buffer, start4, end, isBigEndian, isSigned) {
+  const isStartByteAligned = start4 % 8 === 0;
+  let size2 = end - start4;
+  let byteIndex = Math.trunc(start4 / 8);
+  let value3 = 0n;
+  if (isBigEndian) {
+    if (!isStartByteAligned) {
+      const leadingBitsCount = 8 - start4 % 8;
+      value3 = BigInt(buffer[byteIndex++] & (1 << leadingBitsCount) - 1);
+      size2 -= leadingBitsCount;
+    }
+    while (size2 >= 8) {
+      value3 *= 256n;
+      value3 += BigInt(buffer[byteIndex++]);
+      size2 -= 8;
+    }
+    if (size2 > 0) {
+      value3 <<= BigInt(size2);
+      value3 += BigInt(buffer[byteIndex] >> 8 - size2);
+    }
+  } else {
+    if (isStartByteAligned) {
+      let size3 = end - start4;
+      let shift = 0n;
+      while (size3 >= 8) {
+        value3 += BigInt(buffer[byteIndex++]) << shift;
+        shift += 8n;
+        size3 -= 8;
+      }
+      value3 += BigInt(buffer[byteIndex] >> 8 - size3) << shift;
+    } else {
+      const highBitsCount = start4 % 8;
+      const lowBitsCount = 8 - highBitsCount;
+      let size3 = end - start4;
+      let shift = 0n;
+      while (size3 >= 8) {
+        const byte = buffer[byteIndex] << highBitsCount | buffer[byteIndex + 1] >> lowBitsCount;
+        value3 += BigInt(byte & 255) << shift;
+        shift += 8n;
+        size3 -= 8;
+        byteIndex++;
+      }
+      if (size3 > 0) {
+        const lowBitsUsed = size3 - Math.max(0, size3 - lowBitsCount);
+        let trailingByte = (buffer[byteIndex] & (1 << lowBitsCount) - 1) >> lowBitsCount - lowBitsUsed;
+        size3 -= lowBitsUsed;
+        if (size3 > 0) {
+          trailingByte <<= size3;
+          trailingByte += buffer[byteIndex + 1] >> 8 - size3;
+        }
+        value3 += BigInt(trailingByte) << shift;
+      }
+    }
+  }
+  if (isSigned) {
+    const highBit = 2n ** BigInt(end - start4 - 1);
+    if (value3 >= highBit) {
+      value3 -= highBit * 2n;
+    }
+  }
+  return Number(value3);
+}
+function bitArrayValidateRange(bitArray, start4, end) {
+  if (start4 < 0 || start4 > bitArray.bitSize || end < start4 || end > bitArray.bitSize) {
+    const msg = `Invalid bit array slice: start = ${start4}, end = ${end}, bit size = ${bitArray.bitSize}`;
+    throw new globalThis.Error(msg);
+  }
+}
 var Result = class _Result extends CustomType {
   // @internal
   static isResult(data) {
@@ -957,6 +1228,9 @@ function key_find(keyword_list, desired_key) {
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/string.mjs
+function is_empty(str) {
+  return str === "";
+}
 function replace(string5, pattern, substitute) {
   let _pipe = string5;
   let _pipe$1 = identity(_pipe);
@@ -1967,16 +2241,6 @@ function string_codeunit_slice(str, from2, length4) {
 }
 function starts_with(haystack, needle) {
   return haystack.startsWith(needle);
-}
-function split_once(haystack, needle) {
-  const index5 = haystack.indexOf(needle);
-  if (index5 >= 0) {
-    const before = haystack.slice(0, index5);
-    const after = haystack.slice(index5 + needle.length);
-    return new Ok([before, after]);
-  } else {
-    return new Error(Nil);
-  }
 }
 var unicode_whitespaces = [
   " ",
@@ -7432,7 +7696,7 @@ function millions_to_unit_string(from2) {
       throw makeError(
         "panic",
         "util/numbers",
-        41,
+        42,
         "millions_to_unit_string",
         "shouldnt be able to find an empty value",
         {}
@@ -7491,36 +7755,58 @@ function ints_dict_to_string(from2) {
   );
 }
 function string_to_ints_dict(from2) {
-  let sections = (() => {
-    let _pipe2 = from2;
-    let _pipe$12 = drop_end(_pipe2, 1);
-    return split2(_pipe$12, ";");
-  })();
-  let _pipe = map2(
-    sections,
-    (section2) => {
-      return try$(
-        split_once(section2, ":"),
-        (_use0) => {
-          let index_string = _use0[0];
-          let int_list_string = _use0[1];
+  return guard(
+    is_empty(from2),
+    new Ok(from_list(toList([]))),
+    () => {
+      let sections = (() => {
+        let _pipe2 = from2;
+        let _pipe$12 = drop_end(_pipe2, 1);
+        return split2(_pipe$12, ";");
+      })();
+      let _pipe = map2(
+        sections,
+        (section2) => {
+          let $ = echo(
+            split2(section2, ":"),
+            "src/util/numbers.gleam",
+            79
+          );
+          if (!$.hasLength(2)) {
+            throw makeError(
+              "let_assert",
+              "util/numbers",
+              79,
+              "",
+              "Pattern match failed, no pattern matched the value.",
+              { value: $ }
+            );
+          }
+          let index_string = $.head;
+          let int_list_string = $.tail.head;
           return try$(
             parse_int(index_string),
             (index5) => {
-              return map3(
-                string_to_ints(int_list_string),
-                (int_list) => {
-                  return [index5, int_list];
+              return guard(
+                is_empty(int_list_string),
+                new Ok([index5, toList([])]),
+                () => {
+                  return map3(
+                    string_to_ints(int_list_string),
+                    (int_list) => {
+                      return [index5, int_list];
+                    }
+                  );
                 }
               );
             }
           );
         }
       );
+      let _pipe$1 = all(_pipe);
+      return map3(_pipe$1, from_list);
     }
   );
-  let _pipe$1 = all(_pipe);
-  return map3(_pipe$1, from_list);
 }
 function int_to_human_string(from2) {
   let $ = divideInt(from2, 1e3);
@@ -7529,6 +7815,127 @@ function int_to_human_string(from2) {
     return to_string(thousands) + "k";
   } else {
     return to_string(from2);
+  }
+}
+function echo(value3, file, line) {
+  const grey = "\x1B[90m";
+  const reset_color = "\x1B[39m";
+  const file_line = `${file}:${line}`;
+  const string_value = echo$inspect(value3);
+  if (typeof process === "object" && process.stderr?.write) {
+    const string5 = `${grey}${file_line}${reset_color}
+${string_value}
+`;
+    process.stderr.write(string5);
+  } else if (typeof Deno === "object") {
+    const string5 = `${grey}${file_line}${reset_color}
+${string_value}
+`;
+    Deno.stderr.writeSync(new TextEncoder().encode(string5));
+  } else {
+    const string5 = `${file_line}
+${string_value}`;
+    console.log(string5);
+  }
+  return value3;
+}
+function echo$inspectString(str) {
+  let new_str = '"';
+  for (let i = 0; i < str.length; i++) {
+    let char = str[i];
+    if (char == "\n") new_str += "\\n";
+    else if (char == "\r") new_str += "\\r";
+    else if (char == "	") new_str += "\\t";
+    else if (char == "\f") new_str += "\\f";
+    else if (char == "\\") new_str += "\\\\";
+    else if (char == '"') new_str += '\\"';
+    else if (char < " " || char > "~" && char < "\xA0") {
+      new_str += "\\u{" + char.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0") + "}";
+    } else {
+      new_str += char;
+    }
+  }
+  new_str += '"';
+  return new_str;
+}
+function echo$inspectDict(map6) {
+  let body = "dict.from_list([";
+  let first = true;
+  let key_value_pairs = [];
+  map6.forEach((value3, key) => {
+    key_value_pairs.push([key, value3]);
+  });
+  key_value_pairs.sort();
+  key_value_pairs.forEach(([key, value3]) => {
+    if (!first) body = body + ", ";
+    body = body + "#(" + echo$inspect(key) + ", " + echo$inspect(value3) + ")";
+    first = false;
+  });
+  return body + "])";
+}
+function echo$inspectCustomType(record) {
+  const props = Object.keys(record).map((label2) => {
+    const value3 = echo$inspect(record[label2]);
+    return isNaN(parseInt(label2)) ? `${label2}: ${value3}` : value3;
+  }).join(", ");
+  return props ? `${record.constructor.name}(${props})` : record.constructor.name;
+}
+function echo$inspectObject(v) {
+  const name2 = Object.getPrototypeOf(v)?.constructor?.name || "Object";
+  const props = [];
+  for (const k of Object.keys(v)) {
+    props.push(`${echo$inspect(k)}: ${echo$inspect(v[k])}`);
+  }
+  const body = props.length ? " " + props.join(", ") + " " : "";
+  const head = name2 === "Object" ? "" : name2 + " ";
+  return `//js(${head}{${body}})`;
+}
+function echo$inspect(v) {
+  const t = typeof v;
+  if (v === true) return "True";
+  if (v === false) return "False";
+  if (v === null) return "//js(null)";
+  if (v === void 0) return "Nil";
+  if (t === "string") return echo$inspectString(v);
+  if (t === "bigint" || t === "number") return v.toString();
+  if (Array.isArray(v)) return `#(${v.map(echo$inspect).join(", ")})`;
+  if (v instanceof List) return `[${v.toArray().map(echo$inspect).join(", ")}]`;
+  if (v instanceof UtfCodepoint) return `//utfcodepoint(${String.fromCodePoint(v.value)})`;
+  if (v instanceof BitArray) return echo$inspectBitArray(v);
+  if (v instanceof CustomType) return echo$inspectCustomType(v);
+  if (echo$isDict(v)) return echo$inspectDict(v);
+  if (v instanceof Set) return `//js(Set(${[...v].map(echo$inspect).join(", ")}))`;
+  if (v instanceof RegExp) return `//js(${v})`;
+  if (v instanceof Date) return `//js(Date("${v.toISOString()}"))`;
+  if (v instanceof Function) {
+    const args = [];
+    for (const i of Array(v.length).keys()) args.push(String.fromCharCode(i + 97));
+    return `//fn(${args.join(", ")}) { ... }`;
+  }
+  return echo$inspectObject(v);
+}
+function echo$inspectBitArray(bitArray) {
+  let endOfAlignedBytes = bitArray.bitOffset + 8 * Math.trunc(bitArray.bitSize / 8);
+  let alignedBytes = bitArraySlice(bitArray, bitArray.bitOffset, endOfAlignedBytes);
+  let remainingUnalignedBits = bitArray.bitSize % 8;
+  if (remainingUnalignedBits > 0) {
+    let remainingBits = bitArraySliceToInt(bitArray, endOfAlignedBytes, bitArray.bitSize, false, false);
+    let alignedBytesArray = Array.from(alignedBytes.rawBuffer);
+    let suffix = `${remainingBits}:size(${remainingUnalignedBits})`;
+    if (alignedBytesArray.length === 0) {
+      return `<<${suffix}>>`;
+    } else {
+      return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}, ${suffix}>>`;
+    }
+  } else {
+    return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}>>`;
+  }
+}
+function echo$isDict(value3) {
+  try {
+    return value3 instanceof Dict;
+  } catch {
+    return false;
   }
 }
 
@@ -7638,16 +8045,6 @@ function write_accounting_level(storage, accounting_level) {
     (() => {
       let _pipe = accounting_level;
       return to_string(_pipe);
-    })()
-  );
-}
-function write_ship_indices(storage, ship_indices) {
-  return store_write_to_effect(
-    storage,
-    "ship_indices",
-    (() => {
-      let _pipe = ship_indices;
-      return ints_to_string(_pipe);
     })()
   );
 }
@@ -7883,13 +8280,6 @@ function user_created_ship(model) {
       let storage = $[0];
       return batch(
         toList([
-          write_ship_indices(
-            storage,
-            (() => {
-              let _pipe = model$1.ships;
-              return keys(_pipe);
-            })()
-          ),
           write_ship_name(
             storage,
             model$1.count_ship_index - 1,
@@ -7970,13 +8360,6 @@ function user_deleted_ship(model, deleted_ship) {
       let storage = $[0];
       return batch(
         toList([
-          write_ship_indices(
-            storage,
-            (() => {
-              let _pipe = model$1.ships;
-              return keys(_pipe);
-            })()
-          ),
           delete_ship(storage, deleted_ship),
           write_hold_indices(
             storage,
@@ -8219,7 +8602,24 @@ function user_deleted_hold_from_ship(model, hold_id, ship_id) {
       return none();
     } else {
       let storage = $1[0];
-      return delete_hold(storage, ship_id, hold_id);
+      return batch(
+        toList([
+          delete_hold(storage, ship_id, hold_id),
+          write_hold_indices(
+            storage,
+            (() => {
+              let _pipe = model$1.ships;
+              return map_values(
+                _pipe,
+                (_, ship_entry2) => {
+                  let _pipe$1 = ship_entry2.ship.holds;
+                  return keys(_pipe$1);
+                }
+              );
+            })()
+          )
+        ])
+      );
     }
   })();
   return [model$1, effect];
@@ -8230,7 +8630,7 @@ function user_collapsed_ship(model, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      316,
+      326,
       "user_collapsed_ship",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -8268,7 +8668,7 @@ function user_expanded_ship(model, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      327,
+      337,
       "user_expanded_ship",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -8719,9 +9119,7 @@ function store_write_failed(model, storage_key, value3) {
   return [model, none()];
 }
 function store_read_failed(model, storage_key) {
-  alert(
-    'Failed to read storage key "' + storage_key + '"\nCheck console log for more info'
-  );
+  console_error('Failed to read storage key "' + storage_key + '"');
   return [model, none()];
 }
 function store_read_ship_name(model, name2, id2) {
@@ -8731,7 +9129,7 @@ function store_read_ship_name(model, name2, id2) {
       throw makeError(
         "let_assert",
         "mvu/update/store",
-        68,
+        65,
         "store_read_ship_name",
         "Pattern match failed, no pattern matched the value.",
         { value: $ }
@@ -8814,7 +9212,7 @@ function store_read_hold_capacity(model, capacity, ship_id, hold_id) {
     throw makeError(
       "let_assert",
       "mvu/update/store",
-      99,
+      96,
       "store_read_hold_capacity",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -8827,7 +9225,7 @@ function store_read_hold_capacity(model, capacity, ship_id, hold_id) {
     throw makeError(
       "let_assert",
       "mvu/update/store",
-      101,
+      98,
       "store_read_hold_capacity",
       "Pattern match failed, no pattern matched the value.",
       { value: $1 }
@@ -8961,7 +9359,7 @@ function store_read_hold_kind(model, hold_kind, ship_id, hold_id) {
     throw makeError(
       "let_assert",
       "mvu/update/store",
-      161,
+      158,
       "store_read_hold_kind",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -8974,7 +9372,7 @@ function store_read_hold_kind(model, hold_kind, ship_id, hold_id) {
     throw makeError(
       "let_assert",
       "mvu/update/store",
-      163,
+      160,
       "store_read_hold_kind",
       "Pattern match failed, no pattern matched the value.",
       { value: $1 }
@@ -9021,7 +9419,7 @@ function store_read_hold_name(model, hold_name, ship_id, hold_id) {
     throw makeError(
       "let_assert",
       "mvu/update/store",
-      179,
+      176,
       "store_read_hold_name",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -9034,7 +9432,7 @@ function store_read_hold_name(model, hold_name, ship_id, hold_id) {
     throw makeError(
       "let_assert",
       "mvu/update/store",
-      181,
+      178,
       "store_read_hold_name",
       "Pattern match failed, no pattern matched the value.",
       { value: $1 }

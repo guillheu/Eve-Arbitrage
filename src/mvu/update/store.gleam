@@ -1,6 +1,7 @@
 import config/sde
 import gleam/dict.{type Dict}
 import gleam/int
+import gleam/io
 import gleam/list
 import gleam/option.{type Option, Some}
 import gleam/result
@@ -51,11 +52,7 @@ pub fn store_read_failed(
   model: mvu.Model,
   storage_key: String,
 ) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
-  alert.alert(
-    "Failed to read storage key \""
-    <> storage_key
-    <> "\"\nCheck console log for more info",
-  )
+  io.println_error("Failed to read storage key \"" <> storage_key <> "\"")
   #(model, effect.none())
 }
 

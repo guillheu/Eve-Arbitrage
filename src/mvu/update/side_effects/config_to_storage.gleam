@@ -94,16 +94,16 @@ pub fn write_accounting_level(
   )
 }
 
-pub fn write_ship_indices(
-  storage: storage.Storage,
-  ship_indices: List(Int),
-) -> effect.Effect(mvu.Msg) {
-  store_write_to_effect(
-    storage,
-    "ship_indices",
-    ship_indices |> numbers.ints_to_string,
-  )
-}
+// pub fn write_ship_indices(
+//   storage: storage.Storage,
+//   ship_indices: List(Int),
+// ) -> effect.Effect(mvu.Msg) {
+//   store_write_to_effect(
+//     storage,
+//     "ship_indices",
+//     ship_indices |> numbers.ints_to_string,
+//   )
+// }
 
 pub fn write_hold_indices(
   storage: storage.Storage,

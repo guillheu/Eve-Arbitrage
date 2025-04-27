@@ -56,7 +56,7 @@ pub fn user_created_ship(
     None -> effect.none()
     Some(storage) ->
       effect.batch([
-        config_to_storage.write_ship_indices(storage, model.ships |> dict.keys),
+        // config_to_storage.write_ship_indices(storage, model.ships |> dict.keys),
         config_to_storage.write_ship_name(
           storage,
           model.count_ship_index - 1,
@@ -106,7 +106,7 @@ pub fn user_deleted_ship(
     None -> effect.none()
     Some(storage) ->
       effect.batch([
-        config_to_storage.write_ship_indices(storage, model.ships |> dict.keys),
+        // config_to_storage.write_ship_indices(storage, model.ships |> dict.keys),
         config_to_storage.delete_ship(storage, deleted_ship),
         config_to_storage.write_hold_indices(
           storage,
@@ -304,7 +304,17 @@ pub fn user_deleted_hold_from_ship(
 
   let effect = case model.storage {
     None -> effect.none()
-    Some(storage) -> config_to_storage.delete_hold(storage, ship_id, hold_id)
+    Some(storage) ->
+      effect.batch([
+        config_to_storage.delete_hold(storage, ship_id, hold_id),
+        config_to_storage.write_hold_indices(
+          storage,
+          model.ships
+            |> dict.map_values(fn(_, ship_entry) {
+              ship_entry.ship.holds |> dict.keys
+            }),
+        ),
+      ])
   }
   #(model, effect)
 }
