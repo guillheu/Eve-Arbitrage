@@ -1857,6 +1857,20 @@ function graphemes_iterator(string5) {
     return segmenter.segment(string5)[Symbol.iterator]();
   }
 }
+function pop_grapheme(string5) {
+  let first;
+  const iterator = graphemes_iterator(string5);
+  if (iterator) {
+    first = iterator.next().value?.segment;
+  } else {
+    first = string5.match(/./su)?.[0];
+  }
+  if (first) {
+    return new Ok([first, string5.slice(first.length)]);
+  } else {
+    return new Error(Nil);
+  }
+}
 function pop_codeunit(str) {
   return [str.charCodeAt(0) | 0, str.slice(1)];
 }
@@ -8571,6 +8585,37 @@ function float_to_human_string(from2) {
   let _pipe$1 = reverse(_pipe);
   return concat2(_pipe$1);
 }
+function millions_to_unit_string(from2) {
+  let thousands = int_to_segments(toList([]), from2);
+  let $ = (() => {
+    if (thousands.hasLength(0)) {
+      throw makeError(
+        "panic",
+        "util/numbers",
+        39,
+        "millions_to_unit_string",
+        "shouldnt be able to find an empty value",
+        {}
+      );
+    } else if (thousands.hasLength(1)) {
+      let v = thousands.head;
+      return [v, "M"];
+    } else {
+      let v = thousands.tail;
+      return [
+        (() => {
+          let _pipe = v;
+          let _pipe$1 = reverse(_pipe);
+          return concat2(_pipe$1);
+        })(),
+        "B"
+      ];
+    }
+  })();
+  let value3 = $[0];
+  let units = $[1];
+  return value3 + " " + units;
+}
 function int_to_human_string(from2) {
   let $ = divideInt(from2, 1e3);
   if ($ > 10) {
@@ -9218,7 +9263,7 @@ function get_expanded_ship(ship_id, ship, style) {
             toList([
               input(
                 toList([
-                  class$(style.name_input),
+                  class$(style.name_input + " border-b"),
                   id(attribute_id),
                   value(ship.name),
                   type_("text"),
@@ -9302,14 +9347,14 @@ function get_add_ship_button() {
 var default_ship_style = /* @__PURE__ */ new ShipStyle(
   "mb-3 border border-gray-200 rounded-md hover:border-gray-300",
   "bg-gray-50 rounded-t-md flex justify-between items-center cursor-pointer hover:bg-gray-100",
-  "font-medium bg-transparent border-0 border-b border-gray-300 focus:ring-0 focus:border-gray-500 px-0 py-0 w-24",
+  "font-medium bg-transparent border-0 border-gray-300 focus:ring-0 focus:border-gray-500 px-0 py-0 w-24",
   "text-sm text-gray-600 mr-2 flex-grow",
   "h-5 w-5 ml-2"
 );
 var selected_ship_style = /* @__PURE__ */ new ShipStyle(
   "mb-3 border-2 border-selected rounded-md bg-indigo-50",
   "bg-indigo-100 rounded-t-md flex justify-between items-center cursor-pointer hover:bg-indigo-200",
-  "font-medium text-selected bg-transparent border-0 border-b border-indigo-300 focus:ring-0 focus:border-selected px-0 py-0 w-24",
+  "font-medium text-selected bg-transparent border-0 border-indigo-300 focus:ring-0 focus:border-selected px-0 py-0 w-24",
   "text-sm text-selected mr-2 flex-grow",
   "h-5 w-5 ml-2 text-selected"
 );
@@ -9411,25 +9456,123 @@ function get_expanded_sidebar(model) {
     ])
   );
 }
-function get_collapsed_sidebar(_) {
+function get_ship_no_selected_icon() {
+  return div(
+    toList([class$("flex flex-col items-center")]),
+    toList([
+      div(
+        toList([
+          class$(
+            "w-8 h-8 flex items-center justify-center bg-gray-300 rounded-md mb-1 text-gray-600 font-bold text-lg"
+          )
+        ]),
+        toList([text3("\xD8\n                ")])
+      ),
+      span(
+        toList([
+          class$("text-xs font-medium text-gray-500 text-center")
+        ]),
+        toList([text3("No Ship Selected")])
+      )
+    ])
+  );
+}
+function get_ship_selected_icon(ship_entry) {
+  let total_capacity = fold2(
+    ship_entry.ship.holds,
+    0,
+    (acc, _, hold) => {
+      return acc + hold.capacity;
+    }
+  );
+  let capacity_string = int_to_human_string(
+    (() => {
+      let _pipe = total_capacity;
+      return truncate(_pipe);
+    })()
+  ) + " m\xB3";
+  let $ = (() => {
+    let _pipe = ship_entry.ship.name;
+    return pop_grapheme(_pipe);
+  })();
+  if (!$.isOk()) {
+    throw makeError(
+      "let_assert",
+      "mvu/view/sidebar",
+      237,
+      "get_ship_selected_icon",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $ }
+    );
+  }
+  let ship_letter_string = $[0][0];
+  return div(
+    toList([class$("flex flex-col items-center")]),
+    toList([
+      div(
+        toList([
+          class$(
+            "w-8 h-8 flex items-center justify-center bg-blue-600 rounded-md mb-1 text-white font-bold"
+          )
+        ]),
+        toList([text3(ship_letter_string)])
+      ),
+      span(
+        toList([class$("text-xs font-medium")]),
+        toList([text3(capacity_string)])
+      )
+    ])
+  );
+}
+function get_collapsed_sidebar(model) {
+  let collateral = (() => {
+    let _pipe = model.collateral;
+    return unwrap(_pipe, 0);
+  })();
+  let collateral_amount_string = millions_to_unit_string(collateral);
+  let accounting_level_string = "LvL " + (() => {
+    let _pipe = model.accounting_level;
+    return to_string(_pipe);
+  })();
+  let ship_icon = (() => {
+    let $ = model.current_ship;
+    if ($ instanceof None) {
+      return get_ship_no_selected_icon();
+    } else {
+      let ship_id = $[0];
+      let $1 = map_get(model.ships, ship_id);
+      if (!$1.isOk()) {
+        throw makeError(
+          "let_assert",
+          "mvu/view/sidebar",
+          86,
+          "get_collapsed_sidebar",
+          "Pattern match failed, no pattern matched the value.",
+          { value: $1 }
+        );
+      }
+      let ship_entry = $1[0];
+      return get_ship_selected_icon(ship_entry);
+    }
+  })();
   return aside(
     toList([
       class$(
-        "w-12 bg-white shadow-lg h-screen flex-shrink-0 border-r border-gray-200 flex flex-col items-center"
+        "w-16 bg-white shadow-lg h-screen overflow-y-auto flex-shrink-0 border-r border-gray-200"
       )
     ]),
     toList([
       div(
         toList([
           class$(
-            "p-3 border-b border-gray-200 w-full flex justify-center"
+            "p-4 border-b border-gray-200 flex justify-center items-center"
           )
         ]),
         toList([
           button(
             toList([
-              attribute2("title", "Expand Sidebar"),
-              class$("p-1 rounded-md hover:bg-gray-100 tooltip"),
+              attribute2("title", "Toggle Sidebar"),
+              class$("p-1 rounded-md hover:bg-gray-100"),
               id("toggle-sidebar"),
               on_click(new UserClickedExpandSidebar())
             ]),
@@ -9439,7 +9582,7 @@ function get_collapsed_sidebar(_) {
                   attribute2("stroke", "currentColor"),
                   attribute2("viewBox", "0 0 24 24"),
                   attribute2("fill", "none"),
-                  class$("h-6 w-6 text-gray-600"),
+                  class$("h-6 w-6"),
                   attribute2("xmlns", "http://www.w3.org/2000/svg")
                 ]),
                 toList([
@@ -9455,6 +9598,92 @@ function get_collapsed_sidebar(_) {
               )
             ])
           )
+        ])
+      ),
+      div(
+        toList([class$("flex flex-col items-center pt-4 space-y-6")]),
+        toList([
+          div(
+            toList([class$("flex flex-col items-center")]),
+            toList([
+              div(
+                toList([
+                  class$(
+                    "w-8 h-8 flex items-center justify-center bg-gray-100 rounded-md mb-1"
+                  )
+                ]),
+                toList([
+                  svg(
+                    toList([
+                      attribute2("stroke", "currentColor"),
+                      attribute2("viewBox", "0 0 24 24"),
+                      attribute2("fill", "none"),
+                      class$("h-6 w-6 text-gray-600"),
+                      attribute2("xmlns", "http://www.w3.org/2000/svg")
+                    ]),
+                    toList([
+                      path(
+                        toList([
+                          attribute2(
+                            "d",
+                            "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          ),
+                          attribute2("stroke-width", "2"),
+                          attribute2("stroke-linejoin", "round"),
+                          attribute2("stroke-linecap", "round")
+                        ])
+                      )
+                    ])
+                  )
+                ])
+              ),
+              span(
+                toList([class$("text-xs font-medium")]),
+                toList([text3(collateral_amount_string)])
+              )
+            ])
+          ),
+          div(
+            toList([class$("flex flex-col items-center")]),
+            toList([
+              div(
+                toList([
+                  class$(
+                    "w-8 h-8 flex items-center justify-center bg-gray-100 rounded-md mb-1"
+                  )
+                ]),
+                toList([
+                  svg(
+                    toList([
+                      attribute2("stroke", "currentColor"),
+                      attribute2("viewBox", "0 0 24 24"),
+                      attribute2("fill", "none"),
+                      class$("h-6 w-6 text-gray-600"),
+                      attribute2("xmlns", "http://www.w3.org/2000/svg")
+                    ]),
+                    toList([
+                      path(
+                        toList([
+                          attribute2(
+                            "d",
+                            "M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                          ),
+                          attribute2("stroke-width", "2"),
+                          attribute2("stroke-linejoin", "round"),
+                          attribute2("stroke-linecap", "round")
+                        ])
+                      )
+                    ])
+                  )
+                ])
+              ),
+              span(
+                toList([class$("text-xs font-medium text-selected")]),
+                toList([text3(accounting_level_string)])
+              )
+            ])
+          ),
+          ship_icon
         ])
       )
     ])

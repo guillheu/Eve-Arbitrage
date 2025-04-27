@@ -27,7 +27,7 @@ type ShipStyle {
 const default_ship_style = ShipStyle(
   container: "mb-3 border border-gray-200 rounded-md hover:border-gray-300",
   header: "bg-gray-50 rounded-t-md flex justify-between items-center cursor-pointer hover:bg-gray-100",
-  name_input: "font-medium bg-transparent border-0 border-b border-gray-300 focus:ring-0 focus:border-gray-500 px-0 py-0 w-24",
+  name_input: "font-medium bg-transparent border-0 border-gray-300 focus:ring-0 focus:border-gray-500 px-0 py-0 w-24",
   capacity_text: "text-sm text-gray-600 mr-2 flex-grow",
   arrow_icon: "h-5 w-5 ml-2",
 )
@@ -35,7 +35,7 @@ const default_ship_style = ShipStyle(
 const selected_ship_style = ShipStyle(
   container: "mb-3 border-2 border-selected rounded-md bg-indigo-50",
   header: "bg-indigo-100 rounded-t-md flex justify-between items-center cursor-pointer hover:bg-indigo-200",
-  name_input: "font-medium text-selected bg-transparent border-0 border-b border-indigo-300 focus:ring-0 focus:border-selected px-0 py-0 w-24",
+  name_input: "font-medium text-selected bg-transparent border-0 border-indigo-300 focus:ring-0 focus:border-selected px-0 py-0 w-24",
   capacity_text: "text-sm text-selected mr-2 flex-grow",
   arrow_icon: "h-5 w-5 ml-2 text-selected",
 )
@@ -107,7 +107,7 @@ fn get_expanded_ship(
         ],
         [
           html.input([
-            attribute.class(style.name_input),
+            attribute.class(style.name_input <> " border-b"),
             attribute.id(attribute_id),
             attribute.value(ship.name),
             attribute.type_("text"),

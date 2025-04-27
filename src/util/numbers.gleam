@@ -32,3 +32,13 @@ fn int_to_segments(acc: List(String), from: Int) -> List(String) {
     _x -> [from |> int.to_string, ..acc] |> list.reverse
   }
 }
+
+pub fn millions_to_unit_string(from: Int) -> String {
+  let thousands = int_to_segments([], from)
+  let #(value, units) = case thousands {
+    [] -> panic as "shouldnt be able to find an empty value"
+    [v] -> #(v, "M")
+    [_, ..v] -> #(v |> list.reverse |> string.concat, "B")
+  }
+  value <> " " <> units
+}
