@@ -116,6 +116,17 @@ pub fn write_hold_indices(
   )
 }
 
+pub fn write_selected_ship(
+  storage: storage.Storage,
+  ship_id: Option(Int),
+) -> effect.Effect(mvu.Msg) {
+  let ship_id_string =
+    ship_id
+    |> option.map(int.to_string)
+    |> option.unwrap("")
+  store_write_to_effect(storage, "selected_ship", ship_id_string)
+}
+
 // Read side effects
 
 pub fn read_ship_name(
@@ -193,6 +204,15 @@ pub fn read_hold_indices(storage: storage.Storage) -> effect.Effect(mvu.Msg) {
     "hold_indices",
     numbers.string_to_ints_dict,
     mvu.InitStoreReadHoldIndices,
+  )
+}
+
+pub fn read_selected_ship(storage: storage.Storage) -> effect.Effect(mvu.Msg) {
+  store_read_to_effect(
+    storage,
+    "selected_ship",
+    fn(value) { int.parse(value) |> option.from_result |> Ok },
+    mvu.InitStoreReadSelectedShip,
   )
 }
 

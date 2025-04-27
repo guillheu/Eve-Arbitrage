@@ -102,6 +102,7 @@ pub type Msg {
   InitStoreReadCollateral(collateral: Option(Int))
   InitStoreReadAccountingLevel(accounting_level: Int)
   InitStoreReadHoldIndices(hold_indices: Dict(Int, List(Int)))
+  InitStoreReadSelectedShip(selected_ship: Option(Int))
 }
 
 pub fn float_input_to_msg(input: String, msg: fn(Option(Float)) -> Msg) {

@@ -16,9 +16,13 @@ pub fn user_selected_ship(
   model: mvu.Model,
 ) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
   let model = mvu.Model(..model, current_ship: Some(selected_ship))
-  let side_effect = effect.none()
+  let effect = case model.storage {
+    None -> effect.none()
+    Some(storage) ->
+      config_to_storage.write_selected_ship(storage, Some(selected_ship))
+  }
   io.println("Ship #" <> selected_ship |> int.to_string <> " selected")
-  #(model, side_effect)
+  #(model, effect)
 }
 
 pub fn user_created_ship(
@@ -111,6 +115,7 @@ pub fn user_deleted_ship(
               ship_entry.ship.holds |> dict.keys
             }),
         ),
+        config_to_storage.write_selected_ship(storage, None),
       ])
   }
   #(model, effect)

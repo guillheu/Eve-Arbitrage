@@ -20,6 +20,7 @@ pub fn init_load_storage(
       config_to_storage.read_collateral(storage),
       config_to_storage.read_accounting_level(storage),
       config_to_storage.read_hold_indices(storage),
+      config_to_storage.read_selected_ship(storage),
     ])
   #(model, effect)
 }
@@ -184,5 +185,13 @@ pub fn store_read_hold_name(
   let ship_entry = mvu.ShipEntry(..ship_entry, ship: new_ship)
   let ship_entries = dict.insert(model.ships, ship_id, ship_entry)
   let model = mvu.Model(..model, ships: ship_entries)
+  #(model, effect.none())
+}
+
+pub fn store_read_selected_ship(
+  model: mvu.Model,
+  ship_id: Option(Int),
+) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
+  let model = mvu.Model(..model, current_ship: ship_id)
   #(model, effect.none())
 }

@@ -69,5 +69,7 @@ pub fn run(
       store.store_read_hold_name(model, name, ship_id, hold_id)
     mvu.InitLoadStorage(storage) -> store.init_load_storage(model, storage)
     mvu.InitStoreLoadFailed -> store.store_load_failed(model)
+    mvu.InitStoreReadSelectedShip(ship_id) ->
+      store.store_read_selected_ship(model, ship_id)
   }
 }

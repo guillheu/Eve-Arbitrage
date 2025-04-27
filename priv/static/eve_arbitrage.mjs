@@ -7347,6 +7347,12 @@ var InitStoreReadHoldIndices = class extends CustomType {
     this.hold_indices = hold_indices;
   }
 };
+var InitStoreReadSelectedShip = class extends CustomType {
+  constructor(selected_ship) {
+    super();
+    this.selected_ship = selected_ship;
+  }
+};
 function int_input_to_msg(input2, msg) {
   let value3 = (() => {
     let _pipe = parse_int(input2);
@@ -7655,6 +7661,14 @@ function write_hold_indices(storage, hold_indices) {
     })()
   );
 }
+function write_selected_ship(storage, ship_id) {
+  let ship_id_string = (() => {
+    let _pipe = ship_id;
+    let _pipe$1 = map(_pipe, to_string);
+    return unwrap(_pipe$1, "");
+  })();
+  return store_write_to_effect(storage, "selected_ship", ship_id_string);
+}
 function store_read_to_effect(storage, storage_key, parser, msg) {
   return from(
     (dispatch) => {
@@ -7751,6 +7765,20 @@ function read_hold_indices(storage) {
     }
   );
 }
+function read_selected_ship(storage) {
+  return store_read_to_effect(
+    storage,
+    "selected_ship",
+    (value3) => {
+      let _pipe = parse_int(value3);
+      let _pipe$1 = from_result(_pipe);
+      return new Ok(_pipe$1);
+    },
+    (var0) => {
+      return new InitStoreReadSelectedShip(var0);
+    }
+  );
+}
 
 // build/dev/javascript/eve_arbitrage/element_ffi.mjs
 function value2(element3) {
@@ -7788,14 +7816,25 @@ function user_selected_ship(selected_ship, model) {
       _record.multibuys
     );
   })();
-  let side_effect = none();
+  let effect = (() => {
+    let $ = model$1.storage;
+    if ($ instanceof None) {
+      return none();
+    } else {
+      let storage = $[0];
+      return write_selected_ship(
+        storage,
+        new Some(selected_ship)
+      );
+    }
+  })();
   console_log(
     "Ship #" + (() => {
       let _pipe = selected_ship;
       return to_string(_pipe);
     })() + " selected"
   );
-  return [model$1, side_effect];
+  return [model$1, effect];
 }
 function user_created_ship(model) {
   let default_ship_entry = new ShipEntry(
@@ -7951,7 +7990,8 @@ function user_deleted_ship(model, deleted_ship) {
                 }
               );
             })()
-          )
+          ),
+          write_selected_ship(storage, new None())
         ])
       );
     }
@@ -7964,7 +8004,7 @@ function user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      212,
+      217,
       "user_updated_ship_hold_kind",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -7976,7 +8016,7 @@ function user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      213,
+      218,
       "user_updated_ship_hold_kind",
       "Pattern match failed, no pattern matched the value.",
       { value: $1 }
@@ -7989,7 +8029,7 @@ function user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      215,
+      220,
       "user_updated_ship_hold_kind",
       "Pattern match failed, no pattern matched the value.",
       { value: $2 }
@@ -8051,7 +8091,7 @@ function user_added_hold_to_ship(model, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      241,
+      246,
       "user_added_hold_to_ship",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -8138,7 +8178,7 @@ function user_deleted_hold_from_ship(model, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      293,
+      298,
       "user_deleted_hold_from_ship",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -8190,7 +8230,7 @@ function user_collapsed_ship(model, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      311,
+      316,
       "user_collapsed_ship",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -8228,7 +8268,7 @@ function user_expanded_ship(model, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      322,
+      327,
       "user_expanded_ship",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -8287,7 +8327,7 @@ function user_updated_ship_name(model, id2) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      124,
+      129,
       "user_updated_ship_name",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -8305,7 +8345,7 @@ function user_updated_ship_name(model, id2) {
       throw makeError(
         "let_assert",
         "mvu/update/ships",
-        131,
+        136,
         "user_updated_ship_name",
         "Pattern match failed, no pattern matched the value.",
         { value: $1 }
@@ -8356,7 +8396,7 @@ function user_updated_ship_hold_name(model, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      150,
+      155,
       "user_updated_ship_hold_name",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -8369,7 +8409,7 @@ function user_updated_ship_hold_name(model, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      152,
+      157,
       "user_updated_ship_hold_name",
       "Pattern match failed, no pattern matched the value.",
       { value: $1 }
@@ -8455,7 +8495,7 @@ function user_updated_ship_hold_capacity(model, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      177,
+      182,
       "user_updated_ship_hold_capacity",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -8468,7 +8508,7 @@ function user_updated_ship_hold_capacity(model, hold_id, ship_id) {
     throw makeError(
       "let_assert",
       "mvu/update/ships",
-      179,
+      184,
       "user_updated_ship_hold_capacity",
       "Pattern match failed, no pattern matched the value.",
       { value: $1 }
@@ -8662,7 +8702,8 @@ function init_load_storage(model, storage) {
     toList([
       read_collateral(storage),
       read_accounting_level(storage),
-      read_hold_indices(storage)
+      read_hold_indices(storage),
+      read_selected_ship(storage)
     ])
   );
   return [model$1, effect];
@@ -8690,7 +8731,7 @@ function store_read_ship_name(model, name2, id2) {
       throw makeError(
         "let_assert",
         "mvu/update/store",
-        67,
+        68,
         "store_read_ship_name",
         "Pattern match failed, no pattern matched the value.",
         { value: $ }
@@ -8773,7 +8814,7 @@ function store_read_hold_capacity(model, capacity, ship_id, hold_id) {
     throw makeError(
       "let_assert",
       "mvu/update/store",
-      98,
+      99,
       "store_read_hold_capacity",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -8786,7 +8827,7 @@ function store_read_hold_capacity(model, capacity, ship_id, hold_id) {
     throw makeError(
       "let_assert",
       "mvu/update/store",
-      100,
+      101,
       "store_read_hold_capacity",
       "Pattern match failed, no pattern matched the value.",
       { value: $1 }
@@ -8920,7 +8961,7 @@ function store_read_hold_kind(model, hold_kind, ship_id, hold_id) {
     throw makeError(
       "let_assert",
       "mvu/update/store",
-      160,
+      161,
       "store_read_hold_kind",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -8933,7 +8974,7 @@ function store_read_hold_kind(model, hold_kind, ship_id, hold_id) {
     throw makeError(
       "let_assert",
       "mvu/update/store",
-      162,
+      163,
       "store_read_hold_kind",
       "Pattern match failed, no pattern matched the value.",
       { value: $1 }
@@ -8980,7 +9021,7 @@ function store_read_hold_name(model, hold_name, ship_id, hold_id) {
     throw makeError(
       "let_assert",
       "mvu/update/store",
-      178,
+      179,
       "store_read_hold_name",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -8993,7 +9034,7 @@ function store_read_hold_name(model, hold_name, ship_id, hold_id) {
     throw makeError(
       "let_assert",
       "mvu/update/store",
-      180,
+      181,
       "store_read_hold_name",
       "Pattern match failed, no pattern matched the value.",
       { value: $1 }
@@ -9020,6 +9061,27 @@ function store_read_hold_name(model, hold_name, ship_id, hold_id) {
       _record.storage,
       ship_entries,
       _record.current_ship,
+      _record.count_ship_index,
+      _record.count_hold_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      _record.multibuys
+    );
+  })();
+  return [model$1, none()];
+}
+function store_read_selected_ship(model, ship_id) {
+  let model$1 = (() => {
+    let _record = model;
+    return new Model(
+      _record.storage,
+      _record.ships,
+      ship_id,
       _record.count_ship_index,
       _record.count_hold_index,
       _record.systems,
@@ -9747,8 +9809,11 @@ function run2(model, msg) {
   } else if (msg instanceof InitLoadStorage) {
     let storage = msg.storage;
     return init_load_storage(model, storage);
-  } else {
+  } else if (msg instanceof InitStoreLoadFailed) {
     return store_load_failed(model);
+  } else {
+    let ship_id = msg.selected_ship;
+    return store_read_selected_ship(model, ship_id);
   }
 }
 
