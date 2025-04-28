@@ -1,10 +1,11 @@
 import config/esi
 import config/sde
 import gleam/bool
-import gleam/dict
+import gleam/dict.{type Dict}
 import gleam/float
 import gleam/int
 import gleam/list
+import gleam/order
 import gleam/string
 
 const base_tax_rate = 7.5
@@ -17,12 +18,28 @@ pub type Item {
 
 pub type Trade {
   Trade(
-    source: sde.Location,
-    destination: sde.Location,
+    source: Int,
+    destination: Int,
     item: Item,
     amount: Int,
-    unit_buy_price: Int,
-    unit_sell_price: Int,
+    unit_volume: Float,
+    total_volume: Float,
+    unit_buy_price: Float,
+    unit_sell_price: Float,
+    total_price: Float,
+    price_per_volume: Float,
+  )
+}
+
+pub type RawTrade {
+  RawTrade(
+    source: Int,
+    destination: Int,
+    item: Int,
+    amount: Int,
+    unit_buy_price: Float,
+    unit_sell_price: Float,
+    unit_profit: Float,
   )
 }
 
@@ -42,7 +59,7 @@ pub opaque type Purchase {
 // 1: merge similar buy & sell orders
 // if they have the same price & location
 
-fn merge_orders(orders: List(esi.Order(any))) -> List(esi.Order(any)) {
+fn merge_orders(orders: List(esi.Order(any))) -> Dict(Int, List(esi.Order(any))) {
   let r = {
     use acc, order <- list.fold(orders, dict.new())
     let current_item_orders_list = case dict.get(acc, order.type_id) {
@@ -65,19 +82,117 @@ fn merge_orders(orders: List(esi.Order(any))) -> List(esi.Order(any)) {
       }
     })
   })
-  |> dict.values
-  |> list.flatten
 }
 
 pub fn compute_trades(
   sell_orders: List(esi.Order(esi.Sell)),
   buy_orders: List(esi.Order(esi.Buy)),
-) -> List(Trade) {
-  echo "BEFORE MERGE:"
-  echo sell_orders
-  echo "AFTER MERGE:"
-  echo merge_orders(sell_orders)
-  todo as "compute trades"
+  tax_rate: Float,
+) -> List(RawTrade) {
+  let sell_orders = merge_orders(sell_orders)
+  let buy_orders = merge_orders(buy_orders)
+  let sell_orders_items = dict.keys(sell_orders)
+  let buy_orders_items = dict.keys(buy_orders)
+  let tradeable_items =
+    list.filter(sell_orders_items, list.contains(buy_orders_items, _))
+  {
+    use item <- list.map(tradeable_items)
+    let assert Ok(item_sell_orders) = dict.get(sell_orders, item)
+    let assert Ok(item_buy_orders) = dict.get(buy_orders, item)
+    let sorted_item_sell_orders =
+      list.sort(item_sell_orders, fn(order_1, order_2) {
+        float.compare(order_1.price, order_2.price)
+      })
+    let sorted_item_buy_orders =
+      list.sort(item_buy_orders, fn(order_1, order_2) {
+        float.compare(order_2.price, order_1.price)
+      })
+    recurse_compute_trades_from_item_orders(
+      sorted_item_sell_orders,
+      sorted_item_buy_orders,
+      [],
+    )
+  }
+  |> list.flatten
+  |> list.map(fn(raw_trade) {
+    let buy_price_with_taxes = raw_trade.unit_buy_price *. tax_rate
+    RawTrade(
+      ..raw_trade,
+      unit_buy_price: buy_price_with_taxes,
+      unit_profit: buy_price_with_taxes -. raw_trade.unit_sell_price,
+    )
+  })
+  |> list.filter(fn(raw_trade) { echo raw_trade.unit_profit >. 0.0 })
+}
+
+fn recurse_compute_trades_from_item_orders(
+  sell_orders: List(esi.Order(esi.Sell)),
+  buy_orders: List(esi.Order(esi.Buy)),
+  acc: List(RawTrade),
+) -> List(RawTrade) {
+  use <- bool.guard(
+    list.is_empty(sell_orders) || list.is_empty(buy_orders),
+    acc,
+  )
+  let assert [top_sell_order, ..rest_sell_orders] = sell_orders
+  let assert [top_buy_order, ..rest_buy_orders] = buy_orders
+  case int.compare(top_sell_order.volume_remain, top_buy_order.volume_remain) {
+    order.Eq -> {
+      let trade =
+        RawTrade(
+          source: top_sell_order.location_id,
+          destination: top_buy_order.location_id,
+          item: top_sell_order.type_id,
+          amount: top_sell_order.volume_remain,
+          unit_buy_price: top_buy_order.price,
+          unit_sell_price: top_sell_order.price,
+          unit_profit: top_buy_order.price -. top_sell_order.price,
+        )
+      recurse_compute_trades_from_item_orders(
+        rest_sell_orders,
+        rest_buy_orders,
+        [trade, ..acc],
+      )
+    }
+    order.Gt -> {
+      let trade =
+        RawTrade(
+          source: top_sell_order.location_id,
+          destination: top_buy_order.location_id,
+          item: top_sell_order.type_id,
+          amount: top_buy_order.volume_remain,
+          unit_buy_price: top_buy_order.price,
+          unit_sell_price: top_sell_order.price,
+          unit_profit: top_buy_order.price -. top_sell_order.price,
+        )
+      let remaining_top_sell_order =
+        esi.drain_order(top_sell_order, top_buy_order.volume_remain)
+      recurse_compute_trades_from_item_orders(
+        [remaining_top_sell_order, ..rest_sell_orders],
+        rest_buy_orders,
+        [trade, ..acc],
+      )
+    }
+    order.Lt -> {
+      let trade =
+        RawTrade(
+          source: top_sell_order.location_id,
+          destination: top_buy_order.location_id,
+          item: top_sell_order.type_id,
+          amount: top_sell_order.volume_remain,
+          unit_buy_price: top_buy_order.price,
+          unit_sell_price: top_sell_order.price,
+          unit_profit: top_buy_order.price -. top_sell_order.price,
+        )
+      let remaining_top_buy_order =
+        esi.drain_order(top_buy_order, top_sell_order.volume_remain)
+      recurse_compute_trades_from_item_orders(
+        rest_sell_orders,
+        [remaining_top_buy_order, ..rest_buy_orders],
+        [trade, ..acc],
+      )
+    }
+  }
 }
 
 pub fn multibuy_from_purchases(purchases: List(Purchase)) -> Multibuy {

@@ -64,12 +64,8 @@ pub fn merge_orders(
   case can_merge {
     False -> Error(Nil)
     True -> {
-      echo "FROM:"
-      echo order_1
-      echo order_2
-      echo "TO"
       Ok(
-        echo Order(
+        Order(
           ..order_1,
           volume_remain: order_1.volume_remain + order_2.volume_remain,
           volume_total: order_1.volume_total + order_2.volume_total,
@@ -77,6 +73,10 @@ pub fn merge_orders(
       )
     }
   }
+}
+
+pub fn drain_order(order: Order(any), amount: Int) -> Order(any) {
+  Order(..order, volume_remain: order.volume_remain - amount)
 }
 
 fn buy_order_decoder() -> decode.Decoder(Order(Buy)) {

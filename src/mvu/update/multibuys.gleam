@@ -30,7 +30,11 @@ pub fn user_clicked_compute_multibuys(
   let assert Ok(source) = dict.get(model.systems, source)
   let assert Ok(dest) = dict.get(model.systems, dest)
 
-  arbitrage.compute_trades(source.sell_orders, dest.buy_orders)
+  echo arbitrage.compute_trades(
+    source.sell_orders,
+    dest.buy_orders,
+    model.accounting_level |> arbitrage.tax_percent_from_accounting_level,
+  )
 
   todo as "user clicked compute multibuys"
   #(model, effect.none())

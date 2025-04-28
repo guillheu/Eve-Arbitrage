@@ -754,6 +754,21 @@ function to_precision(x, precision) {
   }
 }
 
+// build/dev/javascript/gleam_stdlib/gleam/int.mjs
+function compare2(a2, b) {
+  let $ = a2 === b;
+  if ($) {
+    return new Eq();
+  } else {
+    let $1 = a2 < b;
+    if ($1) {
+      return new Lt();
+    } else {
+      return new Gt();
+    }
+  }
+}
+
 // build/dev/javascript/gleam_stdlib/gleam/list.mjs
 var Ascending = class extends CustomType {
 };
@@ -794,6 +809,49 @@ function reverse(list4) {
 }
 function is_empty(list4) {
   return isEqual(list4, toList([]));
+}
+function contains(loop$list, loop$elem) {
+  while (true) {
+    let list4 = loop$list;
+    let elem = loop$elem;
+    if (list4.hasLength(0)) {
+      return false;
+    } else if (list4.atLeastLength(1) && isEqual(list4.head, elem)) {
+      let first$1 = list4.head;
+      return true;
+    } else {
+      let rest$1 = list4.tail;
+      loop$list = rest$1;
+      loop$elem = elem;
+    }
+  }
+}
+function filter_loop(loop$list, loop$fun, loop$acc) {
+  while (true) {
+    let list4 = loop$list;
+    let fun = loop$fun;
+    let acc = loop$acc;
+    if (list4.hasLength(0)) {
+      return reverse(acc);
+    } else {
+      let first$1 = list4.head;
+      let rest$1 = list4.tail;
+      let _block;
+      let $ = fun(first$1);
+      if ($) {
+        _block = prepend(first$1, acc);
+      } else {
+        _block = acc;
+      }
+      let new_acc = _block;
+      loop$list = rest$1;
+      loop$fun = fun;
+      loop$acc = new_acc;
+    }
+  }
+}
+function filter(list4, predicate) {
+  return filter_loop(list4, predicate, toList([]));
 }
 function map_loop(loop$list, loop$fun, loop$acc) {
   while (true) {
@@ -3020,7 +3078,7 @@ var Set2 = class extends CustomType {
 function new$() {
   return new Set2(new_map());
 }
-function contains(set, member) {
+function contains2(set, member) {
   let _pipe = set.dict;
   let _pipe$1 = map_get(_pipe, member);
   return is_ok(_pipe$1);
@@ -4047,7 +4105,7 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
       let prev = old.head;
       let old$1 = old.tail;
       let _block;
-      let $ = prev.key === "" || !contains(moved, prev.key);
+      let $ = prev.key === "" || !contains2(moved, prev.key);
       if ($) {
         _block = removed + advance(prev);
       } else {
@@ -4090,7 +4148,7 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
       let new_remaining = new$8.tail;
       let next_did_exist = get(old_keyed, next.key);
       let prev_does_exist = get(new_keyed, prev.key);
-      let prev_has_moved = contains(moved, prev.key);
+      let prev_has_moved = contains2(moved, prev.key);
       if (prev_does_exist.isOk() && next_did_exist.isOk() && prev_has_moved) {
         loop$old = old_remaining;
         loop$old_keyed = old_keyed;
@@ -5712,33 +5770,41 @@ function merge_orders(order_1, order_2) {
   if (!can_merge) {
     return new Error(void 0);
   } else {
-    echo("FROM:", "src/config/esi.gleam", 67);
-    echo(order_1, "src/config/esi.gleam", 68);
-    echo(order_2, "src/config/esi.gleam", 69);
-    echo("TO", "src/config/esi.gleam", 70);
     return new Ok(
-      echo(
-        (() => {
-          let _record = order_1;
-          return new Order(
-            _record.duration,
-            _record.issued,
-            _record.location_id,
-            _record.min_volume,
-            _record.order_id,
-            _record.price,
-            _record.range,
-            _record.system_id,
-            _record.type_id,
-            order_1.volume_remain + order_2.volume_remain,
-            order_1.volume_total + order_2.volume_total
-          );
-        })(),
-        "src/config/esi.gleam",
-        72
-      )
+      (() => {
+        let _record = order_1;
+        return new Order(
+          _record.duration,
+          _record.issued,
+          _record.location_id,
+          _record.min_volume,
+          _record.order_id,
+          _record.price,
+          _record.range,
+          _record.system_id,
+          _record.type_id,
+          order_1.volume_remain + order_2.volume_remain,
+          order_1.volume_total + order_2.volume_total
+        );
+      })()
     );
   }
+}
+function drain_order(order, amount) {
+  let _record = order;
+  return new Order(
+    _record.duration,
+    _record.issued,
+    _record.location_id,
+    _record.min_volume,
+    _record.order_id,
+    _record.price,
+    _record.range,
+    _record.system_id,
+    _record.type_id,
+    order.volume_remain - amount,
+    _record.volume_total
+  );
 }
 function buy_order_decoder() {
   return field(
@@ -5981,6 +6047,325 @@ function get_market_orders_url(from2, is_buy_order, page) {
     })()
   );
 }
+
+// build/dev/javascript/eve_arbitrage/arbitrage.mjs
+var RawTrade = class extends CustomType {
+  constructor(source, destination, item, amount, unit_buy_price, unit_sell_price, unit_profit) {
+    super();
+    this.source = source;
+    this.destination = destination;
+    this.item = item;
+    this.amount = amount;
+    this.unit_buy_price = unit_buy_price;
+    this.unit_sell_price = unit_sell_price;
+    this.unit_profit = unit_profit;
+  }
+};
+var Multibuy = class extends CustomType {
+  constructor(purchases, total_price) {
+    super();
+    this.purchases = purchases;
+    this.total_price = total_price;
+  }
+};
+var Purchase = class extends CustomType {
+  constructor(item_name, amount, unit_price, total_price) {
+    super();
+    this.item_name = item_name;
+    this.amount = amount;
+    this.unit_price = unit_price;
+    this.total_price = total_price;
+  }
+};
+function merge_orders2(orders) {
+  let r = fold(
+    orders,
+    new_map(),
+    (acc, order) => {
+      let _block;
+      let $ = map_get(acc, order.type_id);
+      if (!$.isOk()) {
+        _block = toList([order]);
+      } else {
+        let list4 = $[0];
+        _block = prepend(order, list4);
+      }
+      let current_item_orders_list = _block;
+      return insert(acc, order.type_id, current_item_orders_list);
+    }
+  );
+  return map_values(
+    r,
+    (_, orders2) => {
+      let ordered_orders = sort(
+        orders2,
+        (order_1, order_2) => {
+          return compare(order_1.price, order_2.price);
+        }
+      );
+      return fold(
+        ordered_orders,
+        toList([]),
+        (new_orders, order) => {
+          return guard(
+            is_empty(new_orders),
+            toList([order]),
+            () => {
+              if (!new_orders.atLeastLength(1)) {
+                throw makeError(
+                  "let_assert",
+                  "arbitrage",
+                  78,
+                  "",
+                  "Pattern match failed, no pattern matched the value.",
+                  { value: new_orders }
+                );
+              }
+              let top = new_orders.head;
+              let rest = new_orders.tail;
+              let $ = merge_orders(top, order);
+              if (!$.isOk()) {
+                return prepend(order, prepend(top, rest));
+              } else {
+                let merged_order = $[0];
+                return prepend(merged_order, rest);
+              }
+            }
+          );
+        }
+      );
+    }
+  );
+}
+function recurse_compute_trades_from_item_orders(sell_orders, buy_orders, acc) {
+  return guard(
+    is_empty(sell_orders) || is_empty(buy_orders),
+    acc,
+    () => {
+      if (!sell_orders.atLeastLength(1)) {
+        throw makeError(
+          "let_assert",
+          "arbitrage",
+          137,
+          "",
+          "Pattern match failed, no pattern matched the value.",
+          { value: sell_orders }
+        );
+      }
+      let top_sell_order = sell_orders.head;
+      let rest_sell_orders = sell_orders.tail;
+      if (!buy_orders.atLeastLength(1)) {
+        throw makeError(
+          "let_assert",
+          "arbitrage",
+          138,
+          "",
+          "Pattern match failed, no pattern matched the value.",
+          { value: buy_orders }
+        );
+      }
+      let top_buy_order = buy_orders.head;
+      let rest_buy_orders = buy_orders.tail;
+      let $ = compare2(
+        top_sell_order.volume_remain,
+        top_buy_order.volume_remain
+      );
+      if ($ instanceof Eq) {
+        let trade = new RawTrade(
+          top_sell_order.location_id,
+          top_buy_order.location_id,
+          top_sell_order.type_id,
+          top_sell_order.volume_remain,
+          top_buy_order.price,
+          top_sell_order.price,
+          top_buy_order.price - top_sell_order.price
+        );
+        return recurse_compute_trades_from_item_orders(
+          rest_sell_orders,
+          rest_buy_orders,
+          prepend(trade, acc)
+        );
+      } else if ($ instanceof Gt) {
+        let trade = new RawTrade(
+          top_sell_order.location_id,
+          top_buy_order.location_id,
+          top_sell_order.type_id,
+          top_buy_order.volume_remain,
+          top_buy_order.price,
+          top_sell_order.price,
+          top_buy_order.price - top_sell_order.price
+        );
+        let remaining_top_sell_order = drain_order(
+          top_sell_order,
+          top_buy_order.volume_remain
+        );
+        return recurse_compute_trades_from_item_orders(
+          prepend(remaining_top_sell_order, rest_sell_orders),
+          rest_buy_orders,
+          prepend(trade, acc)
+        );
+      } else {
+        let trade = new RawTrade(
+          top_sell_order.location_id,
+          top_buy_order.location_id,
+          top_sell_order.type_id,
+          top_sell_order.volume_remain,
+          top_buy_order.price,
+          top_sell_order.price,
+          top_buy_order.price - top_sell_order.price
+        );
+        let remaining_top_buy_order = drain_order(
+          top_buy_order,
+          top_sell_order.volume_remain
+        );
+        return recurse_compute_trades_from_item_orders(
+          rest_sell_orders,
+          prepend(remaining_top_buy_order, rest_buy_orders),
+          prepend(trade, acc)
+        );
+      }
+    }
+  );
+}
+function compute_trades(sell_orders, buy_orders, tax_rate) {
+  let sell_orders$1 = merge_orders2(sell_orders);
+  let buy_orders$1 = merge_orders2(buy_orders);
+  let sell_orders_items = keys(sell_orders$1);
+  let buy_orders_items = keys(buy_orders$1);
+  let tradeable_items = filter(
+    sell_orders_items,
+    (_capture) => {
+      return contains(buy_orders_items, _capture);
+    }
+  );
+  let _pipe = map2(
+    tradeable_items,
+    (item) => {
+      let $ = map_get(sell_orders$1, item);
+      if (!$.isOk()) {
+        throw makeError(
+          "let_assert",
+          "arbitrage",
+          100,
+          "",
+          "Pattern match failed, no pattern matched the value.",
+          { value: $ }
+        );
+      }
+      let item_sell_orders = $[0];
+      let $1 = map_get(buy_orders$1, item);
+      if (!$1.isOk()) {
+        throw makeError(
+          "let_assert",
+          "arbitrage",
+          101,
+          "",
+          "Pattern match failed, no pattern matched the value.",
+          { value: $1 }
+        );
+      }
+      let item_buy_orders = $1[0];
+      let sorted_item_sell_orders = sort(
+        item_sell_orders,
+        (order_1, order_2) => {
+          return compare(order_1.price, order_2.price);
+        }
+      );
+      let sorted_item_buy_orders = sort(
+        item_buy_orders,
+        (order_1, order_2) => {
+          return compare(order_2.price, order_1.price);
+        }
+      );
+      return recurse_compute_trades_from_item_orders(
+        sorted_item_sell_orders,
+        sorted_item_buy_orders,
+        toList([])
+      );
+    }
+  );
+  let _pipe$1 = flatten(_pipe);
+  let _pipe$2 = map2(
+    _pipe$1,
+    (raw_trade) => {
+      let buy_price_with_taxes = raw_trade.unit_buy_price * tax_rate;
+      let _record = raw_trade;
+      return new RawTrade(
+        _record.source,
+        _record.destination,
+        _record.item,
+        _record.amount,
+        buy_price_with_taxes,
+        _record.unit_sell_price,
+        buy_price_with_taxes - raw_trade.unit_sell_price
+      );
+    }
+  );
+  return filter(
+    _pipe$2,
+    (raw_trade) => {
+      return echo(raw_trade.unit_profit > 0, "src/arbitrage.gleam", 125);
+    }
+  );
+}
+function multibuy_from_purchases(purchases) {
+  return new Multibuy(
+    purchases,
+    fold(
+      purchases,
+      0,
+      (total, purchase) => {
+        return total + purchase.total_price;
+      }
+    )
+  );
+}
+function new_purchase(name2, amount, unit_price) {
+  return new Purchase(
+    name2,
+    amount,
+    unit_price,
+    unit_price * (() => {
+      let _pipe = amount;
+      return identity(_pipe);
+    })()
+  );
+}
+function get_multibuy_purchases(multibuy) {
+  return multibuy.purchases;
+}
+function get_multibuy_total_price(multibuy) {
+  return multibuy.total_price;
+}
+function purchase_to_string(purchase) {
+  return purchase.item_name + "	" + to_string(purchase.amount) + "	" + float_to_string(
+    purchase.unit_price
+  ) + "	" + float_to_string(purchase.total_price);
+}
+function multibuy_to_string(multibuy) {
+  let _pipe = map2(
+    multibuy.purchases,
+    (purchase) => {
+      return purchase_to_string(purchase) + "\n";
+    }
+  );
+  let _pipe$1 = concat2(_pipe);
+  return drop_end(_pipe$1, 1);
+}
+var base_tax_rate = 7.5;
+var tax_reduction_per_accounting_level = 11;
+function tax_percent_from_accounting_level(accounting_level) {
+  let accounting_tax_percent_reduction = (() => {
+    let _pipe = accounting_level;
+    return identity(_pipe);
+  })() * tax_reduction_per_accounting_level;
+  let remaining_tax_ratio = 1 - divideFloat(
+    accounting_tax_percent_reduction,
+    100
+  );
+  let effective_tax_rate = base_tax_rate * remaining_tax_ratio;
+  return effective_tax_rate;
+}
 function echo(value3, file, line) {
   const grey = "\x1B[90m";
   const reset_color = "\x1B[39m";
@@ -6111,294 +6496,6 @@ function echo$inspectBitArray(bitArray) {
   }
 }
 function echo$isDict(value3) {
-  try {
-    return value3 instanceof Dict;
-  } catch {
-    return false;
-  }
-}
-
-// build/dev/javascript/eve_arbitrage/arbitrage.mjs
-var Multibuy = class extends CustomType {
-  constructor(purchases, total_price) {
-    super();
-    this.purchases = purchases;
-    this.total_price = total_price;
-  }
-};
-var Purchase = class extends CustomType {
-  constructor(item_name, amount, unit_price, total_price) {
-    super();
-    this.item_name = item_name;
-    this.amount = amount;
-    this.unit_price = unit_price;
-    this.total_price = total_price;
-  }
-};
-function merge_orders2(orders) {
-  let r = fold(
-    orders,
-    new_map(),
-    (acc, order) => {
-      let _block;
-      let $ = map_get(acc, order.type_id);
-      if (!$.isOk()) {
-        _block = toList([order]);
-      } else {
-        let list4 = $[0];
-        _block = prepend(order, list4);
-      }
-      let current_item_orders_list = _block;
-      return insert(acc, order.type_id, current_item_orders_list);
-    }
-  );
-  let _pipe = map_values(
-    r,
-    (_, orders2) => {
-      let ordered_orders = sort(
-        orders2,
-        (order_1, order_2) => {
-          return compare(order_1.price, order_2.price);
-        }
-      );
-      return fold(
-        ordered_orders,
-        toList([]),
-        (new_orders, order) => {
-          return guard(
-            is_empty(new_orders),
-            toList([order]),
-            () => {
-              if (!new_orders.atLeastLength(1)) {
-                throw makeError(
-                  "let_assert",
-                  "arbitrage",
-                  61,
-                  "",
-                  "Pattern match failed, no pattern matched the value.",
-                  { value: new_orders }
-                );
-              }
-              let top = new_orders.head;
-              let rest = new_orders.tail;
-              let $ = merge_orders(top, order);
-              if (!$.isOk()) {
-                return prepend(order, prepend(top, rest));
-              } else {
-                let merged_order = $[0];
-                return prepend(merged_order, rest);
-              }
-            }
-          );
-        }
-      );
-    }
-  );
-  let _pipe$1 = values(_pipe);
-  return flatten(_pipe$1);
-}
-function compute_trades(sell_orders, buy_orders) {
-  echo2("BEFORE MERGE:", "src/arbitrage.gleam", 76);
-  echo2(sell_orders, "src/arbitrage.gleam", 77);
-  echo2("AFTER MERGE:", "src/arbitrage.gleam", 78);
-  echo2(merge_orders2(sell_orders), "src/arbitrage.gleam", 79);
-  throw makeError(
-    "todo",
-    "arbitrage",
-    80,
-    "compute_trades",
-    "compute trades",
-    {}
-  );
-}
-function multibuy_from_purchases(purchases) {
-  return new Multibuy(
-    purchases,
-    fold(
-      purchases,
-      0,
-      (total, purchase) => {
-        return total + purchase.total_price;
-      }
-    )
-  );
-}
-function new_purchase(name2, amount, unit_price) {
-  return new Purchase(
-    name2,
-    amount,
-    unit_price,
-    unit_price * (() => {
-      let _pipe = amount;
-      return identity(_pipe);
-    })()
-  );
-}
-function get_multibuy_purchases(multibuy) {
-  return multibuy.purchases;
-}
-function get_multibuy_total_price(multibuy) {
-  return multibuy.total_price;
-}
-function purchase_to_string(purchase) {
-  return purchase.item_name + "	" + to_string(purchase.amount) + "	" + float_to_string(
-    purchase.unit_price
-  ) + "	" + float_to_string(purchase.total_price);
-}
-function multibuy_to_string(multibuy) {
-  let _pipe = map2(
-    multibuy.purchases,
-    (purchase) => {
-      return purchase_to_string(purchase) + "\n";
-    }
-  );
-  let _pipe$1 = concat2(_pipe);
-  return drop_end(_pipe$1, 1);
-}
-var base_tax_rate = 7.5;
-var tax_reduction_per_accounting_level = 11;
-function tax_percent_from_accounting_level(accounting_level) {
-  let accounting_tax_percent_reduction = (() => {
-    let _pipe = accounting_level;
-    return identity(_pipe);
-  })() * tax_reduction_per_accounting_level;
-  let remaining_tax_ratio = 1 - divideFloat(
-    accounting_tax_percent_reduction,
-    100
-  );
-  let effective_tax_rate = base_tax_rate * remaining_tax_ratio;
-  return effective_tax_rate;
-}
-function echo2(value3, file, line) {
-  const grey = "\x1B[90m";
-  const reset_color = "\x1B[39m";
-  const file_line = `${file}:${line}`;
-  const string_value = echo$inspect2(value3);
-  if (globalThis.process?.stderr?.write) {
-    const string5 = `${grey}${file_line}${reset_color}
-${string_value}
-`;
-    process.stderr.write(string5);
-  } else if (globalThis.Deno) {
-    const string5 = `${grey}${file_line}${reset_color}
-${string_value}
-`;
-    globalThis.Deno.stderr.writeSync(new TextEncoder().encode(string5));
-  } else {
-    const string5 = `${file_line}
-${string_value}`;
-    globalThis.console.log(string5);
-  }
-  return value3;
-}
-function echo$inspectString2(str) {
-  let new_str = '"';
-  for (let i = 0; i < str.length; i++) {
-    let char = str[i];
-    if (char == "\n") new_str += "\\n";
-    else if (char == "\r") new_str += "\\r";
-    else if (char == "	") new_str += "\\t";
-    else if (char == "\f") new_str += "\\f";
-    else if (char == "\\") new_str += "\\\\";
-    else if (char == '"') new_str += '\\"';
-    else if (char < " " || char > "~" && char < "\xA0") {
-      new_str += "\\u{" + char.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0") + "}";
-    } else {
-      new_str += char;
-    }
-  }
-  new_str += '"';
-  return new_str;
-}
-function echo$inspectDict2(map6) {
-  let body = "dict.from_list([";
-  let first = true;
-  let key_value_pairs = [];
-  map6.forEach((value3, key) => {
-    key_value_pairs.push([key, value3]);
-  });
-  key_value_pairs.sort();
-  key_value_pairs.forEach(([key, value3]) => {
-    if (!first) body = body + ", ";
-    body = body + "#(" + echo$inspect2(key) + ", " + echo$inspect2(value3) + ")";
-    first = false;
-  });
-  return body + "])";
-}
-function echo$inspectCustomType2(record) {
-  const props = globalThis.Object.keys(record).map((label2) => {
-    const value3 = echo$inspect2(record[label2]);
-    return isNaN(parseInt(label2)) ? `${label2}: ${value3}` : value3;
-  }).join(", ");
-  return props ? `${record.constructor.name}(${props})` : record.constructor.name;
-}
-function echo$inspectObject2(v) {
-  const name2 = Object.getPrototypeOf(v)?.constructor?.name || "Object";
-  const props = [];
-  for (const k of Object.keys(v)) {
-    props.push(`${echo$inspect2(k)}: ${echo$inspect2(v[k])}`);
-  }
-  const body = props.length ? " " + props.join(", ") + " " : "";
-  const head = name2 === "Object" ? "" : name2 + " ";
-  return `//js(${head}{${body}})`;
-}
-function echo$inspect2(v) {
-  const t = typeof v;
-  if (v === true) return "True";
-  if (v === false) return "False";
-  if (v === null) return "//js(null)";
-  if (v === void 0) return "Nil";
-  if (t === "string") return echo$inspectString2(v);
-  if (t === "bigint" || t === "number") return v.toString();
-  if (globalThis.Array.isArray(v))
-    return `#(${v.map(echo$inspect2).join(", ")})`;
-  if (v instanceof List)
-    return `[${v.toArray().map(echo$inspect2).join(", ")}]`;
-  if (v instanceof UtfCodepoint)
-    return `//utfcodepoint(${String.fromCodePoint(v.value)})`;
-  if (v instanceof BitArray) return echo$inspectBitArray2(v);
-  if (v instanceof CustomType) return echo$inspectCustomType2(v);
-  if (echo$isDict2(v)) return echo$inspectDict2(v);
-  if (v instanceof Set)
-    return `//js(Set(${[...v].map(echo$inspect2).join(", ")}))`;
-  if (v instanceof RegExp) return `//js(${v})`;
-  if (v instanceof Date) return `//js(Date("${v.toISOString()}"))`;
-  if (v instanceof Function) {
-    const args = [];
-    for (const i of Array(v.length).keys())
-      args.push(String.fromCharCode(i + 97));
-    return `//fn(${args.join(", ")}) { ... }`;
-  }
-  return echo$inspectObject2(v);
-}
-function echo$inspectBitArray2(bitArray) {
-  let endOfAlignedBytes = bitArray.bitOffset + 8 * Math.trunc(bitArray.bitSize / 8);
-  let alignedBytes = bitArraySlice(
-    bitArray,
-    bitArray.bitOffset,
-    endOfAlignedBytes
-  );
-  let remainingUnalignedBits = bitArray.bitSize % 8;
-  if (remainingUnalignedBits > 0) {
-    let remainingBits = bitArraySliceToInt(
-      bitArray,
-      endOfAlignedBytes,
-      bitArray.bitSize,
-      false,
-      false
-    );
-    let alignedBytesArray = Array.from(alignedBytes.rawBuffer);
-    let suffix = `${remainingBits}:size(${remainingUnalignedBits})`;
-    if (alignedBytesArray.length === 0) {
-      return `<<${suffix}>>`;
-    } else {
-      return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}, ${suffix}>>`;
-    }
-  } else {
-    return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}>>`;
-  }
-}
-function echo$isDict2(value3) {
   try {
     return value3 instanceof Dict;
   } catch {
@@ -8117,11 +8214,22 @@ function user_clicked_compute_multibuys(model) {
         );
       }
       let dest$1 = $3[0];
-      compute_trades(source$1.sell_orders, dest$1.buy_orders);
+      echo2(
+        compute_trades(
+          source$1.sell_orders,
+          dest$1.buy_orders,
+          (() => {
+            let _pipe = model.accounting_level;
+            return tax_percent_from_accounting_level(_pipe);
+          })()
+        ),
+        "src/mvu/update/multibuys.gleam",
+        33
+      );
       throw makeError(
         "todo",
         "mvu/update/multibuys",
-        35,
+        39,
         "",
         "user clicked compute multibuys",
         {}
@@ -8129,6 +8237,142 @@ function user_clicked_compute_multibuys(model) {
       return [model, none()];
     }
   );
+}
+function echo2(value3, file, line) {
+  const grey = "\x1B[90m";
+  const reset_color = "\x1B[39m";
+  const file_line = `${file}:${line}`;
+  const string_value = echo$inspect2(value3);
+  if (globalThis.process?.stderr?.write) {
+    const string5 = `${grey}${file_line}${reset_color}
+${string_value}
+`;
+    process.stderr.write(string5);
+  } else if (globalThis.Deno) {
+    const string5 = `${grey}${file_line}${reset_color}
+${string_value}
+`;
+    globalThis.Deno.stderr.writeSync(new TextEncoder().encode(string5));
+  } else {
+    const string5 = `${file_line}
+${string_value}`;
+    globalThis.console.log(string5);
+  }
+  return value3;
+}
+function echo$inspectString2(str) {
+  let new_str = '"';
+  for (let i = 0; i < str.length; i++) {
+    let char = str[i];
+    if (char == "\n") new_str += "\\n";
+    else if (char == "\r") new_str += "\\r";
+    else if (char == "	") new_str += "\\t";
+    else if (char == "\f") new_str += "\\f";
+    else if (char == "\\") new_str += "\\\\";
+    else if (char == '"') new_str += '\\"';
+    else if (char < " " || char > "~" && char < "\xA0") {
+      new_str += "\\u{" + char.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0") + "}";
+    } else {
+      new_str += char;
+    }
+  }
+  new_str += '"';
+  return new_str;
+}
+function echo$inspectDict2(map6) {
+  let body = "dict.from_list([";
+  let first = true;
+  let key_value_pairs = [];
+  map6.forEach((value3, key) => {
+    key_value_pairs.push([key, value3]);
+  });
+  key_value_pairs.sort();
+  key_value_pairs.forEach(([key, value3]) => {
+    if (!first) body = body + ", ";
+    body = body + "#(" + echo$inspect2(key) + ", " + echo$inspect2(value3) + ")";
+    first = false;
+  });
+  return body + "])";
+}
+function echo$inspectCustomType2(record) {
+  const props = globalThis.Object.keys(record).map((label2) => {
+    const value3 = echo$inspect2(record[label2]);
+    return isNaN(parseInt(label2)) ? `${label2}: ${value3}` : value3;
+  }).join(", ");
+  return props ? `${record.constructor.name}(${props})` : record.constructor.name;
+}
+function echo$inspectObject2(v) {
+  const name2 = Object.getPrototypeOf(v)?.constructor?.name || "Object";
+  const props = [];
+  for (const k of Object.keys(v)) {
+    props.push(`${echo$inspect2(k)}: ${echo$inspect2(v[k])}`);
+  }
+  const body = props.length ? " " + props.join(", ") + " " : "";
+  const head = name2 === "Object" ? "" : name2 + " ";
+  return `//js(${head}{${body}})`;
+}
+function echo$inspect2(v) {
+  const t = typeof v;
+  if (v === true) return "True";
+  if (v === false) return "False";
+  if (v === null) return "//js(null)";
+  if (v === void 0) return "Nil";
+  if (t === "string") return echo$inspectString2(v);
+  if (t === "bigint" || t === "number") return v.toString();
+  if (globalThis.Array.isArray(v))
+    return `#(${v.map(echo$inspect2).join(", ")})`;
+  if (v instanceof List)
+    return `[${v.toArray().map(echo$inspect2).join(", ")}]`;
+  if (v instanceof UtfCodepoint)
+    return `//utfcodepoint(${String.fromCodePoint(v.value)})`;
+  if (v instanceof BitArray) return echo$inspectBitArray2(v);
+  if (v instanceof CustomType) return echo$inspectCustomType2(v);
+  if (echo$isDict2(v)) return echo$inspectDict2(v);
+  if (v instanceof Set)
+    return `//js(Set(${[...v].map(echo$inspect2).join(", ")}))`;
+  if (v instanceof RegExp) return `//js(${v})`;
+  if (v instanceof Date) return `//js(Date("${v.toISOString()}"))`;
+  if (v instanceof Function) {
+    const args = [];
+    for (const i of Array(v.length).keys())
+      args.push(String.fromCharCode(i + 97));
+    return `//fn(${args.join(", ")}) { ... }`;
+  }
+  return echo$inspectObject2(v);
+}
+function echo$inspectBitArray2(bitArray) {
+  let endOfAlignedBytes = bitArray.bitOffset + 8 * Math.trunc(bitArray.bitSize / 8);
+  let alignedBytes = bitArraySlice(
+    bitArray,
+    bitArray.bitOffset,
+    endOfAlignedBytes
+  );
+  let remainingUnalignedBits = bitArray.bitSize % 8;
+  if (remainingUnalignedBits > 0) {
+    let remainingBits = bitArraySliceToInt(
+      bitArray,
+      endOfAlignedBytes,
+      bitArray.bitSize,
+      false,
+      false
+    );
+    let alignedBytesArray = Array.from(alignedBytes.rawBuffer);
+    let suffix = `${remainingBits}:size(${remainingUnalignedBits})`;
+    if (alignedBytesArray.length === 0) {
+      return `<<${suffix}>>`;
+    } else {
+      return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}, ${suffix}>>`;
+    }
+  } else {
+    return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}>>`;
+  }
+}
+function echo$isDict2(value3) {
+  try {
+    return value3 instanceof Dict;
+  } catch {
+    return false;
+  }
 }
 
 // build/dev/javascript/eve_arbitrage/util/numbers.mjs
@@ -10005,48 +10249,53 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
     return [model, none()];
   } else {
     let orders = esi_response[0];
-    let systems = upsert(
-      model.systems,
-      from2,
-      (system_option) => {
-        let system2 = lazy_unwrap(
-          system_option,
-          () => {
-            throw makeError(
-              "panic",
-              "mvu/update/systems",
-              80,
-              "",
-              "system " + from2 + " should be present",
-              {}
-            );
-          }
-        );
-        let _record = system2;
-        return new System(
-          _record.location,
-          _record.buy_orders,
-          _record.buy_orders_status,
-          (() => {
-            let _pipe = system2.sell_orders;
-            return append(_pipe, orders);
-          })(),
-          _record.sell_orders_status
-        );
-      }
-    );
     let $ = map_get(model.systems, from2);
     if (!$.isOk()) {
       throw makeError(
         "let_assert",
         "mvu/update/systems",
-        87,
+        76,
         "esi_returned_sell_orders",
         "Pattern match failed, no pattern matched the value.",
         { value: $ }
       );
     }
     let system = $[0];
+    let filtered_orders = filter(
+      orders,
+      (order) => {
+        return contains(system.location.stations, order.location_id);
+      }
+    );
+    let systems = insert(
+      model.systems,
+      from2,
+      (() => {
+        let _record = system;
+        return new System(
+          _record.location,
+          _record.buy_orders,
+          _record.buy_orders_status,
+          (() => {
+            let _pipe = system.sell_orders;
+            return append(_pipe, filtered_orders);
+          })(),
+          _record.sell_orders_status
+        );
+      })()
+    );
+    let $1 = map_get(model.systems, from2);
+    if (!$1.isOk()) {
+      throw makeError(
+        "let_assert",
+        "mvu/update/systems",
+        90,
+        "esi_returned_sell_orders",
+        "Pattern match failed, no pattern matched the value.",
+        { value: $1 }
+      );
+    }
+    let system$1 = $1[0];
     console_log(
       "Fetched " + from2 + " sell orders page " + to_string(page)
     );
@@ -10070,7 +10319,7 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
         );
       })(),
       get_query_sell_orders_side_effect(
-        system.location,
+        system$1.location,
         from2,
         page + 1
       )
@@ -10085,7 +10334,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
       throw makeError(
         "let_assert",
         "mvu/update/systems",
-        116,
+        119,
         "esi_returned_buy_orders",
         "Pattern match failed, no pattern matched the value.",
         { value: $ }
@@ -10104,7 +10353,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
       throw makeError(
         "let_assert",
         "mvu/update/systems",
-        120,
+        123,
         "esi_returned_buy_orders",
         "Pattern match failed, no pattern matched the value.",
         { value: $1 }
@@ -10131,7 +10380,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
             throw makeError(
               "panic",
               "mvu/update/systems",
-              130,
+              133,
               "",
               "system " + from2 + " should be present",
               {}
@@ -10181,7 +10430,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
             throw makeError(
               "panic",
               "mvu/update/systems",
-              146,
+              149,
               "",
               "system " + from2 + " should be present",
               {}
@@ -10206,7 +10455,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
       throw makeError(
         "let_assert",
         "mvu/update/systems",
-        153,
+        156,
         "esi_returned_buy_orders",
         "Pattern match failed, no pattern matched the value.",
         { value: $ }
@@ -10249,7 +10498,7 @@ function user_loaded_source(model, from2) {
     throw makeError(
       "let_assert",
       "mvu/update/systems",
-      173,
+      176,
       "user_loaded_source",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -10281,7 +10530,7 @@ function user_loaded_source(model, from2) {
           throw makeError(
             "panic",
             "mvu/update/systems",
-            181,
+            184,
             "",
             "did not find system " + from2,
             {}
@@ -10343,7 +10592,7 @@ function user_loaded_destination(model, to) {
     throw makeError(
       "let_assert",
       "mvu/update/systems",
-      197,
+      200,
       "user_loaded_destination",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -10375,7 +10624,7 @@ function user_loaded_destination(model, to) {
           throw makeError(
             "panic",
             "mvu/update/systems",
-            205,
+            208,
             "",
             "did not find system " + to,
             {}
