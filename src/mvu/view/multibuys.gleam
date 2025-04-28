@@ -1,5 +1,7 @@
 import arbitrage
 import gleam/list
+import gleam/option.{type Option, Some}
+import gleam/result
 import lustre/attribute.{attribute}
 import lustre/element
 import lustre/element/html
@@ -9,19 +11,45 @@ import mvu
 import util/numbers
 
 pub fn get_section(model: mvu.Model) -> element.Element(mvu.Msg) {
+  let multibuys =
+    list.map(model.trades, fn(trade) {
+      case trade {
+        mvu.Multibuy(multibuy) -> Ok(get_multibuy(multibuy))
+        _ -> Error(Nil)
+      }
+    })
+    |> result.all
+    |> result.unwrap([])
   html.section(
     [],
     [
-      get_compute_multibuy_button(),
+      get_compute_multibuy_button(
+        model.current_ship,
+        model.collateral,
+        model.source,
+        model.destination,
+      ),
       html.h2([attribute.class("text-2xl font-bold mb-4")], [
         html.text("Arbitrage Multibuys"),
       ]),
     ]
-      |> list.append(list.map(model.multibuys, get_multibuy)),
+      |> list.append(multibuys),
   )
 }
 
-fn get_compute_multibuy_button() -> element.Element(mvu.Msg) {
+fn get_compute_multibuy_button(
+  selected_ship: Option(Int),
+  collateral: Option(Int),
+  source: Option(String),
+  destination: Option(String),
+) -> element.Element(mvu.Msg) {
+  case selected_ship, collateral, source, destination {
+    Some(_), Some(_), Some(_), Some(_) -> get_active_compute_multibuys_button()
+    _, _, _, _ -> get_inactive_compute_multibuys_button()
+  }
+}
+
+fn get_active_compute_multibuys_button() -> element.Element(mvu.Msg) {
   html.div([attribute.class("flex justify-center my-8")], [
     html.button(
       [
@@ -29,6 +57,45 @@ fn get_compute_multibuy_button() -> element.Element(mvu.Msg) {
           "bg-selected hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg shadow-md flex items-center transition-colors duration-200",
         ),
         event.on_click(mvu.UserClickedComputeMultibuys),
+      ],
+      [
+        svg.svg(
+          [
+            attribute("stroke", "currentColor"),
+            attribute("viewBox", "0 0 24 24"),
+            attribute("fill", "none"),
+            attribute.class("h-5 w-5 mr-2"),
+            attribute("xmlns", "http://www.w3.org/2000/svg"),
+          ],
+          [
+            svg.path([
+              attribute(
+                "d",
+                "M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z",
+              ),
+              attribute("stroke-width", "2"),
+              attribute("stroke-linejoin", "round"),
+              attribute("stroke-linecap", "round"),
+            ]),
+          ],
+        ),
+        html.text(
+          "Compute Multibuys
+                    ",
+        ),
+      ],
+    ),
+  ])
+}
+
+fn get_inactive_compute_multibuys_button() -> element.Element(mvu.Msg) {
+  html.div([attribute.class("flex justify-center my-8")], [
+    html.button(
+      [
+        attribute.class(
+          "bg-gray-400 text-gray-200 font-bold py-3 px-8 rounded-lg shadow-md flex items-center cursor-not-allowed opacity-70",
+        ),
+        attribute.disabled(True),
       ],
       [
         svg.svg(

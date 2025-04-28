@@ -971,10 +971,55 @@ function find_map(loop$list, loop$fun) {
     }
   }
 }
+function all(loop$list, loop$predicate) {
+  while (true) {
+    let list4 = loop$list;
+    let predicate = loop$predicate;
+    if (list4.hasLength(0)) {
+      return true;
+    } else {
+      let first$1 = list4.head;
+      let rest$1 = list4.tail;
+      let $ = predicate(first$1);
+      if ($) {
+        loop$list = rest$1;
+        loop$predicate = predicate;
+      } else {
+        return false;
+      }
+    }
+  }
+}
+function unique_loop(loop$list, loop$seen, loop$acc) {
+  while (true) {
+    let list4 = loop$list;
+    let seen = loop$seen;
+    let acc = loop$acc;
+    if (list4.hasLength(0)) {
+      return reverse(acc);
+    } else {
+      let first$1 = list4.head;
+      let rest$1 = list4.tail;
+      let $ = has_key(seen, first$1);
+      if ($) {
+        loop$list = rest$1;
+        loop$seen = seen;
+        loop$acc = acc;
+      } else {
+        loop$list = rest$1;
+        loop$seen = insert(seen, first$1, void 0);
+        loop$acc = prepend(first$1, acc);
+      }
+    }
+  }
+}
+function unique(list4) {
+  return unique_loop(list4, new_map(), toList([]));
+}
 function sequences(loop$list, loop$compare, loop$growing, loop$direction, loop$prev, loop$acc) {
   while (true) {
     let list4 = loop$list;
-    let compare4 = loop$compare;
+    let compare5 = loop$compare;
     let growing = loop$growing;
     let direction = loop$direction;
     let prev = loop$prev;
@@ -989,24 +1034,24 @@ function sequences(loop$list, loop$compare, loop$growing, loop$direction, loop$p
     } else {
       let new$1 = list4.head;
       let rest$1 = list4.tail;
-      let $ = compare4(prev, new$1);
+      let $ = compare5(prev, new$1);
       if ($ instanceof Gt && direction instanceof Descending) {
         loop$list = rest$1;
-        loop$compare = compare4;
+        loop$compare = compare5;
         loop$growing = growing$1;
         loop$direction = direction;
         loop$prev = new$1;
         loop$acc = acc;
       } else if ($ instanceof Lt && direction instanceof Ascending) {
         loop$list = rest$1;
-        loop$compare = compare4;
+        loop$compare = compare5;
         loop$growing = growing$1;
         loop$direction = direction;
         loop$prev = new$1;
         loop$acc = acc;
       } else if ($ instanceof Eq && direction instanceof Ascending) {
         loop$list = rest$1;
-        loop$compare = compare4;
+        loop$compare = compare5;
         loop$growing = growing$1;
         loop$direction = direction;
         loop$prev = new$1;
@@ -1025,7 +1070,7 @@ function sequences(loop$list, loop$compare, loop$growing, loop$direction, loop$p
           let next = rest$1.head;
           let rest$2 = rest$1.tail;
           let _block$1;
-          let $1 = compare4(new$1, next);
+          let $1 = compare5(new$1, next);
           if ($1 instanceof Lt) {
             _block$1 = new Ascending();
           } else if ($1 instanceof Eq) {
@@ -1035,7 +1080,7 @@ function sequences(loop$list, loop$compare, loop$growing, loop$direction, loop$p
           }
           let direction$1 = _block$1;
           loop$list = rest$2;
-          loop$compare = compare4;
+          loop$compare = compare5;
           loop$growing = toList([new$1]);
           loop$direction = direction$1;
           loop$prev = next;
@@ -1055,7 +1100,7 @@ function sequences(loop$list, loop$compare, loop$growing, loop$direction, loop$p
           let next = rest$1.head;
           let rest$2 = rest$1.tail;
           let _block$1;
-          let $1 = compare4(new$1, next);
+          let $1 = compare5(new$1, next);
           if ($1 instanceof Lt) {
             _block$1 = new Ascending();
           } else if ($1 instanceof Eq) {
@@ -1065,7 +1110,7 @@ function sequences(loop$list, loop$compare, loop$growing, loop$direction, loop$p
           }
           let direction$1 = _block$1;
           loop$list = rest$2;
-          loop$compare = compare4;
+          loop$compare = compare5;
           loop$growing = toList([new$1]);
           loop$direction = direction$1;
           loop$prev = next;
@@ -1085,7 +1130,7 @@ function sequences(loop$list, loop$compare, loop$growing, loop$direction, loop$p
           let next = rest$1.head;
           let rest$2 = rest$1.tail;
           let _block$1;
-          let $1 = compare4(new$1, next);
+          let $1 = compare5(new$1, next);
           if ($1 instanceof Lt) {
             _block$1 = new Ascending();
           } else if ($1 instanceof Eq) {
@@ -1095,7 +1140,7 @@ function sequences(loop$list, loop$compare, loop$growing, loop$direction, loop$p
           }
           let direction$1 = _block$1;
           loop$list = rest$2;
-          loop$compare = compare4;
+          loop$compare = compare5;
           loop$growing = toList([new$1]);
           loop$direction = direction$1;
           loop$prev = next;
@@ -1109,7 +1154,7 @@ function merge_ascendings(loop$list1, loop$list2, loop$compare, loop$acc) {
   while (true) {
     let list1 = loop$list1;
     let list22 = loop$list2;
-    let compare4 = loop$compare;
+    let compare5 = loop$compare;
     let acc = loop$acc;
     if (list1.hasLength(0)) {
       let list4 = list22;
@@ -1122,21 +1167,21 @@ function merge_ascendings(loop$list1, loop$list2, loop$compare, loop$acc) {
       let rest1 = list1.tail;
       let first2 = list22.head;
       let rest2 = list22.tail;
-      let $ = compare4(first1, first2);
+      let $ = compare5(first1, first2);
       if ($ instanceof Lt) {
         loop$list1 = rest1;
         loop$list2 = list22;
-        loop$compare = compare4;
+        loop$compare = compare5;
         loop$acc = prepend(first1, acc);
       } else if ($ instanceof Gt) {
         loop$list1 = list1;
         loop$list2 = rest2;
-        loop$compare = compare4;
+        loop$compare = compare5;
         loop$acc = prepend(first2, acc);
       } else {
         loop$list1 = list1;
         loop$list2 = rest2;
-        loop$compare = compare4;
+        loop$compare = compare5;
         loop$acc = prepend(first2, acc);
       }
     }
@@ -1145,7 +1190,7 @@ function merge_ascendings(loop$list1, loop$list2, loop$compare, loop$acc) {
 function merge_ascending_pairs(loop$sequences, loop$compare, loop$acc) {
   while (true) {
     let sequences2 = loop$sequences;
-    let compare4 = loop$compare;
+    let compare5 = loop$compare;
     let acc = loop$acc;
     if (sequences2.hasLength(0)) {
       return reverse(acc);
@@ -1159,11 +1204,11 @@ function merge_ascending_pairs(loop$sequences, loop$compare, loop$acc) {
       let descending = merge_ascendings(
         ascending1,
         ascending2,
-        compare4,
+        compare5,
         toList([])
       );
       loop$sequences = rest$1;
-      loop$compare = compare4;
+      loop$compare = compare5;
       loop$acc = prepend(descending, acc);
     }
   }
@@ -1172,7 +1217,7 @@ function merge_descendings(loop$list1, loop$list2, loop$compare, loop$acc) {
   while (true) {
     let list1 = loop$list1;
     let list22 = loop$list2;
-    let compare4 = loop$compare;
+    let compare5 = loop$compare;
     let acc = loop$acc;
     if (list1.hasLength(0)) {
       let list4 = list22;
@@ -1185,21 +1230,21 @@ function merge_descendings(loop$list1, loop$list2, loop$compare, loop$acc) {
       let rest1 = list1.tail;
       let first2 = list22.head;
       let rest2 = list22.tail;
-      let $ = compare4(first1, first2);
+      let $ = compare5(first1, first2);
       if ($ instanceof Lt) {
         loop$list1 = list1;
         loop$list2 = rest2;
-        loop$compare = compare4;
+        loop$compare = compare5;
         loop$acc = prepend(first2, acc);
       } else if ($ instanceof Gt) {
         loop$list1 = rest1;
         loop$list2 = list22;
-        loop$compare = compare4;
+        loop$compare = compare5;
         loop$acc = prepend(first1, acc);
       } else {
         loop$list1 = rest1;
         loop$list2 = list22;
-        loop$compare = compare4;
+        loop$compare = compare5;
         loop$acc = prepend(first1, acc);
       }
     }
@@ -1208,7 +1253,7 @@ function merge_descendings(loop$list1, loop$list2, loop$compare, loop$acc) {
 function merge_descending_pairs(loop$sequences, loop$compare, loop$acc) {
   while (true) {
     let sequences2 = loop$sequences;
-    let compare4 = loop$compare;
+    let compare5 = loop$compare;
     let acc = loop$acc;
     if (sequences2.hasLength(0)) {
       return reverse(acc);
@@ -1222,11 +1267,11 @@ function merge_descending_pairs(loop$sequences, loop$compare, loop$acc) {
       let ascending = merge_descendings(
         descending1,
         descending2,
-        compare4,
+        compare5,
         toList([])
       );
       loop$sequences = rest$1;
-      loop$compare = compare4;
+      loop$compare = compare5;
       loop$acc = prepend(ascending, acc);
     }
   }
@@ -1235,7 +1280,7 @@ function merge_all(loop$sequences, loop$direction, loop$compare) {
   while (true) {
     let sequences2 = loop$sequences;
     let direction = loop$direction;
-    let compare4 = loop$compare;
+    let compare5 = loop$compare;
     if (sequences2.hasLength(0)) {
       return toList([]);
     } else if (sequences2.hasLength(1) && direction instanceof Ascending) {
@@ -1245,19 +1290,19 @@ function merge_all(loop$sequences, loop$direction, loop$compare) {
       let sequence = sequences2.head;
       return reverse(sequence);
     } else if (direction instanceof Ascending) {
-      let sequences$1 = merge_ascending_pairs(sequences2, compare4, toList([]));
+      let sequences$1 = merge_ascending_pairs(sequences2, compare5, toList([]));
       loop$sequences = sequences$1;
       loop$direction = new Descending();
-      loop$compare = compare4;
+      loop$compare = compare5;
     } else {
-      let sequences$1 = merge_descending_pairs(sequences2, compare4, toList([]));
+      let sequences$1 = merge_descending_pairs(sequences2, compare5, toList([]));
       loop$sequences = sequences$1;
       loop$direction = new Ascending();
-      loop$compare = compare4;
+      loop$compare = compare5;
     }
   }
 }
-function sort(list4, compare4) {
+function sort(list4, compare5) {
   if (list4.hasLength(0)) {
     return toList([]);
   } else if (list4.hasLength(1)) {
@@ -1268,7 +1313,7 @@ function sort(list4, compare4) {
     let y = list4.tail.head;
     let rest$1 = list4.tail.tail;
     let _block;
-    let $ = compare4(x, y);
+    let $ = compare5(x, y);
     if ($ instanceof Lt) {
       _block = new Ascending();
     } else if ($ instanceof Eq) {
@@ -1279,13 +1324,13 @@ function sort(list4, compare4) {
     let direction = _block;
     let sequences$1 = sequences(
       rest$1,
-      compare4,
+      compare5,
       toList([x]),
       direction,
       y,
       toList([])
     );
-    return merge_all(sequences$1, new Ascending(), compare4);
+    return merge_all(sequences$1, new Ascending(), compare5);
   }
 }
 function key_find(keyword_list, desired_key) {
@@ -1474,7 +1519,7 @@ function or(first, second) {
     return second;
   }
 }
-function all(results) {
+function all2(results) {
   return try_map(results, (x) => {
     return x;
   });
@@ -2523,8 +2568,14 @@ function bit_array_inspect(bits, acc) {
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/dict.mjs
-function insert(dict2, key, value3) {
-  return map_insert(key, value3, dict2);
+function do_has_key(key, dict3) {
+  return !isEqual(map_get(dict3, key), new Error(void 0));
+}
+function has_key(dict3, key) {
+  return do_has_key(key, dict3);
+}
+function insert(dict3, key, value3) {
+  return map_insert(key, value3, dict3);
 }
 function from_list_loop(loop$list, loop$initial) {
   while (true) {
@@ -2572,8 +2623,8 @@ function do_keys_loop(loop$list, loop$acc) {
     }
   }
 }
-function keys(dict2) {
-  return do_keys_loop(map_to_list(dict2), toList([]));
+function keys(dict3) {
+  return do_keys_loop(map_to_list(dict3), toList([]));
 }
 function do_values_loop(loop$list, loop$acc) {
   while (true) {
@@ -2589,20 +2640,20 @@ function do_values_loop(loop$list, loop$acc) {
     }
   }
 }
-function values(dict2) {
-  let list_of_pairs = map_to_list(dict2);
+function values(dict3) {
+  let list_of_pairs = map_to_list(dict3);
   return do_values_loop(list_of_pairs, toList([]));
 }
-function delete$(dict2, key) {
-  return map_remove(key, dict2);
+function delete$(dict3, key) {
+  return map_remove(key, dict3);
 }
-function upsert(dict2, key, fun) {
-  let $ = map_get(dict2, key);
+function upsert(dict3, key, fun) {
+  let $ = map_get(dict3, key);
   if ($.isOk()) {
     let value3 = $[0];
-    return insert(dict2, key, fun(new Some(value3)));
+    return insert(dict3, key, fun(new Some(value3)));
   } else {
-    return insert(dict2, key, fun(new None()));
+    return insert(dict3, key, fun(new None()));
   }
 }
 function fold_loop(loop$list, loop$initial, loop$fun) {
@@ -2622,17 +2673,17 @@ function fold_loop(loop$list, loop$initial, loop$fun) {
     }
   }
 }
-function fold2(dict2, initial, fun) {
-  return fold_loop(map_to_list(dict2), initial, fun);
+function fold2(dict3, initial, fun) {
+  return fold_loop(map_to_list(dict3), initial, fun);
 }
-function do_map_values(f, dict2) {
-  let f$1 = (dict3, k, v) => {
-    return insert(dict3, k, f(k, v));
+function do_map_values(f, dict3) {
+  let f$1 = (dict4, k, v) => {
+    return insert(dict4, k, f(k, v));
   };
-  return fold2(dict2, new_map(), f$1);
+  return fold2(dict3, new_map(), f$1);
 }
-function map_values(dict2, fun) {
-  return do_map_values(fun, dict2);
+function map_values(dict3, fun) {
+  return do_map_values(fun, dict3);
 }
 
 // build/dev/javascript/gleam_stdlib/gleam_stdlib_decode_ffi.mjs
@@ -3070,9 +3121,9 @@ function bool2(input2) {
 
 // build/dev/javascript/gleam_stdlib/gleam/set.mjs
 var Set2 = class extends CustomType {
-  constructor(dict2) {
+  constructor(dict3) {
     super();
-    this.dict = dict2;
+    this.dict = dict3;
   }
 };
 function new$() {
@@ -3278,6 +3329,9 @@ function id(value3) {
 }
 function href(url) {
   return attribute2("href", url);
+}
+function disabled(is_disabled) {
+  return boolean_attribute("disabled", is_disabled);
 }
 function for$(id2) {
   return attribute2("for", id2);
@@ -4929,9 +4983,9 @@ var ATTRIBUTE_HOOKS = {
 var virtualise = (root3) => {
   const vdom = virtualise_node(root3);
   if (vdom === null || vdom.children instanceof Empty) {
-    const empty5 = empty_text_node();
-    initialiseMetadata(empty5);
-    root3.appendChild(empty5);
+    const empty6 = empty_text_node();
+    initialiseMetadata(empty6);
+    root3.appendChild(empty6);
     return none2();
   } else if (vdom.children instanceof NonEmpty && vdom.children.tail instanceof Empty) {
     return vdom.children.head;
@@ -5765,6 +5819,14 @@ var Order = class extends CustomType {
     this.volume_total = volume_total;
   }
 };
+var Type = class extends CustomType {
+  constructor(type_id, volume, name2) {
+    super();
+    this.type_id = type_id;
+    this.volume = volume;
+    this.name = name2;
+  }
+};
 function merge_orders(order_1, order_2) {
   let can_merge = order_1.location_id === order_2.location_id && order_1.price === order_2.price && order_1.type_id === order_2.type_id && order_1.system_id === order_2.system_id;
   if (!can_merge) {
@@ -5821,7 +5883,7 @@ function buy_order_decoder() {
               throw makeError(
                 "panic",
                 "config/esi",
-                86,
+                100,
                 "",
                 "found a sell order, should be a buy order",
                 {}
@@ -5928,7 +5990,7 @@ function sell_order_decoder() {
               throw makeError(
                 "panic",
                 "config/esi",
-                117,
+                131,
                 "",
                 "found a buy order, should be a sell order",
                 {}
@@ -6020,6 +6082,27 @@ function sell_order_decoder() {
 function sell_orders_decoder() {
   return list2(sell_order_decoder());
 }
+function type_decoder() {
+  return field(
+    "type_id",
+    int2,
+    (type_id) => {
+      return field(
+        "volume",
+        float2,
+        (volume) => {
+          return field(
+            "name",
+            string2,
+            (name2) => {
+              return success(new Type(type_id, volume, name2));
+            }
+          );
+        }
+      );
+    }
+  );
+}
 var esi_url = "https://esi.evetech.net/latest";
 var market_order_url = "/markets/{region_id}/orders/?datasource=tranquility&order_type={order_kind}&page={page}";
 function get_market_orders_url(from2, is_buy_order, page) {
@@ -6047,8 +6130,43 @@ function get_market_orders_url(from2, is_buy_order, page) {
     })()
   );
 }
+var type_id_metadata_url = "/universe/types/{type_id}?datasource=tranquility";
+function get_type_id_metadata_url(type_id) {
+  return esi_url + (() => {
+    let _pipe = type_id_metadata_url;
+    return replace(
+      _pipe,
+      "{type_id}",
+      (() => {
+        let _pipe$1 = type_id;
+        return to_string(_pipe$1);
+      })()
+    );
+  })();
+}
 
 // build/dev/javascript/eve_arbitrage/arbitrage.mjs
+var Item = class extends CustomType {
+  constructor(id2, name2, m3) {
+    super();
+    this.id = id2;
+    this.name = name2;
+    this.m3 = m3;
+  }
+};
+var Trade = class extends CustomType {
+  constructor(source, destination, item, amount, total_volume, unit_buy_price, unit_sell_price, profit_per_volume) {
+    super();
+    this.source = source;
+    this.destination = destination;
+    this.item = item;
+    this.amount = amount;
+    this.total_volume = total_volume;
+    this.unit_buy_price = unit_buy_price;
+    this.unit_sell_price = unit_sell_price;
+    this.profit_per_volume = profit_per_volume;
+  }
+};
 var RawTrade = class extends CustomType {
   constructor(source, destination, item, amount, unit_buy_price, unit_sell_price, unit_profit) {
     super();
@@ -6061,22 +6179,46 @@ var RawTrade = class extends CustomType {
     this.unit_profit = unit_profit;
   }
 };
-var Multibuy = class extends CustomType {
-  constructor(purchases, total_price) {
-    super();
-    this.purchases = purchases;
-    this.total_price = total_price;
+function trades_to_multibuys(trades, collateral, holds) {
+  let sorted_trades = sort(
+    trades,
+    (trade_1, trade_2) => {
+      return compare(
+        trade_2.profit_per_volume,
+        trade_1.profit_per_volume
+      );
+    }
+  );
+  throw makeError(
+    "todo",
+    "arbitrage",
+    73,
+    "trades_to_multibuys",
+    "trades to multibuys",
+    {}
+  );
+}
+function raw_trade_to_trade(raw_trade, type_2) {
+  let $ = raw_trade.item === type_2.type_id;
+  if (!$) {
+    return new Error(void 0);
+  } else {
+    let _pipe = new Trade(
+      raw_trade.source,
+      raw_trade.destination,
+      new Item(type_2.type_id, type_2.name, type_2.volume),
+      raw_trade.amount,
+      (() => {
+        let _pipe2 = raw_trade.amount;
+        return identity(_pipe2);
+      })() * type_2.volume,
+      raw_trade.unit_buy_price,
+      raw_trade.unit_sell_price,
+      divideFloat(raw_trade.unit_profit, type_2.volume)
+    );
+    return new Ok(_pipe);
   }
-};
-var Purchase = class extends CustomType {
-  constructor(item_name, amount, unit_price, total_price) {
-    super();
-    this.item_name = item_name;
-    this.amount = amount;
-    this.unit_price = unit_price;
-    this.total_price = total_price;
-  }
-};
+}
 function merge_orders2(orders) {
   let r = fold(
     orders,
@@ -6115,7 +6257,7 @@ function merge_orders2(orders) {
                 throw makeError(
                   "let_assert",
                   "arbitrage",
-                  78,
+                  125,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: new_orders }
@@ -6146,7 +6288,7 @@ function recurse_compute_trades_from_item_orders(sell_orders, buy_orders, acc) {
         throw makeError(
           "let_assert",
           "arbitrage",
-          137,
+          184,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: sell_orders }
@@ -6158,7 +6300,7 @@ function recurse_compute_trades_from_item_orders(sell_orders, buy_orders, acc) {
         throw makeError(
           "let_assert",
           "arbitrage",
-          138,
+          185,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: buy_orders }
@@ -6246,7 +6388,7 @@ function compute_trades(sell_orders, buy_orders, tax_rate) {
         throw makeError(
           "let_assert",
           "arbitrage",
-          100,
+          147,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $ }
@@ -6258,7 +6400,7 @@ function compute_trades(sell_orders, buy_orders, tax_rate) {
         throw makeError(
           "let_assert",
           "arbitrage",
-          101,
+          148,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $1 }
@@ -6304,31 +6446,8 @@ function compute_trades(sell_orders, buy_orders, tax_rate) {
   return filter(
     _pipe$2,
     (raw_trade) => {
-      return echo(raw_trade.unit_profit > 0, "src/arbitrage.gleam", 125);
+      return echo(raw_trade.unit_profit > 0, "src/arbitrage.gleam", 172);
     }
-  );
-}
-function multibuy_from_purchases(purchases) {
-  return new Multibuy(
-    purchases,
-    fold(
-      purchases,
-      0,
-      (total, purchase) => {
-        return total + purchase.total_price;
-      }
-    )
-  );
-}
-function new_purchase(name2, amount, unit_price) {
-  return new Purchase(
-    name2,
-    amount,
-    unit_price,
-    unit_price * (() => {
-      let _pipe = amount;
-      return identity(_pipe);
-    })()
   );
 }
 function get_multibuy_purchases(multibuy) {
@@ -7865,7 +7984,7 @@ function removeManyItems(storage, pattern) {
 
 // build/dev/javascript/eve_arbitrage/mvu.mjs
 var Model = class extends CustomType {
-  constructor(storage, ships, current_ship, count_ship_index, count_hold_index, systems, source, destination, accounting_level, language, sidebar_expanded, collateral, multibuys) {
+  constructor(storage, ships, current_ship, count_ship_index, count_hold_index, systems, source, destination, accounting_level, language, sidebar_expanded, collateral, trades) {
     super();
     this.storage = storage;
     this.ships = ships;
@@ -7879,7 +7998,25 @@ var Model = class extends CustomType {
     this.language = language;
     this.sidebar_expanded = sidebar_expanded;
     this.collateral = collateral;
-    this.multibuys = multibuys;
+    this.trades = trades;
+  }
+};
+var RawTrade2 = class extends CustomType {
+  constructor(raw_trade) {
+    super();
+    this.raw_trade = raw_trade;
+  }
+};
+var Trade2 = class extends CustomType {
+  constructor(trade) {
+    super();
+    this.trade = trade;
+  }
+};
+var Multibuy = class extends CustomType {
+  constructor(multibuy) {
+    super();
+    this.multibuy = multibuy;
   }
 };
 var ShipEntry = class extends CustomType {
@@ -7947,6 +8084,12 @@ var EsiReturnedSellOrders = class extends CustomType {
     this[0] = x0;
     this.location = location;
     this.page = page;
+  }
+};
+var EsiReturnedTypeMetadata = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
   }
 };
 var UserClickedComputeMultibuys = class extends CustomType {
@@ -8148,6 +8291,38 @@ function write(text4) {
   );
 }
 
+// build/dev/javascript/eve_arbitrage/mvu/update/side_effects/fetch_esi.mjs
+function get_query_sell_orders_side_effect(location, from2, page) {
+  let query_handler = expect_json(
+    sell_orders_decoder(),
+    (_capture) => {
+      return new EsiReturnedSellOrders(_capture, from2, page);
+    }
+  );
+  let url = get_market_orders_url(location, false, page);
+  return get2(url, query_handler);
+}
+function get_query_buy_orders_side_effect(location, from2, page) {
+  let query_handler = expect_json(
+    buy_orders_decoder(),
+    (_capture) => {
+      return new EsiReturnedBuyOrders(_capture, from2, page);
+    }
+  );
+  let url = get_market_orders_url(location, true, page);
+  return get2(url, query_handler);
+}
+function get_query_type_metadata_side_effect(type_id) {
+  let query_handler = expect_json(
+    type_decoder(),
+    (var0) => {
+      return new EsiReturnedTypeMetadata(var0);
+    }
+  );
+  let url = get_type_id_metadata_url(type_id);
+  return get2(url, query_handler);
+}
+
 // build/dev/javascript/eve_arbitrage/mvu/update/multibuys.mjs
 function user_clicked_copy_multibuy(model, multibuy) {
   let multibuy_text = multibuy_to_string(multibuy);
@@ -8171,7 +8346,7 @@ function user_clicked_compute_multibuys(model) {
         throw makeError(
           "let_assert",
           "mvu/update/multibuys",
-          28,
+          37,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $ }
@@ -8183,7 +8358,7 @@ function user_clicked_compute_multibuys(model) {
         throw makeError(
           "let_assert",
           "mvu/update/multibuys",
-          29,
+          38,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $1 }
@@ -8195,7 +8370,7 @@ function user_clicked_compute_multibuys(model) {
         throw makeError(
           "let_assert",
           "mvu/update/multibuys",
-          30,
+          39,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $2 }
@@ -8207,171 +8382,208 @@ function user_clicked_compute_multibuys(model) {
         throw makeError(
           "let_assert",
           "mvu/update/multibuys",
-          31,
+          40,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $3 }
         );
       }
       let dest$1 = $3[0];
-      echo2(
-        compute_trades(
-          source$1.sell_orders,
-          dest$1.buy_orders,
-          (() => {
-            let _pipe = model.accounting_level;
-            return tax_percent_from_accounting_level(_pipe);
-          })()
-        ),
-        "src/mvu/update/multibuys.gleam",
-        33
+      let raw_trades = compute_trades(
+        source$1.sell_orders,
+        dest$1.buy_orders,
+        (() => {
+          let _pipe2 = model.accounting_level;
+          return tax_percent_from_accounting_level(_pipe2);
+        })()
       );
-      throw makeError(
-        "todo",
-        "mvu/update/multibuys",
-        39,
-        "",
-        "user clicked compute multibuys",
-        {}
+      let _block;
+      let _record = model;
+      _block = new Model(
+        _record.storage,
+        _record.ships,
+        _record.current_ship,
+        _record.count_ship_index,
+        _record.count_hold_index,
+        _record.systems,
+        _record.source,
+        _record.destination,
+        _record.accounting_level,
+        _record.language,
+        _record.sidebar_expanded,
+        _record.collateral,
+        map2(raw_trades, (var0) => {
+          return new RawTrade2(var0);
+        })
       );
-      return [model, none()];
+      let model$1 = _block;
+      let _block$1;
+      let _pipe = raw_trades;
+      let _pipe$1 = map2(_pipe, (trade) => {
+        return trade.item;
+      });
+      let _pipe$2 = unique(_pipe$1);
+      let _pipe$3 = map2(
+        _pipe$2,
+        get_query_type_metadata_side_effect
+      );
+      _block$1 = batch(_pipe$3);
+      let effect = _block$1;
+      return [model$1, effect];
     }
   );
 }
-function echo2(value3, file, line) {
-  const grey = "\x1B[90m";
-  const reset_color = "\x1B[39m";
-  const file_line = `${file}:${line}`;
-  const string_value = echo$inspect2(value3);
-  if (globalThis.process?.stderr?.write) {
-    const string5 = `${grey}${file_line}${reset_color}
-${string_value}
-`;
-    process.stderr.write(string5);
-  } else if (globalThis.Deno) {
-    const string5 = `${grey}${file_line}${reset_color}
-${string_value}
-`;
-    globalThis.Deno.stderr.writeSync(new TextEncoder().encode(string5));
-  } else {
-    const string5 = `${file_line}
-${string_value}`;
-    globalThis.console.log(string5);
-  }
-  return value3;
-}
-function echo$inspectString2(str) {
-  let new_str = '"';
-  for (let i = 0; i < str.length; i++) {
-    let char = str[i];
-    if (char == "\n") new_str += "\\n";
-    else if (char == "\r") new_str += "\\r";
-    else if (char == "	") new_str += "\\t";
-    else if (char == "\f") new_str += "\\f";
-    else if (char == "\\") new_str += "\\\\";
-    else if (char == '"') new_str += '\\"';
-    else if (char < " " || char > "~" && char < "\xA0") {
-      new_str += "\\u{" + char.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0") + "}";
-    } else {
-      new_str += char;
-    }
-  }
-  new_str += '"';
-  return new_str;
-}
-function echo$inspectDict2(map6) {
-  let body = "dict.from_list([";
-  let first = true;
-  let key_value_pairs = [];
-  map6.forEach((value3, key) => {
-    key_value_pairs.push([key, value3]);
-  });
-  key_value_pairs.sort();
-  key_value_pairs.forEach(([key, value3]) => {
-    if (!first) body = body + ", ";
-    body = body + "#(" + echo$inspect2(key) + ", " + echo$inspect2(value3) + ")";
-    first = false;
-  });
-  return body + "])";
-}
-function echo$inspectCustomType2(record) {
-  const props = globalThis.Object.keys(record).map((label2) => {
-    const value3 = echo$inspect2(record[label2]);
-    return isNaN(parseInt(label2)) ? `${label2}: ${value3}` : value3;
-  }).join(", ");
-  return props ? `${record.constructor.name}(${props})` : record.constructor.name;
-}
-function echo$inspectObject2(v) {
-  const name2 = Object.getPrototypeOf(v)?.constructor?.name || "Object";
-  const props = [];
-  for (const k of Object.keys(v)) {
-    props.push(`${echo$inspect2(k)}: ${echo$inspect2(v[k])}`);
-  }
-  const body = props.length ? " " + props.join(", ") + " " : "";
-  const head = name2 === "Object" ? "" : name2 + " ";
-  return `//js(${head}{${body}})`;
-}
-function echo$inspect2(v) {
-  const t = typeof v;
-  if (v === true) return "True";
-  if (v === false) return "False";
-  if (v === null) return "//js(null)";
-  if (v === void 0) return "Nil";
-  if (t === "string") return echo$inspectString2(v);
-  if (t === "bigint" || t === "number") return v.toString();
-  if (globalThis.Array.isArray(v))
-    return `#(${v.map(echo$inspect2).join(", ")})`;
-  if (v instanceof List)
-    return `[${v.toArray().map(echo$inspect2).join(", ")}]`;
-  if (v instanceof UtfCodepoint)
-    return `//utfcodepoint(${String.fromCodePoint(v.value)})`;
-  if (v instanceof BitArray) return echo$inspectBitArray2(v);
-  if (v instanceof CustomType) return echo$inspectCustomType2(v);
-  if (echo$isDict2(v)) return echo$inspectDict2(v);
-  if (v instanceof Set)
-    return `//js(Set(${[...v].map(echo$inspect2).join(", ")}))`;
-  if (v instanceof RegExp) return `//js(${v})`;
-  if (v instanceof Date) return `//js(Date("${v.toISOString()}"))`;
-  if (v instanceof Function) {
-    const args = [];
-    for (const i of Array(v.length).keys())
-      args.push(String.fromCharCode(i + 97));
-    return `//fn(${args.join(", ")}) { ... }`;
-  }
-  return echo$inspectObject2(v);
-}
-function echo$inspectBitArray2(bitArray) {
-  let endOfAlignedBytes = bitArray.bitOffset + 8 * Math.trunc(bitArray.bitSize / 8);
-  let alignedBytes = bitArraySlice(
-    bitArray,
-    bitArray.bitOffset,
-    endOfAlignedBytes
-  );
-  let remainingUnalignedBits = bitArray.bitSize % 8;
-  if (remainingUnalignedBits > 0) {
-    let remainingBits = bitArraySliceToInt(
-      bitArray,
-      endOfAlignedBytes,
-      bitArray.bitSize,
-      false,
-      false
+function esi_returned_type_metadata(model, esi_response) {
+  if (!esi_response.isOk()) {
+    let e = esi_response[0];
+    console_error(
+      (() => {
+        let _pipe = e;
+        return inspect2(_pipe);
+      })()
     );
-    let alignedBytesArray = Array.from(alignedBytes.rawBuffer);
-    let suffix = `${remainingBits}:size(${remainingUnalignedBits})`;
-    if (alignedBytesArray.length === 0) {
-      return `<<${suffix}>>`;
-    } else {
-      return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}, ${suffix}>>`;
-    }
+    return [model, none()];
   } else {
-    return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}>>`;
-  }
-}
-function echo$isDict2(value3) {
-  try {
-    return value3 instanceof Dict;
-  } catch {
-    return false;
+    let type_metadata = esi_response[0];
+    let _block;
+    let _pipe = model.trades;
+    _block = map2(
+      _pipe,
+      (trade) => {
+        if (trade instanceof RawTrade2) {
+          let raw_trade = trade.raw_trade;
+          let $2 = raw_trade.item === type_metadata.type_id;
+          if (!$2) {
+            let _pipe$1 = raw_trade;
+            return new RawTrade2(_pipe$1);
+          } else {
+            let _pipe$1 = raw_trade_to_trade(
+              raw_trade,
+              type_metadata
+            );
+            let _pipe$2 = map3(
+              _pipe$1,
+              (var0) => {
+                return new Trade2(var0);
+              }
+            );
+            return unwrap2(
+              _pipe$2,
+              (() => {
+                let _pipe$3 = raw_trade;
+                return new RawTrade2(_pipe$3);
+              })()
+            );
+          }
+        } else {
+          let any = trade;
+          return any;
+        }
+      }
+    );
+    let new_trades = _block;
+    let _block$1;
+    let $ = all(
+      new_trades,
+      (trade) => {
+        if (trade instanceof Trade2) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+    );
+    if ($) {
+      let $1 = model.current_ship;
+      if (!($1 instanceof Some)) {
+        throw makeError(
+          "let_assert",
+          "mvu/update/multibuys",
+          96,
+          "esi_returned_type_metadata",
+          "Pattern match failed, no pattern matched the value.",
+          { value: $1 }
+        );
+      }
+      let current_ship = $1[0];
+      let $2 = model.collateral;
+      if (!($2 instanceof Some)) {
+        throw makeError(
+          "let_assert",
+          "mvu/update/multibuys",
+          97,
+          "esi_returned_type_metadata",
+          "Pattern match failed, no pattern matched the value.",
+          { value: $2 }
+        );
+      }
+      let collateral = $2[0];
+      let trades = map2(
+        new_trades,
+        (trade) => {
+          if (!(trade instanceof Trade2)) {
+            throw makeError(
+              "let_assert",
+              "mvu/update/multibuys",
+              100,
+              "",
+              "Pattern match failed, no pattern matched the value.",
+              { value: trade }
+            );
+          }
+          let trade$1 = trade.trade;
+          return trade$1;
+        }
+      );
+      let $3 = map_get(model.ships, current_ship);
+      if (!$3.isOk()) {
+        throw makeError(
+          "let_assert",
+          "mvu/update/multibuys",
+          103,
+          "esi_returned_type_metadata",
+          "Pattern match failed, no pattern matched the value.",
+          { value: $3 }
+        );
+      }
+      let selected_ship = $3[0];
+      let _pipe$1 = trades_to_multibuys(
+        trades,
+        collateral,
+        (() => {
+          let _pipe$12 = selected_ship.ship.holds;
+          return values(_pipe$12);
+        })()
+      );
+      _block$1 = map2(
+        _pipe$1,
+        (var0) => {
+          return new Multibuy(var0);
+        }
+      );
+    } else {
+      _block$1 = new_trades;
+    }
+    let possibly_multibuys = _block$1;
+    let _block$2;
+    let _record = model;
+    _block$2 = new Model(
+      _record.storage,
+      _record.ships,
+      _record.current_ship,
+      _record.count_ship_index,
+      _record.count_hold_index,
+      _record.systems,
+      _record.source,
+      _record.destination,
+      _record.accounting_level,
+      _record.language,
+      _record.sidebar_expanded,
+      _record.collateral,
+      possibly_multibuys
+    );
+    let model$1 = _block$2;
+    return [model$1, none()];
   }
 }
 
@@ -8455,7 +8667,7 @@ function string_to_ints(from2) {
   let _pipe$1 = drop_end(_pipe, 1);
   let _pipe$2 = split2(_pipe$1, ",");
   let _pipe$3 = map2(_pipe$2, parse_int);
-  return all(_pipe$3);
+  return all2(_pipe$3);
 }
 function ints_dict_to_string(from2) {
   return fold2(
@@ -8517,7 +8729,7 @@ function string_to_ints_dict(from2) {
           );
         }
       );
-      let _pipe$3 = all(_pipe$2);
+      let _pipe$3 = all2(_pipe$2);
       return map3(_pipe$3, from_list);
     }
   );
@@ -8801,7 +9013,7 @@ function user_selected_ship(selected_ship, model) {
     _record.language,
     _record.sidebar_expanded,
     _record.collateral,
-    _record.multibuys
+    _record.trades
   );
   let model$1 = _block;
   let _block$1;
@@ -8860,7 +9072,7 @@ function user_created_ship(model) {
     _record.language,
     _record.sidebar_expanded,
     _record.collateral,
-    _record.multibuys
+    _record.trades
   );
   let model$1 = _block;
   let _block$1;
@@ -8940,7 +9152,7 @@ function user_deleted_ship(model, deleted_ship) {
     _record.language,
     _record.sidebar_expanded,
     _record.collateral,
-    _record.multibuys
+    _record.trades
   );
   let model$1 = _block$1;
   let _block$2;
@@ -9039,7 +9251,7 @@ function user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id) {
     _record$3.language,
     _record$3.sidebar_expanded,
     _record$3.collateral,
-    _record$3.multibuys
+    _record$3.trades
   );
   let model$1 = _block$3;
   let _block$4;
@@ -9098,7 +9310,7 @@ function user_added_hold_to_ship(model, ship_id) {
     _record$2.language,
     _record$2.sidebar_expanded,
     _record$2.collateral,
-    _record$2.multibuys
+    _record$2.trades
   );
   let model$1 = _block$2;
   let _block$3;
@@ -9184,7 +9396,7 @@ function user_deleted_hold_from_ship(model, hold_id, ship_id) {
     _record$2.language,
     _record$2.sidebar_expanded,
     _record$2.collateral,
-    _record$2.multibuys
+    _record$2.trades
   );
   let model$1 = _block$2;
   let _block$3;
@@ -9248,7 +9460,7 @@ function user_collapsed_ship(model, ship_id) {
     _record$1.language,
     _record$1.sidebar_expanded,
     _record$1.collateral,
-    _record$1.multibuys
+    _record$1.trades
   );
   let model$1 = _block$1;
   return [model$1, none()];
@@ -9286,7 +9498,7 @@ function user_expanded_ship(model, ship_id) {
     _record$1.language,
     _record$1.sidebar_expanded,
     _record$1.collateral,
-    _record$1.multibuys
+    _record$1.trades
   );
   let model$1 = _block$1;
   return [model$1, none()];
@@ -9367,7 +9579,7 @@ function user_updated_ship_name(model, id2) {
       _record$2.language,
       _record$2.sidebar_expanded,
       _record$2.collateral,
-      _record$2.multibuys
+      _record$2.trades
     );
   }
   let model$1 = _block;
@@ -9443,7 +9655,7 @@ function user_updated_ship_hold_name(model, hold_id, ship_id) {
     _record$3.language,
     _record$3.sidebar_expanded,
     _record$3.collateral,
-    _record$3.multibuys
+    _record$3.trades
   );
   let model$1 = _block$3;
   let _block$4;
@@ -9542,7 +9754,7 @@ function user_updated_ship_hold_capacity(model, hold_id, ship_id) {
     _record$3.language,
     _record$3.sidebar_expanded,
     _record$3.collateral,
-    _record$3.multibuys
+    _record$3.trades
   );
   let model$1 = _block$3;
   let _block$4;
@@ -9579,7 +9791,7 @@ function user_clicked_collapse_sidebar(model) {
     _record.language,
     false,
     _record.collateral,
-    _record.multibuys
+    _record.trades
   );
   let model$1 = _block;
   return [model$1, none()];
@@ -9600,7 +9812,7 @@ function user_clicked_expand_sidebar(model) {
     _record.language,
     true,
     _record.collateral,
-    _record.multibuys
+    _record.trades
   );
   let model$1 = _block;
   return [model$1, none()];
@@ -9621,7 +9833,7 @@ function user_updated_collateral(model, value3) {
     _record.language,
     _record.sidebar_expanded,
     value3,
-    _record.multibuys
+    _record.trades
   );
   let model$1 = _block;
   let _block$1;
@@ -9651,7 +9863,7 @@ function user_updated_accounting_level(model, level) {
     _record.language,
     _record.sidebar_expanded,
     _record.collateral,
-    _record.multibuys
+    _record.trades
   );
   let model$1 = _block;
   let _block$1;
@@ -9688,7 +9900,7 @@ function init_load_storage(model, storage) {
     _record.language,
     _record.sidebar_expanded,
     _record.collateral,
-    _record.multibuys
+    _record.trades
   );
   let model$1 = _block;
   let effect = batch(
@@ -9753,7 +9965,7 @@ function store_read_ship_name(model, name2, id2) {
       _record$2.language,
       _record$2.sidebar_expanded,
       _record$2.collateral,
-      _record$2.multibuys
+      _record$2.trades
     );
   }
   let model$1 = _block;
@@ -9775,7 +9987,7 @@ function store_read_accounting_level(model, accounting_level) {
     _record.language,
     _record.sidebar_expanded,
     _record.collateral,
-    _record.multibuys
+    _record.trades
   );
   let model$1 = _block;
   return [model$1, none()];
@@ -9796,7 +10008,7 @@ function store_read_collateral(model, collateral) {
     _record.language,
     _record.sidebar_expanded,
     collateral,
-    _record.multibuys
+    _record.trades
   );
   let model$1 = _block;
   return [model$1, none()];
@@ -9856,7 +10068,7 @@ function store_read_hold_capacity(model, capacity, ship_id, hold_id) {
     _record$3.language,
     _record$3.sidebar_expanded,
     _record$3.collateral,
-    _record$3.multibuys
+    _record$3.trades
   );
   let model$1 = _block$3;
   return [model$1, none()];
@@ -9899,7 +10111,7 @@ function store_read_hold_indices(model, hold_indices) {
       _record.language,
       _record.sidebar_expanded,
       _record.collateral,
-      _record.multibuys
+      _record.trades
     );
     let model$1 = _block;
     let _block$1;
@@ -9999,7 +10211,7 @@ function store_read_hold_kind(model, hold_kind, ship_id, hold_id) {
     _record$3.language,
     _record$3.sidebar_expanded,
     _record$3.collateral,
-    _record$3.multibuys
+    _record$3.trades
   );
   let model$1 = _block$3;
   return [model$1, none()];
@@ -10059,7 +10271,7 @@ function store_read_hold_name(model, hold_name, ship_id, hold_id) {
     _record$3.language,
     _record$3.sidebar_expanded,
     _record$3.collateral,
-    _record$3.multibuys
+    _record$3.trades
   );
   let model$1 = _block$3;
   return [model$1, none()];
@@ -10080,32 +10292,10 @@ function store_read_selected_ship(model, ship_id) {
     _record.language,
     _record.sidebar_expanded,
     _record.collateral,
-    _record.multibuys
+    _record.trades
   );
   let model$1 = _block;
   return [model$1, none()];
-}
-
-// build/dev/javascript/eve_arbitrage/mvu/update/side_effects/fetch_orders.mjs
-function get_query_sell_orders_side_effect(location, from2, page) {
-  let query_handler = expect_json(
-    sell_orders_decoder(),
-    (_capture) => {
-      return new EsiReturnedSellOrders(_capture, from2, page);
-    }
-  );
-  let url = get_market_orders_url(location, false, page);
-  return get2(url, query_handler);
-}
-function get_query_buy_orders_side_effect(location, from2, page) {
-  let query_handler = expect_json(
-    buy_orders_decoder(),
-    (_capture) => {
-      return new EsiReturnedBuyOrders(_capture, from2, page);
-    }
-  );
-  let url = get_market_orders_url(location, true, page);
-  return get2(url, query_handler);
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/update/systems.mjs
@@ -10125,7 +10315,7 @@ function user_selected_source(new_source, model) {
     _record.language,
     _record.sidebar_expanded,
     _record.collateral,
-    _record.multibuys
+    _record.trades
   );
   let model$1 = _block;
   let side_effect = none();
@@ -10148,7 +10338,7 @@ function user_selected_destination(new_dest, model) {
     _record.language,
     _record.sidebar_expanded,
     _record.collateral,
-    _record.multibuys
+    _record.trades
   );
   let model$1 = _block;
   let side_effect = none();
@@ -10234,7 +10424,7 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
       _record$1.language,
       _record$1.sidebar_expanded,
       _record$1.collateral,
-      _record$1.multibuys
+      _record$1.trades
     );
     let model$1 = _block$1;
     return [model$1, none()];
@@ -10315,7 +10505,7 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
           _record.language,
           _record.sidebar_expanded,
           _record.collateral,
-          _record.multibuys
+          _record.trades
         );
       })(),
       get_query_sell_orders_side_effect(
@@ -10405,7 +10595,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
       _record$1.language,
       _record$1.sidebar_expanded,
       _record$1.collateral,
-      _record$1.multibuys
+      _record$1.trades
     );
     let model$1 = _block$1;
     return [model$1, none()];
@@ -10481,7 +10671,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
           _record.language,
           _record.sidebar_expanded,
           _record.collateral,
-          _record.multibuys
+          _record.trades
         );
       })(),
       get_query_buy_orders_side_effect(
@@ -10558,7 +10748,7 @@ function user_loaded_source(model, from2) {
       _record$1.language,
       _record$1.sidebar_expanded,
       _record$1.collateral,
-      _record$1.multibuys
+      _record$1.trades
     );
   } else {
     _block$1 = model;
@@ -10580,7 +10770,7 @@ function user_loaded_source(model, from2) {
         _record$1.language,
         _record$1.sidebar_expanded,
         _record$1.collateral,
-        _record$1.multibuys
+        _record$1.trades
       );
     })(),
     side_effect
@@ -10652,7 +10842,7 @@ function user_loaded_destination(model, to) {
       _record$1.language,
       _record$1.sidebar_expanded,
       _record$1.collateral,
-      _record$1.multibuys
+      _record$1.trades
     );
   } else {
     _block$1 = model;
@@ -10674,7 +10864,7 @@ function user_loaded_destination(model, to) {
         _record$1.language,
         _record$1.sidebar_expanded,
         _record$1.collateral,
-        _record$1.multibuys
+        _record$1.trades
       );
     })(),
     side_effect
@@ -10718,6 +10908,9 @@ function run2(model, msg) {
     return user_clicked_copy_multibuy(model, multibuy);
   } else if (msg instanceof UserClickedComputeMultibuys) {
     return user_clicked_compute_multibuys(model);
+  } else if (msg instanceof EsiReturnedTypeMetadata) {
+    let esi_response = msg[0];
+    return esi_returned_type_metadata(model, esi_response);
   } else if (msg instanceof UserClickedCollapseSidebar) {
     return user_clicked_collapse_sidebar(model);
   } else if (msg instanceof UserClickedExpandSidebar) {
@@ -10873,7 +11066,7 @@ function on_blur(msg) {
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/view/multibuys.mjs
-function get_compute_multibuy_button() {
+function get_active_compute_multibuys_button() {
   return div(
     toList([class$("flex justify-center my-8")]),
     toList([
@@ -10912,6 +11105,53 @@ function get_compute_multibuy_button() {
       )
     ])
   );
+}
+function get_inactive_compute_multibuys_button() {
+  return div(
+    toList([class$("flex justify-center my-8")]),
+    toList([
+      button(
+        toList([
+          class$(
+            "bg-gray-400 text-gray-200 font-bold py-3 px-8 rounded-lg shadow-md flex items-center cursor-not-allowed opacity-70"
+          ),
+          disabled(true)
+        ]),
+        toList([
+          svg(
+            toList([
+              attribute2("stroke", "currentColor"),
+              attribute2("viewBox", "0 0 24 24"),
+              attribute2("fill", "none"),
+              class$("h-5 w-5 mr-2"),
+              attribute2("xmlns", "http://www.w3.org/2000/svg")
+            ]),
+            toList([
+              path(
+                toList([
+                  attribute2(
+                    "d",
+                    "M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                  ),
+                  attribute2("stroke-width", "2"),
+                  attribute2("stroke-linejoin", "round"),
+                  attribute2("stroke-linecap", "round")
+                ])
+              )
+            ])
+          ),
+          text3("Compute Multibuys\n                    ")
+        ])
+      )
+    ])
+  );
+}
+function get_compute_multibuy_button(selected_ship, collateral, source, destination) {
+  if (selected_ship instanceof Some && collateral instanceof Some && source instanceof Some && destination instanceof Some) {
+    return get_active_compute_multibuys_button();
+  } else {
+    return get_inactive_compute_multibuys_button();
+  }
 }
 function get_multibuy(multibuy) {
   return div(
@@ -11010,17 +11250,37 @@ function get_multibuy(multibuy) {
   );
 }
 function get_section(model) {
+  let _block;
+  let _pipe = map2(
+    model.trades,
+    (trade) => {
+      if (trade instanceof Multibuy) {
+        let multibuy = trade.multibuy;
+        return new Ok(get_multibuy(multibuy));
+      } else {
+        return new Error(void 0);
+      }
+    }
+  );
+  let _pipe$1 = all2(_pipe);
+  _block = unwrap2(_pipe$1, toList([]));
+  let multibuys = _block;
   return section(
     toList([]),
     (() => {
-      let _pipe = toList([
-        get_compute_multibuy_button(),
+      let _pipe$2 = toList([
+        get_compute_multibuy_button(
+          model.current_ship,
+          model.collateral,
+          model.source,
+          model.destination
+        ),
         h2(
           toList([class$("text-2xl font-bold mb-4")]),
           toList([text3("Arbitrage Multibuys")])
         )
       ]);
-      return append(_pipe, map2(model.multibuys, get_multibuy));
+      return append(_pipe$2, multibuys);
     })()
   );
 }
@@ -12401,27 +12661,6 @@ function init(_) {
       return insert(systems2, name2, system);
     }
   );
-  let debug_multibuys = toList([
-    (() => {
-      let _pipe = toList([
-        new_purchase("Heavy Water", 112764, 120.8),
-        new_purchase("Iteron Mark V Lodestrike SKIN", 1, 86500)
-      ]);
-      return multibuy_from_purchases(_pipe);
-    })(),
-    (() => {
-      let _pipe = toList([
-        new_purchase("Heavy Water", 112764, 120.8)
-      ]);
-      return multibuy_from_purchases(_pipe);
-    })(),
-    (() => {
-      let _pipe = toList([
-        new_purchase("Heavy Water", 112764, 120.8)
-      ]);
-      return multibuy_from_purchases(_pipe);
-    })()
-  ]);
   let effect = get_store();
   return [
     new Model(
@@ -12440,7 +12679,7 @@ function init(_) {
       default_language,
       false,
       new None(),
-      debug_multibuys
+      toList([])
     ),
     effect
   ];

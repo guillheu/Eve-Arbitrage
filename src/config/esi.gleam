@@ -8,6 +8,8 @@ const esi_url = "https://esi.evetech.net/latest"
 
 const market_order_url = "/markets/{region_id}/orders/?datasource=tranquility&order_type={order_kind}&page={page}"
 
+const type_id_metadata_url = "/universe/types/{type_id}?datasource=tranquility"
+
 pub type Sell
 
 pub type Buy
@@ -26,6 +28,18 @@ pub type Order(kind) {
     volume_remain: Int,
     volume_total: Int,
   )
+}
+
+pub type Type {
+  Type(type_id: Int, volume: Float, name: String)
+}
+
+pub fn get_type_id_metadata_url(type_id: Int) -> String {
+  esi_url
+  <> {
+    type_id_metadata_url
+    |> string.replace("{type_id}", type_id |> int.to_string)
+  }
 }
 
 pub fn get_market_orders_url(
@@ -139,4 +153,11 @@ fn sell_order_decoder() -> decode.Decoder(Order(Sell)) {
     volume_remain:,
     volume_total:,
   ))
+}
+
+pub fn type_decoder() -> decode.Decoder(Type) {
+  use type_id <- decode.field("type_id", decode.int)
+  use volume <- decode.field("volume", decode.float)
+  use name <- decode.field("name", decode.string)
+  decode.success(Type(type_id:, volume:, name:))
 }

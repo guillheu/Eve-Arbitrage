@@ -9,7 +9,7 @@ import gleam/string
 import gleam/time/timestamp
 import lustre/effect
 import mvu
-import mvu/update/side_effects/fetch_orders
+import mvu/update/side_effects/fetch_esi
 import rsvp
 
 pub fn user_selected_source(
@@ -93,7 +93,7 @@ pub fn esi_returned_sell_orders(
       )
       #(
         mvu.Model(..model, systems: systems),
-        fetch_orders.get_query_sell_orders_side_effect(
+        fetch_esi.get_query_sell_orders_side_effect(
           system.location,
           from,
           page + 1,
@@ -159,7 +159,7 @@ pub fn esi_returned_buy_orders(
       )
       #(
         mvu.Model(..model, systems: systems),
-        fetch_orders.get_query_buy_orders_side_effect(
+        fetch_esi.get_query_buy_orders_side_effect(
           system.location,
           from,
           page + 1,
@@ -175,7 +175,7 @@ pub fn user_loaded_source(
 ) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
   let assert Ok(system) = dict.get(model.systems, from)
   let side_effect =
-    fetch_orders.get_query_sell_orders_side_effect(system.location, from, 1)
+    fetch_esi.get_query_sell_orders_side_effect(system.location, from, 1)
   let system =
     mvu.System(..system, sell_orders_status: mvu.Loading, sell_orders: [])
   let systems =
@@ -199,7 +199,7 @@ pub fn user_loaded_destination(
 ) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
   let assert Ok(system) = dict.get(model.systems, to)
   let side_effect =
-    fetch_orders.get_query_buy_orders_side_effect(system.location, to, 1)
+    fetch_esi.get_query_buy_orders_side_effect(system.location, to, 1)
   let system =
     mvu.System(..system, buy_orders_status: mvu.Loading, buy_orders: [])
   let systems =

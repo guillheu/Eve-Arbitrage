@@ -22,12 +22,10 @@ pub type Trade {
     destination: Int,
     item: Item,
     amount: Int,
-    unit_volume: Float,
     total_volume: Float,
     unit_buy_price: Float,
     unit_sell_price: Float,
-    total_price: Float,
-    price_per_volume: Float,
+    profit_per_volume: Float,
   )
 }
 
@@ -54,6 +52,55 @@ pub opaque type Purchase {
     unit_price: Float,
     total_price: Float,
   )
+}
+
+// Optimizations :
+// Prioritize holds with shorter allow lists
+// Split trades in separate holds
+
+pub fn trades_to_multibuys(
+  trades: List(Trade),
+  collateral: Int,
+  holds: List(sde),
+) -> List(Multibuy) {
+  let sorted_trades =
+    list.sort(trades, fn(trade_1, trade_2) {
+      float.compare(trade_2.profit_per_volume, trade_1.profit_per_volume)
+    })
+
+  //TODO
+
+  todo as "trades to multibuys"
+}
+
+fn trade_to_purchase(trade: Trade, amount: Int, unit_price: Float) -> Purchase {
+  Purchase(
+    item_name: trade.item.name,
+    amount: amount,
+    unit_price: unit_price,
+    total_price: unit_price *. { amount |> int.to_float },
+  )
+}
+
+pub fn raw_trade_to_trade(
+  raw_trade: RawTrade,
+  type_: esi.Type,
+) -> Result(Trade, Nil) {
+  case raw_trade.item == type_.type_id {
+    False -> Error(Nil)
+    True ->
+      Trade(
+        source: raw_trade.source,
+        destination: raw_trade.destination,
+        item: Item(id: type_.type_id, name: type_.name, m3: type_.volume),
+        amount: raw_trade.amount,
+        total_volume: { raw_trade.amount |> int.to_float } *. type_.volume,
+        unit_buy_price: raw_trade.unit_buy_price,
+        unit_sell_price: raw_trade.unit_sell_price,
+        profit_per_volume: raw_trade.unit_profit /. type_.volume,
+      )
+      |> Ok
+  }
 }
 
 // 1: merge similar buy & sell orders

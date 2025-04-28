@@ -24,8 +24,14 @@ pub type Model {
     language: String,
     sidebar_expanded: Bool,
     collateral: Option(Int),
-    multibuys: List(arbitrage.Multibuy),
+    trades: List(TradeStages),
   )
+}
+
+pub type TradeStages {
+  RawTrade(raw_trade: arbitrage.RawTrade)
+  Trade(trade: arbitrage.Trade)
+  Multibuy(multibuy: arbitrage.Multibuy)
 }
 
 pub type ShipEntry {
@@ -54,7 +60,7 @@ pub type Msg {
   UserSelectedSource(new_source: String)
   UserSelectedDestination(new_destination: String)
 
-  // orders messages
+  // ESI messages
   UserLoadedSource(source: String)
   UserLoadedDestination(destination: String)
   EsiReturnedBuyOrders(
@@ -67,6 +73,7 @@ pub type Msg {
     location: String,
     page: Int,
   )
+  EsiReturnedTypeMetadata(Result(esi.Type, rsvp.Error))
 
   // multibuy messages
   UserClickedComputeMultibuys
