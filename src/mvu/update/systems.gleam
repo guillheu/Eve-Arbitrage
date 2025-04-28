@@ -73,17 +73,20 @@ pub fn esi_returned_sell_orders(
       #(model, effect.none())
     }
     Ok(orders) -> {
+      let assert Ok(system) = dict.get(model.systems, from)
+      let filtered_orders =
+        list.filter(orders, fn(order) {
+          list.contains(system.location.stations, order.location_id)
+        })
       let systems =
-        dict.upsert(model.systems, from, fn(system_option) {
-          let system =
-            option.lazy_unwrap(system_option, fn() {
-              panic as { "system " <> from <> " should be present" }
-            })
+        dict.insert(
+          model.systems,
+          from,
           mvu.System(
             ..system,
-            sell_orders: system.sell_orders |> list.append(orders),
-          )
-        })
+            sell_orders: system.sell_orders |> list.append(filtered_orders),
+          ),
+        )
       let assert Ok(system) = dict.get(model.systems, from)
       io.println(
         "Fetched " <> from <> " sell orders page " <> int.to_string(page),
