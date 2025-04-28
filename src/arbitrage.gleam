@@ -1,4 +1,7 @@
+import config/esi
 import config/sde
+import gleam/bool
+import gleam/dict
 import gleam/float
 import gleam/int
 import gleam/list
@@ -23,8 +26,6 @@ pub type Trade {
   )
 }
 
-pub type Order
-
 pub opaque type Multibuy {
   Multibuy(purchases: List(Purchase), total_price: Float)
 }
@@ -36,6 +37,47 @@ pub opaque type Purchase {
     unit_price: Float,
     total_price: Float,
   )
+}
+
+// 1: merge similar buy & sell orders
+// if they have the same price & location
+
+fn merge_orders(orders: List(esi.Order(any))) -> List(esi.Order(any)) {
+  let r = {
+    use acc, order <- list.fold(orders, dict.new())
+    let current_item_orders_list = case dict.get(acc, order.type_id) {
+      Error(_) -> [order]
+      Ok(list) -> [order, ..list]
+    }
+    dict.insert(acc, order.type_id, current_item_orders_list)
+  }
+  dict.map_values(r, fn(_, orders) {
+    let ordered_orders =
+      list.sort(orders, fn(order_1, order_2) {
+        float.compare(order_1.price, order_2.price)
+      })
+    list.fold(ordered_orders, [], fn(new_orders: List(esi.Order(any)), order) {
+      use <- bool.guard(list.is_empty(new_orders), [order])
+      let assert [top, ..rest] = new_orders
+      case esi.merge_orders(top, order) {
+        Error(_) -> [order, top, ..rest]
+        Ok(merged_order) -> [merged_order, ..rest]
+      }
+    })
+  })
+  |> dict.values
+  |> list.flatten
+}
+
+pub fn compute_trades(
+  sell_orders: List(esi.Order(esi.Sell)),
+  buy_orders: List(esi.Order(esi.Buy)),
+) -> List(Trade) {
+  echo "BEFORE MERGE:"
+  echo sell_orders
+  echo "AFTER MERGE:"
+  echo merge_orders(sell_orders)
+  todo as "compute trades"
 }
 
 pub fn multibuy_from_purchases(purchases: List(Purchase)) -> Multibuy {

@@ -76,7 +76,7 @@ pub fn string_to_ints_dict(from: String) -> Result(Dict(Int, List(Int)), Nil) {
   {
     use section <- list.map(sections)
     // section: "1:1,2,3"
-    let assert [index_string, int_list_string] = echo string.split(section, ":")
+    let assert [index_string, int_list_string] = string.split(section, ":")
     // index_string: "1"
     // int_list_string: "1,2,3"
     use index <- result.try(int.parse(index_string))

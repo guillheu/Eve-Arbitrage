@@ -69,6 +69,7 @@ pub type Msg {
   )
 
   // multibuy messages
+  UserClickedComputeMultibuys
   UserClickedCopyMultibuy(multibuy: arbitrage.Multibuy)
 
   // sidebar messages

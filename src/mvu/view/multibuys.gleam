@@ -12,12 +12,52 @@ pub fn get_section(model: mvu.Model) -> element.Element(mvu.Msg) {
   html.section(
     [],
     [
+      get_compute_multibuy_button(),
       html.h2([attribute.class("text-2xl font-bold mb-4")], [
         html.text("Arbitrage Multibuys"),
       ]),
     ]
       |> list.append(list.map(model.multibuys, get_multibuy)),
   )
+}
+
+fn get_compute_multibuy_button() -> element.Element(mvu.Msg) {
+  html.div([attribute.class("flex justify-center my-8")], [
+    html.button(
+      [
+        attribute.class(
+          "bg-selected hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg shadow-md flex items-center transition-colors duration-200",
+        ),
+        event.on_click(mvu.UserClickedComputeMultibuys),
+      ],
+      [
+        svg.svg(
+          [
+            attribute("stroke", "currentColor"),
+            attribute("viewBox", "0 0 24 24"),
+            attribute("fill", "none"),
+            attribute.class("h-5 w-5 mr-2"),
+            attribute("xmlns", "http://www.w3.org/2000/svg"),
+          ],
+          [
+            svg.path([
+              attribute(
+                "d",
+                "M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z",
+              ),
+              attribute("stroke-width", "2"),
+              attribute("stroke-linejoin", "round"),
+              attribute("stroke-linecap", "round"),
+            ]),
+          ],
+        ),
+        html.text(
+          "Compute Multibuys
+                    ",
+        ),
+      ],
+    ),
+  ])
 }
 
 fn get_multibuy(multibuy: arbitrage.Multibuy) -> element.Element(mvu.Msg) {

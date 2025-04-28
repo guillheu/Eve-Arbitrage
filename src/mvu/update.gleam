@@ -26,6 +26,8 @@ pub fn run(
     mvu.UserLoadedSource(source) -> systems.user_loaded_source(model, source)
     mvu.UserClickedCopyMultibuy(multibuy) ->
       multibuys.user_clicked_copy_multibuy(model, multibuy)
+    mvu.UserClickedComputeMultibuys ->
+      multibuys.user_clicked_compute_multibuys(model)
     mvu.UserClickedCollapseSidebar ->
       sidebar.user_clicked_collapse_sidebar(model)
     mvu.UserClickedExpandSidebar -> sidebar.user_clicked_expand_sidebar(model)

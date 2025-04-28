@@ -666,6 +666,9 @@ var Some = class extends CustomType {
 };
 var None = class extends CustomType {
 };
+function is_none(option2) {
+  return isEqual(option2, new None());
+}
 function to_result(option2, e) {
   if (option2 instanceof Some) {
     let a2 = option2[0];
@@ -716,6 +719,19 @@ var Gt = class extends CustomType {
 };
 
 // build/dev/javascript/gleam_stdlib/gleam/float.mjs
+function compare(a2, b) {
+  let $ = a2 === b;
+  if ($) {
+    return new Eq();
+  } else {
+    let $1 = a2 < b;
+    if ($1) {
+      return new Lt();
+    } else {
+      return new Gt();
+    }
+  }
+}
 function negate(x) {
   return -1 * x;
 }
@@ -775,6 +791,9 @@ function reverse_and_prepend(loop$prefix, loop$suffix) {
 }
 function reverse(list4) {
   return reverse_and_prepend(list4, toList([]));
+}
+function is_empty(list4) {
+  return isEqual(list4, toList([]));
 }
 function map_loop(loop$list, loop$fun, loop$acc) {
   while (true) {
@@ -935,28 +954,28 @@ function sequences(loop$list, loop$compare, loop$growing, loop$direction, loop$p
         loop$prev = new$1;
         loop$acc = acc;
       } else if ($ instanceof Gt && direction instanceof Ascending) {
-        let acc$1 = (() => {
-          if (direction instanceof Ascending) {
-            return prepend(reverse(growing$1), acc);
-          } else {
-            return prepend(growing$1, acc);
-          }
-        })();
+        let _block;
+        if (direction instanceof Ascending) {
+          _block = prepend(reverse(growing$1), acc);
+        } else {
+          _block = prepend(growing$1, acc);
+        }
+        let acc$1 = _block;
         if (rest$1.hasLength(0)) {
           return prepend(toList([new$1]), acc$1);
         } else {
           let next = rest$1.head;
           let rest$2 = rest$1.tail;
-          let direction$1 = (() => {
-            let $1 = compare4(new$1, next);
-            if ($1 instanceof Lt) {
-              return new Ascending();
-            } else if ($1 instanceof Eq) {
-              return new Ascending();
-            } else {
-              return new Descending();
-            }
-          })();
+          let _block$1;
+          let $1 = compare4(new$1, next);
+          if ($1 instanceof Lt) {
+            _block$1 = new Ascending();
+          } else if ($1 instanceof Eq) {
+            _block$1 = new Ascending();
+          } else {
+            _block$1 = new Descending();
+          }
+          let direction$1 = _block$1;
           loop$list = rest$2;
           loop$compare = compare4;
           loop$growing = toList([new$1]);
@@ -965,28 +984,28 @@ function sequences(loop$list, loop$compare, loop$growing, loop$direction, loop$p
           loop$acc = acc$1;
         }
       } else if ($ instanceof Lt && direction instanceof Descending) {
-        let acc$1 = (() => {
-          if (direction instanceof Ascending) {
-            return prepend(reverse(growing$1), acc);
-          } else {
-            return prepend(growing$1, acc);
-          }
-        })();
+        let _block;
+        if (direction instanceof Ascending) {
+          _block = prepend(reverse(growing$1), acc);
+        } else {
+          _block = prepend(growing$1, acc);
+        }
+        let acc$1 = _block;
         if (rest$1.hasLength(0)) {
           return prepend(toList([new$1]), acc$1);
         } else {
           let next = rest$1.head;
           let rest$2 = rest$1.tail;
-          let direction$1 = (() => {
-            let $1 = compare4(new$1, next);
-            if ($1 instanceof Lt) {
-              return new Ascending();
-            } else if ($1 instanceof Eq) {
-              return new Ascending();
-            } else {
-              return new Descending();
-            }
-          })();
+          let _block$1;
+          let $1 = compare4(new$1, next);
+          if ($1 instanceof Lt) {
+            _block$1 = new Ascending();
+          } else if ($1 instanceof Eq) {
+            _block$1 = new Ascending();
+          } else {
+            _block$1 = new Descending();
+          }
+          let direction$1 = _block$1;
           loop$list = rest$2;
           loop$compare = compare4;
           loop$growing = toList([new$1]);
@@ -995,28 +1014,28 @@ function sequences(loop$list, loop$compare, loop$growing, loop$direction, loop$p
           loop$acc = acc$1;
         }
       } else {
-        let acc$1 = (() => {
-          if (direction instanceof Ascending) {
-            return prepend(reverse(growing$1), acc);
-          } else {
-            return prepend(growing$1, acc);
-          }
-        })();
+        let _block;
+        if (direction instanceof Ascending) {
+          _block = prepend(reverse(growing$1), acc);
+        } else {
+          _block = prepend(growing$1, acc);
+        }
+        let acc$1 = _block;
         if (rest$1.hasLength(0)) {
           return prepend(toList([new$1]), acc$1);
         } else {
           let next = rest$1.head;
           let rest$2 = rest$1.tail;
-          let direction$1 = (() => {
-            let $1 = compare4(new$1, next);
-            if ($1 instanceof Lt) {
-              return new Ascending();
-            } else if ($1 instanceof Eq) {
-              return new Ascending();
-            } else {
-              return new Descending();
-            }
-          })();
+          let _block$1;
+          let $1 = compare4(new$1, next);
+          if ($1 instanceof Lt) {
+            _block$1 = new Ascending();
+          } else if ($1 instanceof Eq) {
+            _block$1 = new Ascending();
+          } else {
+            _block$1 = new Descending();
+          }
+          let direction$1 = _block$1;
           loop$list = rest$2;
           loop$compare = compare4;
           loop$growing = toList([new$1]);
@@ -1190,16 +1209,16 @@ function sort(list4, compare4) {
     let x = list4.head;
     let y = list4.tail.head;
     let rest$1 = list4.tail.tail;
-    let direction = (() => {
-      let $ = compare4(x, y);
-      if ($ instanceof Lt) {
-        return new Ascending();
-      } else if ($ instanceof Eq) {
-        return new Ascending();
-      } else {
-        return new Descending();
-      }
-    })();
+    let _block;
+    let $ = compare4(x, y);
+    if ($ instanceof Lt) {
+      _block = new Ascending();
+    } else if ($ instanceof Eq) {
+      _block = new Ascending();
+    } else {
+      _block = new Descending();
+    }
+    let direction = _block;
     let sequences$1 = sequences(
       rest$1,
       compare4,
@@ -1228,7 +1247,7 @@ function key_find(keyword_list, desired_key) {
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/string.mjs
-function is_empty(str) {
+function is_empty2(str) {
   return str === "";
 }
 function replace(string5, pattern, substitute) {
@@ -3525,17 +3544,17 @@ function set_fragment_key(loop$key, loop$children, loop$index, loop$new_children
       );
       let node_children = $[0];
       let node_keyed_children = $[1];
-      let new_node = (() => {
-        let _record = node;
-        return new Fragment(
-          _record.kind,
-          _record.key,
-          _record.mapper,
-          node_children,
-          node_keyed_children,
-          _record.children_count
-        );
-      })();
+      let _block;
+      let _record = node;
+      _block = new Fragment(
+        _record.kind,
+        _record.key,
+        _record.mapper,
+        node_children,
+        node_keyed_children,
+        _record.children_count
+      );
+      let new_node = _block;
       let new_children$1 = prepend(new_node, new_children);
       let index$1 = index5 + 1;
       loop$key = key;
@@ -3834,25 +3853,25 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
       let remaining_new = new$8.tail;
       let $ = compare3(prev, next);
       if (prev instanceof Attribute && $ instanceof Eq && next instanceof Attribute) {
-        let has_changes = (() => {
-          let $1 = next.name;
-          if ($1 === "value") {
-            return controlled || prev.value !== next.value;
-          } else if ($1 === "checked") {
-            return controlled || prev.value !== next.value;
-          } else if ($1 === "selected") {
-            return controlled || prev.value !== next.value;
-          } else {
-            return prev.value !== next.value;
-          }
-        })();
-        let added$1 = (() => {
-          if (has_changes) {
-            return prepend(next, added);
-          } else {
-            return added;
-          }
-        })();
+        let _block;
+        let $1 = next.name;
+        if ($1 === "value") {
+          _block = controlled || prev.value !== next.value;
+        } else if ($1 === "checked") {
+          _block = controlled || prev.value !== next.value;
+        } else if ($1 === "selected") {
+          _block = controlled || prev.value !== next.value;
+        } else {
+          _block = prev.value !== next.value;
+        }
+        let has_changes = _block;
+        let _block$1;
+        if (has_changes) {
+          _block$1 = prepend(next, added);
+        } else {
+          _block$1 = added;
+        }
+        let added$1 = _block$1;
         loop$controlled = controlled;
         loop$path = path2;
         loop$mapper = mapper;
@@ -3862,29 +3881,29 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
         loop$added = added$1;
         loop$removed = removed;
       } else if (prev instanceof Property && $ instanceof Eq && next instanceof Property) {
-        let has_changes = (() => {
-          let $1 = next.name;
-          if ($1 === "scrollLeft") {
-            return true;
-          } else if ($1 === "scrollRight") {
-            return true;
-          } else if ($1 === "value") {
-            return controlled || !isEqual(prev.value, next.value);
-          } else if ($1 === "checked") {
-            return controlled || !isEqual(prev.value, next.value);
-          } else if ($1 === "selected") {
-            return controlled || !isEqual(prev.value, next.value);
-          } else {
-            return !isEqual(prev.value, next.value);
-          }
-        })();
-        let added$1 = (() => {
-          if (has_changes) {
-            return prepend(next, added);
-          } else {
-            return added;
-          }
-        })();
+        let _block;
+        let $1 = next.name;
+        if ($1 === "scrollLeft") {
+          _block = true;
+        } else if ($1 === "scrollRight") {
+          _block = true;
+        } else if ($1 === "value") {
+          _block = controlled || !isEqual(prev.value, next.value);
+        } else if ($1 === "checked") {
+          _block = controlled || !isEqual(prev.value, next.value);
+        } else if ($1 === "selected") {
+          _block = controlled || !isEqual(prev.value, next.value);
+        } else {
+          _block = !isEqual(prev.value, next.value);
+        }
+        let has_changes = _block;
+        let _block$1;
+        if (has_changes) {
+          _block$1 = prepend(next, added);
+        } else {
+          _block$1 = added;
+        }
+        let added$1 = _block$1;
         loop$controlled = controlled;
         loop$path = path2;
         loop$mapper = mapper;
@@ -3900,13 +3919,13 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
           prev.limit,
           next.limit
         );
-        let added$1 = (() => {
-          if (has_changes) {
-            return prepend(next, added);
-          } else {
-            return added;
-          }
-        })();
+        let _block;
+        if (has_changes) {
+          _block = prepend(next, added);
+        } else {
+          _block = added;
+        }
+        let added$1 = _block;
         let events$1 = add_event(events, mapper, path2, name2, handler);
         loop$controlled = controlled;
         loop$path = path2;
@@ -4027,14 +4046,14 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
     } else if (old.atLeastLength(1) && new$8.hasLength(0)) {
       let prev = old.head;
       let old$1 = old.tail;
-      let removed$1 = (() => {
-        let $ = prev.key === "" || !contains(moved, prev.key);
-        if ($) {
-          return removed + advance(prev);
-        } else {
-          return removed;
-        }
-      })();
+      let _block;
+      let $ = prev.key === "" || !contains(moved, prev.key);
+      if ($) {
+        _block = removed + advance(prev);
+      } else {
+        _block = removed;
+      }
+      let removed$1 = _block;
       let events$1 = remove_child(events, path2, node_index, prev);
       loop$old = old$1;
       loop$old_keyed = old_keyed;
@@ -4153,11 +4172,11 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
         let prev_count = advance(prev);
         let next_count = advance(next);
         let change = replace2(node_index - moved_offset, prev_count, next);
-        let events$1 = (() => {
-          let _pipe = events;
-          let _pipe$1 = remove_child(_pipe, path2, node_index, prev);
-          return add_child(_pipe$1, mapper, path2, node_index, next);
-        })();
+        let _block;
+        let _pipe = events;
+        let _pipe$1 = remove_child(_pipe, path2, node_index, prev);
+        _block = add_child(_pipe$1, mapper, path2, node_index, next);
+        let events$1 = _block;
         loop$old = old_remaining;
         loop$old_keyed = old_keyed;
         loop$new = new_remaining;
@@ -4198,16 +4217,16 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
         composed_mapper,
         events
       );
-      let changes$1 = (() => {
-        let $ = child.patch.removed > 0;
-        if ($) {
-          let remove_from = node_index$1 + next_count - moved_offset;
-          let patch = remove2(remove_from, child.patch.removed);
-          return append(child.patch.changes, prepend(patch, changes));
-        } else {
-          return append(child.patch.changes, changes);
-        }
-      })();
+      let _block;
+      let $ = child.patch.removed > 0;
+      if ($) {
+        let remove_from = node_index$1 + next_count - moved_offset;
+        let patch = remove2(remove_from, child.patch.removed);
+        _block = append(child.patch.changes, prepend(patch, changes));
+      } else {
+        _block = append(child.patch.changes, changes);
+      }
+      let changes$1 = _block;
       loop$old = old$1;
       loop$old_keyed = old_keyed;
       loop$new = new$1;
@@ -4248,13 +4267,13 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
       let added_attrs = $.added;
       let removed_attrs = $.removed;
       let events$1 = $.events;
-      let initial_child_changes = (() => {
-        if (added_attrs.hasLength(0) && removed_attrs.hasLength(0)) {
-          return empty_list;
-        } else {
-          return toList([update(added_attrs, removed_attrs)]);
-        }
-      })();
+      let _block;
+      if (added_attrs.hasLength(0) && removed_attrs.hasLength(0)) {
+        _block = empty_list;
+      } else {
+        _block = toList([update(added_attrs, removed_attrs)]);
+      }
+      let initial_child_changes = _block;
       let child = do_diff(
         prev.children,
         prev.keyed_children,
@@ -4271,14 +4290,14 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
         composed_mapper,
         events$1
       );
-      let children$1 = (() => {
-        let $1 = child.patch;
-        if ($1 instanceof Patch && $1.removed === 0 && $1.changes.hasLength(0) && $1.children.hasLength(0)) {
-          return children;
-        } else {
-          return prepend(child.patch, children);
-        }
-      })();
+      let _block$1;
+      let $1 = child.patch;
+      if ($1 instanceof Patch && $1.removed === 0 && $1.changes.hasLength(0) && $1.children.hasLength(0)) {
+        _block$1 = children;
+      } else {
+        _block$1 = prepend(child.patch, children);
+      }
+      let children$1 = _block$1;
       loop$old = old$1;
       loop$old_keyed = old_keyed;
       loop$new = new$1;
@@ -4356,34 +4375,34 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
       let added_attrs = $.added;
       let removed_attrs = $.removed;
       let events$1 = $.events;
-      let child_changes = (() => {
-        if (added_attrs.hasLength(0) && removed_attrs.hasLength(0)) {
-          return empty_list;
-        } else {
-          return toList([update(added_attrs, removed_attrs)]);
-        }
-      })();
-      let child_changes$1 = (() => {
-        let $1 = prev.inner_html === next.inner_html;
-        if ($1) {
-          return child_changes;
-        } else {
-          return prepend(
-            replace_inner_html(next.inner_html),
-            child_changes
-          );
-        }
-      })();
-      let children$1 = (() => {
-        if (child_changes$1.hasLength(0)) {
-          return children;
-        } else {
-          return prepend(
-            new$4(node_index, 0, child_changes$1, toList([])),
-            children
-          );
-        }
-      })();
+      let _block;
+      if (added_attrs.hasLength(0) && removed_attrs.hasLength(0)) {
+        _block = empty_list;
+      } else {
+        _block = toList([update(added_attrs, removed_attrs)]);
+      }
+      let child_changes = _block;
+      let _block$1;
+      let $1 = prev.inner_html === next.inner_html;
+      if ($1) {
+        _block$1 = child_changes;
+      } else {
+        _block$1 = prepend(
+          replace_inner_html(next.inner_html),
+          child_changes
+        );
+      }
+      let child_changes$1 = _block$1;
+      let _block$2;
+      if (child_changes$1.hasLength(0)) {
+        _block$2 = children;
+      } else {
+        _block$2 = prepend(
+          new$4(node_index, 0, child_changes$1, toList([])),
+          children
+        );
+      }
+      let children$1 = _block$2;
       loop$old = old$1;
       loop$old_keyed = old_keyed;
       loop$new = new$1;
@@ -4406,11 +4425,11 @@ function do_diff(loop$old, loop$old_keyed, loop$new, loop$new_keyed, loop$moved,
       let prev_count = advance(prev);
       let next_count = advance(next);
       let change = replace2(node_index - moved_offset, prev_count, next);
-      let events$1 = (() => {
-        let _pipe = events;
-        let _pipe$1 = remove_child(_pipe, path2, node_index, prev);
-        return add_child(_pipe$1, mapper, path2, node_index, next);
-      })();
+      let _block;
+      let _pipe = events;
+      let _pipe$1 = remove_child(_pipe, path2, node_index, prev);
+      _block = add_child(_pipe$1, mapper, path2, node_index, next);
+      let events$1 = _block;
       loop$old = old_remaining;
       loop$old_keyed = old_keyed;
       loop$new = new_remaining;
@@ -5130,14 +5149,14 @@ function remove_attributes(handlers, path2, attributes) {
 }
 function handle(events, path2, name2, event4) {
   let next_dispatched_paths = prepend(path2, events.next_dispatched_paths);
-  let events$1 = (() => {
-    let _record = events;
-    return new Events(
-      _record.handlers,
-      _record.dispatched_paths,
-      next_dispatched_paths
-    );
-  })();
+  let _block;
+  let _record = events;
+  _block = new Events(
+    _record.handlers,
+    _record.dispatched_paths,
+    next_dispatched_paths
+  );
+  let events$1 = _block;
   let $ = get(
     events$1.handlers,
     path2 + separator_event + name2
@@ -5671,6 +5690,434 @@ var locations = /* @__PURE__ */ toList([
   ]
 ]);
 
+// build/dev/javascript/eve_arbitrage/config/esi.mjs
+var Order = class extends CustomType {
+  constructor(duration, issued, location_id, min_volume, order_id, price, range, system_id, type_id, volume_remain, volume_total) {
+    super();
+    this.duration = duration;
+    this.issued = issued;
+    this.location_id = location_id;
+    this.min_volume = min_volume;
+    this.order_id = order_id;
+    this.price = price;
+    this.range = range;
+    this.system_id = system_id;
+    this.type_id = type_id;
+    this.volume_remain = volume_remain;
+    this.volume_total = volume_total;
+  }
+};
+function merge_orders(order_1, order_2) {
+  let can_merge = order_1.location_id === order_2.location_id && order_1.price === order_2.price && order_1.type_id === order_2.type_id && order_1.system_id === order_2.system_id;
+  if (!can_merge) {
+    return new Error(void 0);
+  } else {
+    echo("FROM:", "src/config/esi.gleam", 67);
+    echo(order_1, "src/config/esi.gleam", 68);
+    echo(order_2, "src/config/esi.gleam", 69);
+    echo("TO", "src/config/esi.gleam", 70);
+    return new Ok(
+      echo(
+        (() => {
+          let _record = order_1;
+          return new Order(
+            _record.duration,
+            _record.issued,
+            _record.location_id,
+            _record.min_volume,
+            _record.order_id,
+            _record.price,
+            _record.range,
+            _record.system_id,
+            _record.type_id,
+            order_1.volume_remain + order_2.volume_remain,
+            order_1.volume_total + order_2.volume_total
+          );
+        })(),
+        "src/config/esi.gleam",
+        72
+      )
+    );
+  }
+}
+function buy_order_decoder() {
+  return field(
+    "duration",
+    int2,
+    (duration) => {
+      return field(
+        "is_buy_order",
+        bool,
+        (is_buy_order) => {
+          return lazy_guard(
+            !is_buy_order,
+            () => {
+              throw makeError(
+                "panic",
+                "config/esi",
+                86,
+                "",
+                "found a sell order, should be a buy order",
+                {}
+              );
+            },
+            () => {
+              return field(
+                "issued",
+                string2,
+                (issued) => {
+                  return field(
+                    "location_id",
+                    int2,
+                    (location_id) => {
+                      return field(
+                        "min_volume",
+                        int2,
+                        (min_volume) => {
+                          return field(
+                            "order_id",
+                            int2,
+                            (order_id) => {
+                              return field(
+                                "price",
+                                float2,
+                                (price) => {
+                                  return field(
+                                    "range",
+                                    string2,
+                                    (range) => {
+                                      return field(
+                                        "system_id",
+                                        int2,
+                                        (system_id) => {
+                                          return field(
+                                            "type_id",
+                                            int2,
+                                            (type_id) => {
+                                              return field(
+                                                "volume_remain",
+                                                int2,
+                                                (volume_remain) => {
+                                                  return field(
+                                                    "volume_total",
+                                                    int2,
+                                                    (volume_total) => {
+                                                      return success(
+                                                        new Order(
+                                                          duration,
+                                                          issued,
+                                                          location_id,
+                                                          min_volume,
+                                                          order_id,
+                                                          price,
+                                                          range,
+                                                          system_id,
+                                                          type_id,
+                                                          volume_remain,
+                                                          volume_total
+                                                        )
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
+    }
+  );
+}
+function buy_orders_decoder() {
+  return list2(buy_order_decoder());
+}
+function sell_order_decoder() {
+  return field(
+    "duration",
+    int2,
+    (duration) => {
+      return field(
+        "is_buy_order",
+        bool,
+        (is_buy_order) => {
+          return lazy_guard(
+            is_buy_order,
+            () => {
+              throw makeError(
+                "panic",
+                "config/esi",
+                117,
+                "",
+                "found a buy order, should be a sell order",
+                {}
+              );
+            },
+            () => {
+              return field(
+                "issued",
+                string2,
+                (issued) => {
+                  return field(
+                    "location_id",
+                    int2,
+                    (location_id) => {
+                      return field(
+                        "min_volume",
+                        int2,
+                        (min_volume) => {
+                          return field(
+                            "order_id",
+                            int2,
+                            (order_id) => {
+                              return field(
+                                "price",
+                                float2,
+                                (price) => {
+                                  return field(
+                                    "range",
+                                    string2,
+                                    (range) => {
+                                      return field(
+                                        "system_id",
+                                        int2,
+                                        (system_id) => {
+                                          return field(
+                                            "type_id",
+                                            int2,
+                                            (type_id) => {
+                                              return field(
+                                                "volume_remain",
+                                                int2,
+                                                (volume_remain) => {
+                                                  return field(
+                                                    "volume_total",
+                                                    int2,
+                                                    (volume_total) => {
+                                                      return success(
+                                                        new Order(
+                                                          duration,
+                                                          issued,
+                                                          location_id,
+                                                          min_volume,
+                                                          order_id,
+                                                          price,
+                                                          range,
+                                                          system_id,
+                                                          type_id,
+                                                          volume_remain,
+                                                          volume_total
+                                                        )
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
+    }
+  );
+}
+function sell_orders_decoder() {
+  return list2(sell_order_decoder());
+}
+var esi_url = "https://esi.evetech.net/latest";
+var market_order_url = "/markets/{region_id}/orders/?datasource=tranquility&order_type={order_kind}&page={page}";
+function get_market_orders_url(from2, is_buy_order, page) {
+  let _block;
+  if (!is_buy_order) {
+    _block = "sell";
+  } else {
+    _block = "buy";
+  }
+  let order_kind = _block;
+  let _pipe = toList([esi_url, market_order_url]);
+  let _pipe$1 = concat2(_pipe);
+  let _pipe$2 = replace(
+    _pipe$1,
+    "{region_id}",
+    to_string(from2.region)
+  );
+  let _pipe$3 = replace(_pipe$2, "{order_kind}", order_kind);
+  return replace(
+    _pipe$3,
+    "{page}",
+    (() => {
+      let _pipe$4 = page;
+      return to_string(_pipe$4);
+    })()
+  );
+}
+function echo(value3, file, line) {
+  const grey = "\x1B[90m";
+  const reset_color = "\x1B[39m";
+  const file_line = `${file}:${line}`;
+  const string_value = echo$inspect(value3);
+  if (globalThis.process?.stderr?.write) {
+    const string5 = `${grey}${file_line}${reset_color}
+${string_value}
+`;
+    process.stderr.write(string5);
+  } else if (globalThis.Deno) {
+    const string5 = `${grey}${file_line}${reset_color}
+${string_value}
+`;
+    globalThis.Deno.stderr.writeSync(new TextEncoder().encode(string5));
+  } else {
+    const string5 = `${file_line}
+${string_value}`;
+    globalThis.console.log(string5);
+  }
+  return value3;
+}
+function echo$inspectString(str) {
+  let new_str = '"';
+  for (let i = 0; i < str.length; i++) {
+    let char = str[i];
+    if (char == "\n") new_str += "\\n";
+    else if (char == "\r") new_str += "\\r";
+    else if (char == "	") new_str += "\\t";
+    else if (char == "\f") new_str += "\\f";
+    else if (char == "\\") new_str += "\\\\";
+    else if (char == '"') new_str += '\\"';
+    else if (char < " " || char > "~" && char < "\xA0") {
+      new_str += "\\u{" + char.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0") + "}";
+    } else {
+      new_str += char;
+    }
+  }
+  new_str += '"';
+  return new_str;
+}
+function echo$inspectDict(map6) {
+  let body = "dict.from_list([";
+  let first = true;
+  let key_value_pairs = [];
+  map6.forEach((value3, key) => {
+    key_value_pairs.push([key, value3]);
+  });
+  key_value_pairs.sort();
+  key_value_pairs.forEach(([key, value3]) => {
+    if (!first) body = body + ", ";
+    body = body + "#(" + echo$inspect(key) + ", " + echo$inspect(value3) + ")";
+    first = false;
+  });
+  return body + "])";
+}
+function echo$inspectCustomType(record) {
+  const props = globalThis.Object.keys(record).map((label2) => {
+    const value3 = echo$inspect(record[label2]);
+    return isNaN(parseInt(label2)) ? `${label2}: ${value3}` : value3;
+  }).join(", ");
+  return props ? `${record.constructor.name}(${props})` : record.constructor.name;
+}
+function echo$inspectObject(v) {
+  const name2 = Object.getPrototypeOf(v)?.constructor?.name || "Object";
+  const props = [];
+  for (const k of Object.keys(v)) {
+    props.push(`${echo$inspect(k)}: ${echo$inspect(v[k])}`);
+  }
+  const body = props.length ? " " + props.join(", ") + " " : "";
+  const head = name2 === "Object" ? "" : name2 + " ";
+  return `//js(${head}{${body}})`;
+}
+function echo$inspect(v) {
+  const t = typeof v;
+  if (v === true) return "True";
+  if (v === false) return "False";
+  if (v === null) return "//js(null)";
+  if (v === void 0) return "Nil";
+  if (t === "string") return echo$inspectString(v);
+  if (t === "bigint" || t === "number") return v.toString();
+  if (globalThis.Array.isArray(v))
+    return `#(${v.map(echo$inspect).join(", ")})`;
+  if (v instanceof List)
+    return `[${v.toArray().map(echo$inspect).join(", ")}]`;
+  if (v instanceof UtfCodepoint)
+    return `//utfcodepoint(${String.fromCodePoint(v.value)})`;
+  if (v instanceof BitArray) return echo$inspectBitArray(v);
+  if (v instanceof CustomType) return echo$inspectCustomType(v);
+  if (echo$isDict(v)) return echo$inspectDict(v);
+  if (v instanceof Set)
+    return `//js(Set(${[...v].map(echo$inspect).join(", ")}))`;
+  if (v instanceof RegExp) return `//js(${v})`;
+  if (v instanceof Date) return `//js(Date("${v.toISOString()}"))`;
+  if (v instanceof Function) {
+    const args = [];
+    for (const i of Array(v.length).keys())
+      args.push(String.fromCharCode(i + 97));
+    return `//fn(${args.join(", ")}) { ... }`;
+  }
+  return echo$inspectObject(v);
+}
+function echo$inspectBitArray(bitArray) {
+  let endOfAlignedBytes = bitArray.bitOffset + 8 * Math.trunc(bitArray.bitSize / 8);
+  let alignedBytes = bitArraySlice(
+    bitArray,
+    bitArray.bitOffset,
+    endOfAlignedBytes
+  );
+  let remainingUnalignedBits = bitArray.bitSize % 8;
+  if (remainingUnalignedBits > 0) {
+    let remainingBits = bitArraySliceToInt(
+      bitArray,
+      endOfAlignedBytes,
+      bitArray.bitSize,
+      false,
+      false
+    );
+    let alignedBytesArray = Array.from(alignedBytes.rawBuffer);
+    let suffix = `${remainingBits}:size(${remainingUnalignedBits})`;
+    if (alignedBytesArray.length === 0) {
+      return `<<${suffix}>>`;
+    } else {
+      return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}, ${suffix}>>`;
+    }
+  } else {
+    return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}>>`;
+  }
+}
+function echo$isDict(value3) {
+  try {
+    return value3 instanceof Dict;
+  } catch {
+    return false;
+  }
+}
+
 // build/dev/javascript/eve_arbitrage/arbitrage.mjs
 var Multibuy = class extends CustomType {
   constructor(purchases, total_price) {
@@ -5688,6 +6135,82 @@ var Purchase = class extends CustomType {
     this.total_price = total_price;
   }
 };
+function merge_orders2(orders) {
+  let r = fold(
+    orders,
+    new_map(),
+    (acc, order) => {
+      let _block;
+      let $ = map_get(acc, order.type_id);
+      if (!$.isOk()) {
+        _block = toList([order]);
+      } else {
+        let list4 = $[0];
+        _block = prepend(order, list4);
+      }
+      let current_item_orders_list = _block;
+      return insert(acc, order.type_id, current_item_orders_list);
+    }
+  );
+  let _pipe = map_values(
+    r,
+    (_, orders2) => {
+      let ordered_orders = sort(
+        orders2,
+        (order_1, order_2) => {
+          return compare(order_1.price, order_2.price);
+        }
+      );
+      return fold(
+        ordered_orders,
+        toList([]),
+        (new_orders, order) => {
+          return guard(
+            is_empty(new_orders),
+            toList([order]),
+            () => {
+              if (!new_orders.atLeastLength(1)) {
+                throw makeError(
+                  "let_assert",
+                  "arbitrage",
+                  61,
+                  "",
+                  "Pattern match failed, no pattern matched the value.",
+                  { value: new_orders }
+                );
+              }
+              let top = new_orders.head;
+              let rest = new_orders.tail;
+              let $ = merge_orders(top, order);
+              if (!$.isOk()) {
+                return prepend(order, prepend(top, rest));
+              } else {
+                let merged_order = $[0];
+                return prepend(merged_order, rest);
+              }
+            }
+          );
+        }
+      );
+    }
+  );
+  let _pipe$1 = values(_pipe);
+  return flatten(_pipe$1);
+}
+function compute_trades(sell_orders, buy_orders) {
+  echo2("BEFORE MERGE:", "src/arbitrage.gleam", 76);
+  echo2(sell_orders, "src/arbitrage.gleam", 77);
+  echo2("AFTER MERGE:", "src/arbitrage.gleam", 78);
+  echo2(merge_orders2(sell_orders), "src/arbitrage.gleam", 79);
+  throw makeError(
+    "todo",
+    "arbitrage",
+    80,
+    "compute_trades",
+    "compute trades",
+    {}
+  );
+}
 function multibuy_from_purchases(purchases) {
   return new Multibuy(
     purchases,
@@ -5745,6 +6268,142 @@ function tax_percent_from_accounting_level(accounting_level) {
   );
   let effective_tax_rate = base_tax_rate * remaining_tax_ratio;
   return effective_tax_rate;
+}
+function echo2(value3, file, line) {
+  const grey = "\x1B[90m";
+  const reset_color = "\x1B[39m";
+  const file_line = `${file}:${line}`;
+  const string_value = echo$inspect2(value3);
+  if (globalThis.process?.stderr?.write) {
+    const string5 = `${grey}${file_line}${reset_color}
+${string_value}
+`;
+    process.stderr.write(string5);
+  } else if (globalThis.Deno) {
+    const string5 = `${grey}${file_line}${reset_color}
+${string_value}
+`;
+    globalThis.Deno.stderr.writeSync(new TextEncoder().encode(string5));
+  } else {
+    const string5 = `${file_line}
+${string_value}`;
+    globalThis.console.log(string5);
+  }
+  return value3;
+}
+function echo$inspectString2(str) {
+  let new_str = '"';
+  for (let i = 0; i < str.length; i++) {
+    let char = str[i];
+    if (char == "\n") new_str += "\\n";
+    else if (char == "\r") new_str += "\\r";
+    else if (char == "	") new_str += "\\t";
+    else if (char == "\f") new_str += "\\f";
+    else if (char == "\\") new_str += "\\\\";
+    else if (char == '"') new_str += '\\"';
+    else if (char < " " || char > "~" && char < "\xA0") {
+      new_str += "\\u{" + char.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0") + "}";
+    } else {
+      new_str += char;
+    }
+  }
+  new_str += '"';
+  return new_str;
+}
+function echo$inspectDict2(map6) {
+  let body = "dict.from_list([";
+  let first = true;
+  let key_value_pairs = [];
+  map6.forEach((value3, key) => {
+    key_value_pairs.push([key, value3]);
+  });
+  key_value_pairs.sort();
+  key_value_pairs.forEach(([key, value3]) => {
+    if (!first) body = body + ", ";
+    body = body + "#(" + echo$inspect2(key) + ", " + echo$inspect2(value3) + ")";
+    first = false;
+  });
+  return body + "])";
+}
+function echo$inspectCustomType2(record) {
+  const props = globalThis.Object.keys(record).map((label2) => {
+    const value3 = echo$inspect2(record[label2]);
+    return isNaN(parseInt(label2)) ? `${label2}: ${value3}` : value3;
+  }).join(", ");
+  return props ? `${record.constructor.name}(${props})` : record.constructor.name;
+}
+function echo$inspectObject2(v) {
+  const name2 = Object.getPrototypeOf(v)?.constructor?.name || "Object";
+  const props = [];
+  for (const k of Object.keys(v)) {
+    props.push(`${echo$inspect2(k)}: ${echo$inspect2(v[k])}`);
+  }
+  const body = props.length ? " " + props.join(", ") + " " : "";
+  const head = name2 === "Object" ? "" : name2 + " ";
+  return `//js(${head}{${body}})`;
+}
+function echo$inspect2(v) {
+  const t = typeof v;
+  if (v === true) return "True";
+  if (v === false) return "False";
+  if (v === null) return "//js(null)";
+  if (v === void 0) return "Nil";
+  if (t === "string") return echo$inspectString2(v);
+  if (t === "bigint" || t === "number") return v.toString();
+  if (globalThis.Array.isArray(v))
+    return `#(${v.map(echo$inspect2).join(", ")})`;
+  if (v instanceof List)
+    return `[${v.toArray().map(echo$inspect2).join(", ")}]`;
+  if (v instanceof UtfCodepoint)
+    return `//utfcodepoint(${String.fromCodePoint(v.value)})`;
+  if (v instanceof BitArray) return echo$inspectBitArray2(v);
+  if (v instanceof CustomType) return echo$inspectCustomType2(v);
+  if (echo$isDict2(v)) return echo$inspectDict2(v);
+  if (v instanceof Set)
+    return `//js(Set(${[...v].map(echo$inspect2).join(", ")}))`;
+  if (v instanceof RegExp) return `//js(${v})`;
+  if (v instanceof Date) return `//js(Date("${v.toISOString()}"))`;
+  if (v instanceof Function) {
+    const args = [];
+    for (const i of Array(v.length).keys())
+      args.push(String.fromCharCode(i + 97));
+    return `//fn(${args.join(", ")}) { ... }`;
+  }
+  return echo$inspectObject2(v);
+}
+function echo$inspectBitArray2(bitArray) {
+  let endOfAlignedBytes = bitArray.bitOffset + 8 * Math.trunc(bitArray.bitSize / 8);
+  let alignedBytes = bitArraySlice(
+    bitArray,
+    bitArray.bitOffset,
+    endOfAlignedBytes
+  );
+  let remainingUnalignedBits = bitArray.bitSize % 8;
+  if (remainingUnalignedBits > 0) {
+    let remainingBits = bitArraySliceToInt(
+      bitArray,
+      endOfAlignedBytes,
+      bitArray.bitSize,
+      false,
+      false
+    );
+    let alignedBytesArray = Array.from(alignedBytes.rawBuffer);
+    let suffix = `${remainingBits}:size(${remainingUnalignedBits})`;
+    if (alignedBytesArray.length === 0) {
+      return `<<${suffix}>>`;
+    } else {
+      return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}, ${suffix}>>`;
+    }
+  } else {
+    return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}>>`;
+  }
+}
+function echo$isDict2(value3) {
+  try {
+    return value3 instanceof Dict;
+  } catch {
+    return false;
+  }
 }
 
 // build/dev/javascript/gleam_time/gleam_time_ffi.mjs
@@ -5827,18 +6486,18 @@ function parse_query_with_question_mark_loop(loop$original, loop$uri_string, loo
     } else if (uri_string.startsWith("#")) {
       let rest = uri_string.slice(1);
       let query = string_codeunit_slice(original, 0, size2);
-      let pieces$1 = (() => {
-        let _record = pieces;
-        return new Uri(
-          _record.scheme,
-          _record.userinfo,
-          _record.host,
-          _record.port,
-          _record.path,
-          new Some(query),
-          _record.fragment
-        );
-      })();
+      let _block;
+      let _record = pieces;
+      _block = new Uri(
+        _record.scheme,
+        _record.userinfo,
+        _record.host,
+        _record.port,
+        _record.path,
+        new Some(query),
+        _record.fragment
+      );
+      let pieces$1 = _block;
       return parse_fragment(rest, pieces$1);
     } else if (uri_string === "") {
       return new Ok(
@@ -5877,34 +6536,34 @@ function parse_path_loop(loop$original, loop$uri_string, loop$pieces, loop$size)
     if (uri_string.startsWith("?")) {
       let rest = uri_string.slice(1);
       let path2 = string_codeunit_slice(original, 0, size2);
-      let pieces$1 = (() => {
-        let _record = pieces;
-        return new Uri(
-          _record.scheme,
-          _record.userinfo,
-          _record.host,
-          _record.port,
-          path2,
-          _record.query,
-          _record.fragment
-        );
-      })();
+      let _block;
+      let _record = pieces;
+      _block = new Uri(
+        _record.scheme,
+        _record.userinfo,
+        _record.host,
+        _record.port,
+        path2,
+        _record.query,
+        _record.fragment
+      );
+      let pieces$1 = _block;
       return parse_query_with_question_mark(rest, pieces$1);
     } else if (uri_string.startsWith("#")) {
       let rest = uri_string.slice(1);
       let path2 = string_codeunit_slice(original, 0, size2);
-      let pieces$1 = (() => {
-        let _record = pieces;
-        return new Uri(
-          _record.scheme,
-          _record.userinfo,
-          _record.host,
-          _record.port,
-          path2,
-          _record.query,
-          _record.fragment
-        );
-      })();
+      let _block;
+      let _record = pieces;
+      _block = new Uri(
+        _record.scheme,
+        _record.userinfo,
+        _record.host,
+        _record.port,
+        path2,
+        _record.query,
+        _record.fragment
+      );
+      let pieces$1 = _block;
       return parse_fragment(rest, pieces$1);
     } else if (uri_string === "") {
       return new Ok(
@@ -5991,47 +6650,47 @@ function parse_port_loop(loop$uri_string, loop$pieces, loop$port) {
       loop$port = port * 10 + 9;
     } else if (uri_string.startsWith("?")) {
       let rest = uri_string.slice(1);
-      let pieces$1 = (() => {
-        let _record = pieces;
-        return new Uri(
-          _record.scheme,
-          _record.userinfo,
-          _record.host,
-          new Some(port),
-          _record.path,
-          _record.query,
-          _record.fragment
-        );
-      })();
+      let _block;
+      let _record = pieces;
+      _block = new Uri(
+        _record.scheme,
+        _record.userinfo,
+        _record.host,
+        new Some(port),
+        _record.path,
+        _record.query,
+        _record.fragment
+      );
+      let pieces$1 = _block;
       return parse_query_with_question_mark(rest, pieces$1);
     } else if (uri_string.startsWith("#")) {
       let rest = uri_string.slice(1);
-      let pieces$1 = (() => {
-        let _record = pieces;
-        return new Uri(
-          _record.scheme,
-          _record.userinfo,
-          _record.host,
-          new Some(port),
-          _record.path,
-          _record.query,
-          _record.fragment
-        );
-      })();
+      let _block;
+      let _record = pieces;
+      _block = new Uri(
+        _record.scheme,
+        _record.userinfo,
+        _record.host,
+        new Some(port),
+        _record.path,
+        _record.query,
+        _record.fragment
+      );
+      let pieces$1 = _block;
       return parse_fragment(rest, pieces$1);
     } else if (uri_string.startsWith("/")) {
-      let pieces$1 = (() => {
-        let _record = pieces;
-        return new Uri(
-          _record.scheme,
-          _record.userinfo,
-          _record.host,
-          new Some(port),
-          _record.path,
-          _record.query,
-          _record.fragment
-        );
-      })();
+      let _block;
+      let _record = pieces;
+      _block = new Uri(
+        _record.scheme,
+        _record.userinfo,
+        _record.host,
+        new Some(port),
+        _record.path,
+        _record.query,
+        _record.fragment
+      );
+      let pieces$1 = _block;
       return parse_path(uri_string, pieces$1);
     } else if (uri_string === "") {
       return new Ok(
@@ -6123,65 +6782,65 @@ function parse_host_outside_of_brackets_loop(loop$original, loop$uri_string, loo
       );
     } else if (uri_string.startsWith(":")) {
       let host = string_codeunit_slice(original, 0, size2);
-      let pieces$1 = (() => {
-        let _record = pieces;
-        return new Uri(
-          _record.scheme,
-          _record.userinfo,
-          new Some(host),
-          _record.port,
-          _record.path,
-          _record.query,
-          _record.fragment
-        );
-      })();
+      let _block;
+      let _record = pieces;
+      _block = new Uri(
+        _record.scheme,
+        _record.userinfo,
+        new Some(host),
+        _record.port,
+        _record.path,
+        _record.query,
+        _record.fragment
+      );
+      let pieces$1 = _block;
       return parse_port(uri_string, pieces$1);
     } else if (uri_string.startsWith("/")) {
       let host = string_codeunit_slice(original, 0, size2);
-      let pieces$1 = (() => {
-        let _record = pieces;
-        return new Uri(
-          _record.scheme,
-          _record.userinfo,
-          new Some(host),
-          _record.port,
-          _record.path,
-          _record.query,
-          _record.fragment
-        );
-      })();
+      let _block;
+      let _record = pieces;
+      _block = new Uri(
+        _record.scheme,
+        _record.userinfo,
+        new Some(host),
+        _record.port,
+        _record.path,
+        _record.query,
+        _record.fragment
+      );
+      let pieces$1 = _block;
       return parse_path(uri_string, pieces$1);
     } else if (uri_string.startsWith("?")) {
       let rest = uri_string.slice(1);
       let host = string_codeunit_slice(original, 0, size2);
-      let pieces$1 = (() => {
-        let _record = pieces;
-        return new Uri(
-          _record.scheme,
-          _record.userinfo,
-          new Some(host),
-          _record.port,
-          _record.path,
-          _record.query,
-          _record.fragment
-        );
-      })();
+      let _block;
+      let _record = pieces;
+      _block = new Uri(
+        _record.scheme,
+        _record.userinfo,
+        new Some(host),
+        _record.port,
+        _record.path,
+        _record.query,
+        _record.fragment
+      );
+      let pieces$1 = _block;
       return parse_query_with_question_mark(rest, pieces$1);
     } else if (uri_string.startsWith("#")) {
       let rest = uri_string.slice(1);
       let host = string_codeunit_slice(original, 0, size2);
-      let pieces$1 = (() => {
-        let _record = pieces;
-        return new Uri(
-          _record.scheme,
-          _record.userinfo,
-          new Some(host),
-          _record.port,
-          _record.path,
-          _record.query,
-          _record.fragment
-        );
-      })();
+      let _block;
+      let _record = pieces;
+      _block = new Uri(
+        _record.scheme,
+        _record.userinfo,
+        new Some(host),
+        _record.port,
+        _record.path,
+        _record.query,
+        _record.fragment
+      );
+      let pieces$1 = _block;
       return parse_fragment(rest, pieces$1);
     } else {
       let $ = pop_codeunit(uri_string);
@@ -6220,35 +6879,35 @@ function parse_host_within_brackets_loop(loop$original, loop$uri_string, loop$pi
     } else if (uri_string.startsWith("]")) {
       let rest = uri_string.slice(1);
       let host = string_codeunit_slice(original, 0, size2 + 1);
-      let pieces$1 = (() => {
-        let _record = pieces;
-        return new Uri(
-          _record.scheme,
-          _record.userinfo,
-          new Some(host),
-          _record.port,
-          _record.path,
-          _record.query,
-          _record.fragment
-        );
-      })();
+      let _block;
+      let _record = pieces;
+      _block = new Uri(
+        _record.scheme,
+        _record.userinfo,
+        new Some(host),
+        _record.port,
+        _record.path,
+        _record.query,
+        _record.fragment
+      );
+      let pieces$1 = _block;
       return parse_port(rest, pieces$1);
     } else if (uri_string.startsWith("/") && size2 === 0) {
       return parse_path(uri_string, pieces);
     } else if (uri_string.startsWith("/")) {
       let host = string_codeunit_slice(original, 0, size2);
-      let pieces$1 = (() => {
-        let _record = pieces;
-        return new Uri(
-          _record.scheme,
-          _record.userinfo,
-          new Some(host),
-          _record.port,
-          _record.path,
-          _record.query,
-          _record.fragment
-        );
-      })();
+      let _block;
+      let _record = pieces;
+      _block = new Uri(
+        _record.scheme,
+        _record.userinfo,
+        new Some(host),
+        _record.port,
+        _record.path,
+        _record.query,
+        _record.fragment
+      );
+      let pieces$1 = _block;
       return parse_path(uri_string, pieces$1);
     } else if (uri_string.startsWith("?") && size2 === 0) {
       let rest = uri_string.slice(1);
@@ -6256,18 +6915,18 @@ function parse_host_within_brackets_loop(loop$original, loop$uri_string, loop$pi
     } else if (uri_string.startsWith("?")) {
       let rest = uri_string.slice(1);
       let host = string_codeunit_slice(original, 0, size2);
-      let pieces$1 = (() => {
-        let _record = pieces;
-        return new Uri(
-          _record.scheme,
-          _record.userinfo,
-          new Some(host),
-          _record.port,
-          _record.path,
-          _record.query,
-          _record.fragment
-        );
-      })();
+      let _block;
+      let _record = pieces;
+      _block = new Uri(
+        _record.scheme,
+        _record.userinfo,
+        new Some(host),
+        _record.port,
+        _record.path,
+        _record.query,
+        _record.fragment
+      );
+      let pieces$1 = _block;
       return parse_query_with_question_mark(rest, pieces$1);
     } else if (uri_string.startsWith("#") && size2 === 0) {
       let rest = uri_string.slice(1);
@@ -6275,18 +6934,18 @@ function parse_host_within_brackets_loop(loop$original, loop$uri_string, loop$pi
     } else if (uri_string.startsWith("#")) {
       let rest = uri_string.slice(1);
       let host = string_codeunit_slice(original, 0, size2);
-      let pieces$1 = (() => {
-        let _record = pieces;
-        return new Uri(
-          _record.scheme,
-          _record.userinfo,
-          new Some(host),
-          _record.port,
-          _record.path,
-          _record.query,
-          _record.fragment
-        );
-      })();
+      let _block;
+      let _record = pieces;
+      _block = new Uri(
+        _record.scheme,
+        _record.userinfo,
+        new Some(host),
+        _record.port,
+        _record.path,
+        _record.query,
+        _record.fragment
+      );
+      let pieces$1 = _block;
       return parse_fragment(rest, pieces$1);
     } else {
       let $ = pop_codeunit(uri_string);
@@ -6319,18 +6978,18 @@ function parse_host(uri_string, pieces) {
   if (uri_string.startsWith("[")) {
     return parse_host_within_brackets(uri_string, pieces);
   } else if (uri_string.startsWith(":")) {
-    let pieces$1 = (() => {
-      let _record = pieces;
-      return new Uri(
-        _record.scheme,
-        _record.userinfo,
-        new Some(""),
-        _record.port,
-        _record.path,
-        _record.query,
-        _record.fragment
-      );
-    })();
+    let _block;
+    let _record = pieces;
+    _block = new Uri(
+      _record.scheme,
+      _record.userinfo,
+      new Some(""),
+      _record.port,
+      _record.path,
+      _record.query,
+      _record.fragment
+    );
+    let pieces$1 = _block;
     return parse_port(uri_string, pieces$1);
   } else if (uri_string === "") {
     return new Ok(
@@ -6363,18 +7022,18 @@ function parse_userinfo_loop(loop$original, loop$uri_string, loop$pieces, loop$s
     } else if (uri_string.startsWith("@")) {
       let rest = uri_string.slice(1);
       let userinfo = string_codeunit_slice(original, 0, size2);
-      let pieces$1 = (() => {
-        let _record = pieces;
-        return new Uri(
-          _record.scheme,
-          new Some(userinfo),
-          _record.host,
-          _record.port,
-          _record.path,
-          _record.query,
-          _record.fragment
-        );
-      })();
+      let _block;
+      let _record = pieces;
+      _block = new Uri(
+        _record.scheme,
+        new Some(userinfo),
+        _record.host,
+        _record.port,
+        _record.path,
+        _record.query,
+        _record.fragment
+      );
+      let pieces$1 = _block;
       return parse_host(rest, pieces$1);
     } else if (uri_string === "") {
       return parse_host(original, pieces);
@@ -6430,18 +7089,18 @@ function parse_scheme_loop(loop$original, loop$uri_string, loop$pieces, loop$siz
       return parse_authority_with_slashes(uri_string, pieces);
     } else if (uri_string.startsWith("/")) {
       let scheme = string_codeunit_slice(original, 0, size2);
-      let pieces$1 = (() => {
-        let _record = pieces;
-        return new Uri(
-          new Some(lowercase(scheme)),
-          _record.userinfo,
-          _record.host,
-          _record.port,
-          _record.path,
-          _record.query,
-          _record.fragment
-        );
-      })();
+      let _block;
+      let _record = pieces;
+      _block = new Uri(
+        new Some(lowercase(scheme)),
+        _record.userinfo,
+        _record.host,
+        _record.port,
+        _record.path,
+        _record.query,
+        _record.fragment
+      );
+      let pieces$1 = _block;
       return parse_authority_with_slashes(uri_string, pieces$1);
     } else if (uri_string.startsWith("?") && size2 === 0) {
       let rest = uri_string.slice(1);
@@ -6449,18 +7108,18 @@ function parse_scheme_loop(loop$original, loop$uri_string, loop$pieces, loop$siz
     } else if (uri_string.startsWith("?")) {
       let rest = uri_string.slice(1);
       let scheme = string_codeunit_slice(original, 0, size2);
-      let pieces$1 = (() => {
-        let _record = pieces;
-        return new Uri(
-          new Some(lowercase(scheme)),
-          _record.userinfo,
-          _record.host,
-          _record.port,
-          _record.path,
-          _record.query,
-          _record.fragment
-        );
-      })();
+      let _block;
+      let _record = pieces;
+      _block = new Uri(
+        new Some(lowercase(scheme)),
+        _record.userinfo,
+        _record.host,
+        _record.port,
+        _record.path,
+        _record.query,
+        _record.fragment
+      );
+      let pieces$1 = _block;
       return parse_query_with_question_mark(rest, pieces$1);
     } else if (uri_string.startsWith("#") && size2 === 0) {
       let rest = uri_string.slice(1);
@@ -6468,36 +7127,36 @@ function parse_scheme_loop(loop$original, loop$uri_string, loop$pieces, loop$siz
     } else if (uri_string.startsWith("#")) {
       let rest = uri_string.slice(1);
       let scheme = string_codeunit_slice(original, 0, size2);
-      let pieces$1 = (() => {
-        let _record = pieces;
-        return new Uri(
-          new Some(lowercase(scheme)),
-          _record.userinfo,
-          _record.host,
-          _record.port,
-          _record.path,
-          _record.query,
-          _record.fragment
-        );
-      })();
+      let _block;
+      let _record = pieces;
+      _block = new Uri(
+        new Some(lowercase(scheme)),
+        _record.userinfo,
+        _record.host,
+        _record.port,
+        _record.path,
+        _record.query,
+        _record.fragment
+      );
+      let pieces$1 = _block;
       return parse_fragment(rest, pieces$1);
     } else if (uri_string.startsWith(":") && size2 === 0) {
       return new Error(void 0);
     } else if (uri_string.startsWith(":")) {
       let rest = uri_string.slice(1);
       let scheme = string_codeunit_slice(original, 0, size2);
-      let pieces$1 = (() => {
-        let _record = pieces;
-        return new Uri(
-          new Some(lowercase(scheme)),
-          _record.userinfo,
-          _record.host,
-          _record.port,
-          _record.path,
-          _record.query,
-          _record.fragment
-        );
-      })();
+      let _block;
+      let _record = pieces;
+      _block = new Uri(
+        new Some(lowercase(scheme)),
+        _record.userinfo,
+        _record.host,
+        _record.port,
+        _record.path,
+        _record.query,
+        _record.fragment
+      );
+      let pieces$1 = _block;
       return parse_authority_with_slashes(rest, pieces$1);
     } else if (uri_string === "") {
       return new Ok(
@@ -6525,77 +7184,77 @@ function parse_scheme_loop(loop$original, loop$uri_string, loop$pieces, loop$siz
   }
 }
 function to_string4(uri) {
-  let parts = (() => {
-    let $ = uri.fragment;
-    if ($ instanceof Some) {
-      let fragment3 = $[0];
-      return toList(["#", fragment3]);
-    } else {
-      return toList([]);
-    }
-  })();
-  let parts$1 = (() => {
-    let $ = uri.query;
-    if ($ instanceof Some) {
-      let query = $[0];
-      return prepend("?", prepend(query, parts));
-    } else {
-      return parts;
-    }
-  })();
+  let _block;
+  let $ = uri.fragment;
+  if ($ instanceof Some) {
+    let fragment3 = $[0];
+    _block = toList(["#", fragment3]);
+  } else {
+    _block = toList([]);
+  }
+  let parts = _block;
+  let _block$1;
+  let $1 = uri.query;
+  if ($1 instanceof Some) {
+    let query = $1[0];
+    _block$1 = prepend("?", prepend(query, parts));
+  } else {
+    _block$1 = parts;
+  }
+  let parts$1 = _block$1;
   let parts$2 = prepend(uri.path, parts$1);
-  let parts$3 = (() => {
-    let $ = uri.host;
-    let $1 = starts_with(uri.path, "/");
-    if ($ instanceof Some && !$1 && $[0] !== "") {
-      let host = $[0];
-      return prepend("/", parts$2);
-    } else {
-      return parts$2;
-    }
-  })();
-  let parts$4 = (() => {
-    let $ = uri.host;
-    let $1 = uri.port;
-    if ($ instanceof Some && $1 instanceof Some) {
-      let port = $1[0];
-      return prepend(":", prepend(to_string(port), parts$3));
-    } else {
-      return parts$3;
-    }
-  })();
-  let parts$5 = (() => {
-    let $ = uri.scheme;
-    let $1 = uri.userinfo;
-    let $2 = uri.host;
-    if ($ instanceof Some && $1 instanceof Some && $2 instanceof Some) {
-      let s = $[0];
-      let u = $1[0];
-      let h = $2[0];
-      return prepend(
-        s,
-        prepend(
-          "://",
-          prepend(u, prepend("@", prepend(h, parts$4)))
-        )
-      );
-    } else if ($ instanceof Some && $1 instanceof None && $2 instanceof Some) {
-      let s = $[0];
-      let h = $2[0];
-      return prepend(s, prepend("://", prepend(h, parts$4)));
-    } else if ($ instanceof Some && $1 instanceof Some && $2 instanceof None) {
-      let s = $[0];
-      return prepend(s, prepend(":", parts$4));
-    } else if ($ instanceof Some && $1 instanceof None && $2 instanceof None) {
-      let s = $[0];
-      return prepend(s, prepend(":", parts$4));
-    } else if ($ instanceof None && $1 instanceof None && $2 instanceof Some) {
-      let h = $2[0];
-      return prepend("//", prepend(h, parts$4));
-    } else {
-      return parts$4;
-    }
-  })();
+  let _block$2;
+  let $2 = uri.host;
+  let $3 = starts_with(uri.path, "/");
+  if ($2 instanceof Some && !$3 && $2[0] !== "") {
+    let host = $2[0];
+    _block$2 = prepend("/", parts$2);
+  } else {
+    _block$2 = parts$2;
+  }
+  let parts$3 = _block$2;
+  let _block$3;
+  let $4 = uri.host;
+  let $5 = uri.port;
+  if ($4 instanceof Some && $5 instanceof Some) {
+    let port = $5[0];
+    _block$3 = prepend(":", prepend(to_string(port), parts$3));
+  } else {
+    _block$3 = parts$3;
+  }
+  let parts$4 = _block$3;
+  let _block$4;
+  let $6 = uri.scheme;
+  let $7 = uri.userinfo;
+  let $8 = uri.host;
+  if ($6 instanceof Some && $7 instanceof Some && $8 instanceof Some) {
+    let s = $6[0];
+    let u = $7[0];
+    let h = $8[0];
+    _block$4 = prepend(
+      s,
+      prepend(
+        "://",
+        prepend(u, prepend("@", prepend(h, parts$4)))
+      )
+    );
+  } else if ($6 instanceof Some && $7 instanceof None && $8 instanceof Some) {
+    let s = $6[0];
+    let h = $8[0];
+    _block$4 = prepend(s, prepend("://", prepend(h, parts$4)));
+  } else if ($6 instanceof Some && $7 instanceof Some && $8 instanceof None) {
+    let s = $6[0];
+    _block$4 = prepend(s, prepend(":", parts$4));
+  } else if ($6 instanceof Some && $7 instanceof None && $8 instanceof None) {
+    let s = $6[0];
+    _block$4 = prepend(s, prepend(":", parts$4));
+  } else if ($6 instanceof None && $7 instanceof None && $8 instanceof Some) {
+    let h = $8[0];
+    _block$4 = prepend("//", prepend(h, parts$4));
+  } else {
+    _block$4 = parts$4;
+  }
+  let parts$5 = _block$4;
   return concat2(parts$5);
 }
 var empty4 = /* @__PURE__ */ new Uri(
@@ -7029,15 +7688,15 @@ function expect_json(decoder, handler) {
   );
 }
 function to_uri2(uri_string) {
-  let _pipe = (() => {
-    if (uri_string.startsWith("./")) {
-      return from_relative_url(uri_string);
-    } else if (uri_string.startsWith("/")) {
-      return from_relative_url(uri_string);
-    } else {
-      return parse2(uri_string);
-    }
-  })();
+  let _block;
+  if (uri_string.startsWith("./")) {
+    _block = from_relative_url(uri_string);
+  } else if (uri_string.startsWith("/")) {
+    _block = from_relative_url(uri_string);
+  } else {
+    _block = parse2(uri_string);
+  }
+  let _pipe = _block;
   return replace_error(_pipe, new BadUrl(uri_string));
 }
 function get2(url, handler) {
@@ -7062,265 +7721,6 @@ function get2(url, handler) {
     let err = $[0];
     return reject(err, handler);
   }
-}
-
-// build/dev/javascript/eve_arbitrage/config/esi.mjs
-var Order = class extends CustomType {
-  constructor(duration, issued, location_id, min_volume, order_id, price, range, system_id, type_id, volume_remain, volume_total) {
-    super();
-    this.duration = duration;
-    this.issued = issued;
-    this.location_id = location_id;
-    this.min_volume = min_volume;
-    this.order_id = order_id;
-    this.price = price;
-    this.range = range;
-    this.system_id = system_id;
-    this.type_id = type_id;
-    this.volume_remain = volume_remain;
-    this.volume_total = volume_total;
-  }
-};
-function buy_order_decoder() {
-  return field(
-    "duration",
-    int2,
-    (duration) => {
-      return field(
-        "is_buy_order",
-        bool,
-        (is_buy_order) => {
-          return lazy_guard(
-            !is_buy_order,
-            () => {
-              throw makeError(
-                "panic",
-                "config/esi",
-                59,
-                "",
-                "found a sell order, should be a buy order",
-                {}
-              );
-            },
-            () => {
-              return field(
-                "issued",
-                string2,
-                (issued) => {
-                  return field(
-                    "location_id",
-                    int2,
-                    (location_id) => {
-                      return field(
-                        "min_volume",
-                        int2,
-                        (min_volume) => {
-                          return field(
-                            "order_id",
-                            int2,
-                            (order_id) => {
-                              return field(
-                                "price",
-                                float2,
-                                (price) => {
-                                  return field(
-                                    "range",
-                                    string2,
-                                    (range) => {
-                                      return field(
-                                        "system_id",
-                                        int2,
-                                        (system_id) => {
-                                          return field(
-                                            "type_id",
-                                            int2,
-                                            (type_id) => {
-                                              return field(
-                                                "volume_remain",
-                                                int2,
-                                                (volume_remain) => {
-                                                  return field(
-                                                    "volume_total",
-                                                    int2,
-                                                    (volume_total) => {
-                                                      return success(
-                                                        new Order(
-                                                          duration,
-                                                          issued,
-                                                          location_id,
-                                                          min_volume,
-                                                          order_id,
-                                                          price,
-                                                          range,
-                                                          system_id,
-                                                          type_id,
-                                                          volume_remain,
-                                                          volume_total
-                                                        )
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
-    }
-  );
-}
-function buy_orders_decoder() {
-  return list2(buy_order_decoder());
-}
-function sell_order_decoder() {
-  return field(
-    "duration",
-    int2,
-    (duration) => {
-      return field(
-        "is_buy_order",
-        bool,
-        (is_buy_order) => {
-          return lazy_guard(
-            is_buy_order,
-            () => {
-              throw makeError(
-                "panic",
-                "config/esi",
-                90,
-                "",
-                "found a buy order, should be a sell order",
-                {}
-              );
-            },
-            () => {
-              return field(
-                "issued",
-                string2,
-                (issued) => {
-                  return field(
-                    "location_id",
-                    int2,
-                    (location_id) => {
-                      return field(
-                        "min_volume",
-                        int2,
-                        (min_volume) => {
-                          return field(
-                            "order_id",
-                            int2,
-                            (order_id) => {
-                              return field(
-                                "price",
-                                float2,
-                                (price) => {
-                                  return field(
-                                    "range",
-                                    string2,
-                                    (range) => {
-                                      return field(
-                                        "system_id",
-                                        int2,
-                                        (system_id) => {
-                                          return field(
-                                            "type_id",
-                                            int2,
-                                            (type_id) => {
-                                              return field(
-                                                "volume_remain",
-                                                int2,
-                                                (volume_remain) => {
-                                                  return field(
-                                                    "volume_total",
-                                                    int2,
-                                                    (volume_total) => {
-                                                      return success(
-                                                        new Order(
-                                                          duration,
-                                                          issued,
-                                                          location_id,
-                                                          min_volume,
-                                                          order_id,
-                                                          price,
-                                                          range,
-                                                          system_id,
-                                                          type_id,
-                                                          volume_remain,
-                                                          volume_total
-                                                        )
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
-    }
-  );
-}
-function sell_orders_decoder() {
-  return list2(sell_order_decoder());
-}
-var esi_url = "https://esi.evetech.net/latest";
-var market_order_url = "/markets/{region_id}/orders/?datasource=tranquility&order_type={order_kind}&page={page}";
-function get_market_orders_url(from2, is_buy_order, page) {
-  let order_kind = (() => {
-    if (!is_buy_order) {
-      return "sell";
-    } else {
-      return "buy";
-    }
-  })();
-  let _pipe = toList([esi_url, market_order_url]);
-  let _pipe$1 = concat2(_pipe);
-  let _pipe$2 = replace(
-    _pipe$1,
-    "{region_id}",
-    to_string(from2.region)
-  );
-  let _pipe$3 = replace(_pipe$2, "{order_kind}", order_kind);
-  return replace(
-    _pipe$3,
-    "{page}",
-    (() => {
-      let _pipe$4 = page;
-      return to_string(_pipe$4);
-    })()
-  );
 }
 
 // build/dev/javascript/eve_arbitrage/storage_ffi.mjs
@@ -7451,6 +7851,8 @@ var EsiReturnedSellOrders = class extends CustomType {
     this.location = location;
     this.page = page;
   }
+};
+var UserClickedComputeMultibuys = class extends CustomType {
 };
 var UserClickedCopyMultibuy = class extends CustomType {
   constructor(multibuy) {
@@ -7618,10 +8020,10 @@ var InitStoreReadSelectedShip = class extends CustomType {
   }
 };
 function int_input_to_msg(input2, msg) {
-  let value3 = (() => {
-    let _pipe = parse_int(input2);
-    return from_result(_pipe);
-  })();
+  let _block;
+  let _pipe = parse_int(input2);
+  _block = from_result(_pipe);
+  let value3 = _block;
   return msg(value3);
 }
 
@@ -7655,6 +8057,78 @@ function user_clicked_copy_multibuy(model, multibuy) {
   let side_effect = write(multibuy_text);
   console_log("Multibuy copied to clipboard");
   return [model, side_effect];
+}
+function user_clicked_compute_multibuys(model) {
+  return guard(
+    (() => {
+      let _pipe = model.source;
+      return is_none(_pipe);
+    })() || (() => {
+      let _pipe = model.destination;
+      return is_none(_pipe);
+    })(),
+    [model, none()],
+    () => {
+      let $ = model.source;
+      if (!($ instanceof Some)) {
+        throw makeError(
+          "let_assert",
+          "mvu/update/multibuys",
+          28,
+          "",
+          "Pattern match failed, no pattern matched the value.",
+          { value: $ }
+        );
+      }
+      let source = $[0];
+      let $1 = model.destination;
+      if (!($1 instanceof Some)) {
+        throw makeError(
+          "let_assert",
+          "mvu/update/multibuys",
+          29,
+          "",
+          "Pattern match failed, no pattern matched the value.",
+          { value: $1 }
+        );
+      }
+      let dest = $1[0];
+      let $2 = map_get(model.systems, source);
+      if (!$2.isOk()) {
+        throw makeError(
+          "let_assert",
+          "mvu/update/multibuys",
+          30,
+          "",
+          "Pattern match failed, no pattern matched the value.",
+          { value: $2 }
+        );
+      }
+      let source$1 = $2[0];
+      let $3 = map_get(model.systems, dest);
+      if (!$3.isOk()) {
+        throw makeError(
+          "let_assert",
+          "mvu/update/multibuys",
+          31,
+          "",
+          "Pattern match failed, no pattern matched the value.",
+          { value: $3 }
+        );
+      }
+      let dest$1 = $3[0];
+      compute_trades(source$1.sell_orders, dest$1.buy_orders);
+      throw makeError(
+        "todo",
+        "mvu/update/multibuys",
+        35,
+        "",
+        "user clicked compute multibuys",
+        {}
+      );
+      return [model, none()];
+    }
+  );
 }
 
 // build/dev/javascript/eve_arbitrage/util/numbers.mjs
@@ -7691,31 +8165,31 @@ function float_to_human_string(from2) {
 }
 function millions_to_unit_string(from2) {
   let thousands = int_to_segments(toList([]), from2);
-  let $ = (() => {
-    if (thousands.hasLength(0)) {
-      throw makeError(
-        "panic",
-        "util/numbers",
-        42,
-        "millions_to_unit_string",
-        "shouldnt be able to find an empty value",
-        {}
-      );
-    } else if (thousands.hasLength(1)) {
-      let v = thousands.head;
-      return [v, "M"];
-    } else {
-      let v = thousands.tail;
-      return [
-        (() => {
-          let _pipe = v;
-          let _pipe$1 = reverse(_pipe);
-          return concat2(_pipe$1);
-        })(),
-        "B"
-      ];
-    }
-  })();
+  let _block;
+  if (thousands.hasLength(0)) {
+    throw makeError(
+      "panic",
+      "util/numbers",
+      42,
+      "millions_to_unit_string",
+      "shouldnt be able to find an empty value",
+      {}
+    );
+  } else if (thousands.hasLength(1)) {
+    let v = thousands.head;
+    _block = [v, "M"];
+  } else {
+    let v = thousands.tail;
+    _block = [
+      (() => {
+        let _pipe = v;
+        let _pipe$1 = reverse(_pipe);
+        return concat2(_pipe$1);
+      })(),
+      "B"
+    ];
+  }
+  let $ = _block;
   let value3 = $[0];
   let units = $[1];
   return value3 + " " + units;
@@ -7756,22 +8230,18 @@ function ints_dict_to_string(from2) {
 }
 function string_to_ints_dict(from2) {
   return guard(
-    is_empty(from2),
+    is_empty2(from2),
     new Ok(from_list(toList([]))),
     () => {
-      let sections = (() => {
-        let _pipe2 = from2;
-        let _pipe$12 = drop_end(_pipe2, 1);
-        return split2(_pipe$12, ";");
-      })();
-      let _pipe = map2(
+      let _block;
+      let _pipe = from2;
+      let _pipe$1 = drop_end(_pipe, 1);
+      _block = split2(_pipe$1, ";");
+      let sections = _block;
+      let _pipe$2 = map2(
         sections,
         (section2) => {
-          let $ = echo(
-            split2(section2, ":"),
-            "src/util/numbers.gleam",
-            79
-          );
+          let $ = split2(section2, ":");
           if (!$.hasLength(2)) {
             throw makeError(
               "let_assert",
@@ -7788,7 +8258,7 @@ function string_to_ints_dict(from2) {
             parse_int(index_string),
             (index5) => {
               return guard(
-                is_empty(int_list_string),
+                is_empty2(int_list_string),
                 new Ok([index5, toList([])]),
                 () => {
                   return map3(
@@ -7803,8 +8273,8 @@ function string_to_ints_dict(from2) {
           );
         }
       );
-      let _pipe$1 = all(_pipe);
-      return map3(_pipe$1, from_list);
+      let _pipe$3 = all(_pipe$2);
+      return map3(_pipe$3, from_list);
     }
   );
 }
@@ -7817,144 +8287,21 @@ function int_to_human_string(from2) {
     return to_string(from2);
   }
 }
-function echo(value3, file, line) {
-  const grey = "\x1B[90m";
-  const reset_color = "\x1B[39m";
-  const file_line = `${file}:${line}`;
-  const string_value = echo$inspect(value3);
-  if (typeof process === "object" && process.stderr?.write) {
-    const string5 = `${grey}${file_line}${reset_color}
-${string_value}
-`;
-    process.stderr.write(string5);
-  } else if (typeof Deno === "object") {
-    const string5 = `${grey}${file_line}${reset_color}
-${string_value}
-`;
-    Deno.stderr.writeSync(new TextEncoder().encode(string5));
-  } else {
-    const string5 = `${file_line}
-${string_value}`;
-    console.log(string5);
-  }
-  return value3;
-}
-function echo$inspectString(str) {
-  let new_str = '"';
-  for (let i = 0; i < str.length; i++) {
-    let char = str[i];
-    if (char == "\n") new_str += "\\n";
-    else if (char == "\r") new_str += "\\r";
-    else if (char == "	") new_str += "\\t";
-    else if (char == "\f") new_str += "\\f";
-    else if (char == "\\") new_str += "\\\\";
-    else if (char == '"') new_str += '\\"';
-    else if (char < " " || char > "~" && char < "\xA0") {
-      new_str += "\\u{" + char.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0") + "}";
-    } else {
-      new_str += char;
-    }
-  }
-  new_str += '"';
-  return new_str;
-}
-function echo$inspectDict(map6) {
-  let body = "dict.from_list([";
-  let first = true;
-  let key_value_pairs = [];
-  map6.forEach((value3, key) => {
-    key_value_pairs.push([key, value3]);
-  });
-  key_value_pairs.sort();
-  key_value_pairs.forEach(([key, value3]) => {
-    if (!first) body = body + ", ";
-    body = body + "#(" + echo$inspect(key) + ", " + echo$inspect(value3) + ")";
-    first = false;
-  });
-  return body + "])";
-}
-function echo$inspectCustomType(record) {
-  const props = Object.keys(record).map((label2) => {
-    const value3 = echo$inspect(record[label2]);
-    return isNaN(parseInt(label2)) ? `${label2}: ${value3}` : value3;
-  }).join(", ");
-  return props ? `${record.constructor.name}(${props})` : record.constructor.name;
-}
-function echo$inspectObject(v) {
-  const name2 = Object.getPrototypeOf(v)?.constructor?.name || "Object";
-  const props = [];
-  for (const k of Object.keys(v)) {
-    props.push(`${echo$inspect(k)}: ${echo$inspect(v[k])}`);
-  }
-  const body = props.length ? " " + props.join(", ") + " " : "";
-  const head = name2 === "Object" ? "" : name2 + " ";
-  return `//js(${head}{${body}})`;
-}
-function echo$inspect(v) {
-  const t = typeof v;
-  if (v === true) return "True";
-  if (v === false) return "False";
-  if (v === null) return "//js(null)";
-  if (v === void 0) return "Nil";
-  if (t === "string") return echo$inspectString(v);
-  if (t === "bigint" || t === "number") return v.toString();
-  if (Array.isArray(v)) return `#(${v.map(echo$inspect).join(", ")})`;
-  if (v instanceof List) return `[${v.toArray().map(echo$inspect).join(", ")}]`;
-  if (v instanceof UtfCodepoint) return `//utfcodepoint(${String.fromCodePoint(v.value)})`;
-  if (v instanceof BitArray) return echo$inspectBitArray(v);
-  if (v instanceof CustomType) return echo$inspectCustomType(v);
-  if (echo$isDict(v)) return echo$inspectDict(v);
-  if (v instanceof Set) return `//js(Set(${[...v].map(echo$inspect).join(", ")}))`;
-  if (v instanceof RegExp) return `//js(${v})`;
-  if (v instanceof Date) return `//js(Date("${v.toISOString()}"))`;
-  if (v instanceof Function) {
-    const args = [];
-    for (const i of Array(v.length).keys()) args.push(String.fromCharCode(i + 97));
-    return `//fn(${args.join(", ")}) { ... }`;
-  }
-  return echo$inspectObject(v);
-}
-function echo$inspectBitArray(bitArray) {
-  let endOfAlignedBytes = bitArray.bitOffset + 8 * Math.trunc(bitArray.bitSize / 8);
-  let alignedBytes = bitArraySlice(bitArray, bitArray.bitOffset, endOfAlignedBytes);
-  let remainingUnalignedBits = bitArray.bitSize % 8;
-  if (remainingUnalignedBits > 0) {
-    let remainingBits = bitArraySliceToInt(bitArray, endOfAlignedBytes, bitArray.bitSize, false, false);
-    let alignedBytesArray = Array.from(alignedBytes.rawBuffer);
-    let suffix = `${remainingBits}:size(${remainingUnalignedBits})`;
-    if (alignedBytesArray.length === 0) {
-      return `<<${suffix}>>`;
-    } else {
-      return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}, ${suffix}>>`;
-    }
-  } else {
-    return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}>>`;
-  }
-}
-function echo$isDict(value3) {
-  try {
-    return value3 instanceof Dict;
-  } catch {
-    return false;
-  }
-}
 
 // build/dev/javascript/eve_arbitrage/mvu/update/side_effects/config_to_storage.mjs
 function get_store() {
-  return from(
-    (dispatch) => {
-      let _pipe = (() => {
-        let $ = localStorage();
-        if (!$.isOk()) {
-          return new InitStoreLoadFailed();
-        } else {
-          let store = $[0];
-          return new InitLoadStorage(store);
-        }
-      })();
-      return dispatch(_pipe);
+  return from((dispatch) => {
+    let _block;
+    let $ = localStorage();
+    if (!$.isOk()) {
+      _block = new InitStoreLoadFailed();
+    } else {
+      let store = $[0];
+      _block = new InitLoadStorage(store);
     }
-  );
+    let _pipe = _block;
+    return dispatch(_pipe);
+  });
 }
 function get_ship_id_storage_key_string(ship_id) {
   return "ships/" + to_string(ship_id);
@@ -8032,10 +8379,10 @@ function write_ship_hold_kind(storage, ship_id, hold_id, new_kind) {
   );
 }
 function write_collateral(storage, collateral) {
-  let string_to_store = (() => {
-    let _pipe = map(collateral, to_string);
-    return unwrap(_pipe, "");
-  })();
+  let _block;
+  let _pipe = map(collateral, to_string);
+  _block = unwrap(_pipe, "");
+  let string_to_store = _block;
   return store_write_to_effect(storage, "collateral", string_to_store);
 }
 function write_accounting_level(storage, accounting_level) {
@@ -8059,11 +8406,11 @@ function write_hold_indices(storage, hold_indices) {
   );
 }
 function write_selected_ship(storage, ship_id) {
-  let ship_id_string = (() => {
-    let _pipe = ship_id;
-    let _pipe$1 = map(_pipe, to_string);
-    return unwrap(_pipe$1, "");
-  })();
+  let _block;
+  let _pipe = ship_id;
+  let _pipe$1 = map(_pipe, to_string);
+  _block = unwrap(_pipe$1, "");
+  let ship_id_string = _block;
   return store_write_to_effect(storage, "selected_ship", ship_id_string);
 }
 function store_read_to_effect(storage, storage_key, parser, msg) {
@@ -8195,36 +8542,36 @@ function getElementById(id2) {
 
 // build/dev/javascript/eve_arbitrage/mvu/update/ships.mjs
 function user_selected_ship(selected_ship, model) {
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      _record.ships,
-      new Some(selected_ship),
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
+  let _block;
+  let _record = model;
+  _block = new Model(
+    _record.storage,
+    _record.ships,
+    new Some(selected_ship),
+    _record.count_ship_index,
+    _record.count_hold_index,
+    _record.systems,
+    _record.source,
+    _record.destination,
+    _record.accounting_level,
+    _record.language,
+    _record.sidebar_expanded,
+    _record.collateral,
+    _record.multibuys
+  );
+  let model$1 = _block;
+  let _block$1;
+  let $ = model$1.storage;
+  if ($ instanceof None) {
+    _block$1 = none();
+  } else {
+    let storage = $[0];
+    _block$1 = write_selected_ship(
+      storage,
+      new Some(selected_ship)
     );
-  })();
-  let effect = (() => {
-    let $ = model$1.storage;
-    if ($ instanceof None) {
-      return none();
-    } else {
-      let storage = $[0];
-      return write_selected_ship(
-        storage,
-        new Some(selected_ship)
-      );
-    }
-  })();
+  }
+  let effect = _block$1;
   console_log(
     "Ship #" + (() => {
       let _pipe = selected_ship;
@@ -8254,131 +8601,131 @@ function user_created_ship(model) {
     model.count_ship_index,
     default_ship_entry
   );
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      ships,
-      _record.current_ship,
-      model.count_ship_index + 1,
-      model.count_hold_index + 1,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
+  let _block;
+  let _record = model;
+  _block = new Model(
+    _record.storage,
+    ships,
+    _record.current_ship,
+    model.count_ship_index + 1,
+    model.count_hold_index + 1,
+    _record.systems,
+    _record.source,
+    _record.destination,
+    _record.accounting_level,
+    _record.language,
+    _record.sidebar_expanded,
+    _record.collateral,
+    _record.multibuys
+  );
+  let model$1 = _block;
+  let _block$1;
+  let $ = model$1.storage;
+  if ($ instanceof None) {
+    _block$1 = none();
+  } else {
+    let storage = $[0];
+    _block$1 = batch(
+      toList([
+        write_ship_name(
+          storage,
+          model$1.count_ship_index - 1,
+          "New Ship"
+        ),
+        write_hold_indices(
+          storage,
+          (() => {
+            let _pipe = model$1.ships;
+            return map_values(
+              _pipe,
+              (_, ship_entry) => {
+                let _pipe$1 = ship_entry.ship.holds;
+                return keys(_pipe$1);
+              }
+            );
+          })()
+        ),
+        write_ship_hold_name(
+          storage,
+          model$1.count_ship_index - 1,
+          model$1.count_hold_index - 1,
+          "Cargo"
+        ),
+        write_ship_hold_capacity(
+          storage,
+          model$1.count_ship_index - 1,
+          model$1.count_hold_index - 1,
+          1e3
+        ),
+        write_ship_hold_kind(
+          storage,
+          model$1.count_ship_index - 1,
+          model$1.count_hold_index - 1,
+          new Generic()
+        )
+      ])
     );
-  })();
-  let effect = (() => {
-    let $ = model$1.storage;
-    if ($ instanceof None) {
-      return none();
-    } else {
-      let storage = $[0];
-      return batch(
-        toList([
-          write_ship_name(
-            storage,
-            model$1.count_ship_index - 1,
-            "New Ship"
-          ),
-          write_hold_indices(
-            storage,
-            (() => {
-              let _pipe = model$1.ships;
-              return map_values(
-                _pipe,
-                (_, ship_entry) => {
-                  let _pipe$1 = ship_entry.ship.holds;
-                  return keys(_pipe$1);
-                }
-              );
-            })()
-          ),
-          write_ship_hold_name(
-            storage,
-            model$1.count_ship_index - 1,
-            model$1.count_hold_index - 1,
-            "Cargo"
-          ),
-          write_ship_hold_capacity(
-            storage,
-            model$1.count_ship_index - 1,
-            model$1.count_hold_index - 1,
-            1e3
-          ),
-          write_ship_hold_kind(
-            storage,
-            model$1.count_ship_index - 1,
-            model$1.count_hold_index - 1,
-            new Generic()
-          )
-        ])
-      );
-    }
-  })();
+  }
+  let effect = _block$1;
   return [model$1, effect];
 }
 function user_deleted_ship(model, deleted_ship) {
   let ships = delete$(model.ships, deleted_ship);
-  let selected_ship = (() => {
-    let $ = model.current_ship;
-    if ($ instanceof Some && $[0] === deleted_ship) {
-      let id2 = $[0];
-      return new None();
-    } else {
-      let any = $;
-      return any;
-    }
-  })();
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      ships,
-      selected_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
+  let _block;
+  let $ = model.current_ship;
+  if ($ instanceof Some && $[0] === deleted_ship) {
+    let id2 = $[0];
+    _block = new None();
+  } else {
+    let any = $;
+    _block = any;
+  }
+  let selected_ship = _block;
+  let _block$1;
+  let _record = model;
+  _block$1 = new Model(
+    _record.storage,
+    ships,
+    selected_ship,
+    _record.count_ship_index,
+    _record.count_hold_index,
+    _record.systems,
+    _record.source,
+    _record.destination,
+    _record.accounting_level,
+    _record.language,
+    _record.sidebar_expanded,
+    _record.collateral,
+    _record.multibuys
+  );
+  let model$1 = _block$1;
+  let _block$2;
+  let $1 = model$1.storage;
+  if ($1 instanceof None) {
+    _block$2 = none();
+  } else {
+    let storage = $1[0];
+    _block$2 = batch(
+      toList([
+        delete_ship(storage, deleted_ship),
+        write_hold_indices(
+          storage,
+          (() => {
+            let _pipe = model$1.ships;
+            return map_values(
+              _pipe,
+              (_, ship_entry) => {
+                let _pipe$1 = ship_entry.ship.holds;
+                return keys(_pipe$1);
+              }
+            );
+          })()
+        ),
+        write_selected_ship(storage, new None())
+      ])
     );
-  })();
-  let effect = (() => {
-    let $ = model$1.storage;
-    if ($ instanceof None) {
-      return none();
-    } else {
-      let storage = $[0];
-      return batch(
-        toList([
-          delete_ship(storage, deleted_ship),
-          write_hold_indices(
-            storage,
-            (() => {
-              let _pipe = model$1.ships;
-              return map_values(
-                _pipe,
-                (_, ship_entry) => {
-                  let _pipe$1 = ship_entry.ship.holds;
-                  return keys(_pipe$1);
-                }
-              );
-            })()
-          ),
-          write_selected_ship(storage, new None())
-        ])
-      );
-    }
-  })();
+  }
+  let effect = _block$2;
   return [model$1, effect];
 }
 function user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id) {
@@ -8419,52 +8766,52 @@ function user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id) {
     );
   }
   let hold = $2[0];
-  let hold$1 = (() => {
-    let _record = hold;
-    return new Hold(_record.name, hold_kind$1, _record.capacity);
-  })();
+  let _block;
+  let _record = hold;
+  _block = new Hold(_record.name, hold_kind$1, _record.capacity);
+  let hold$1 = _block;
   let holds = insert(ship.holds, hold_id, hold$1);
-  let ship$1 = (() => {
-    let _record = ship;
-    return new Ship(_record.name, holds);
-  })();
-  let ship_entry$1 = (() => {
-    let _record = ship_entry;
-    return new ShipEntry(ship$1, _record.is_expanded);
-  })();
+  let _block$1;
+  let _record$1 = ship;
+  _block$1 = new Ship(_record$1.name, holds);
+  let ship$1 = _block$1;
+  let _block$2;
+  let _record$2 = ship_entry;
+  _block$2 = new ShipEntry(ship$1, _record$2.is_expanded);
+  let ship_entry$1 = _block$2;
   let ship_entries = insert(model.ships, ship_id, ship_entry$1);
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      ship_entries,
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
+  let _block$3;
+  let _record$3 = model;
+  _block$3 = new Model(
+    _record$3.storage,
+    ship_entries,
+    _record$3.current_ship,
+    _record$3.count_ship_index,
+    _record$3.count_hold_index,
+    _record$3.systems,
+    _record$3.source,
+    _record$3.destination,
+    _record$3.accounting_level,
+    _record$3.language,
+    _record$3.sidebar_expanded,
+    _record$3.collateral,
+    _record$3.multibuys
+  );
+  let model$1 = _block$3;
+  let _block$4;
+  let $3 = model$1.storage;
+  if ($3 instanceof None) {
+    _block$4 = none();
+  } else {
+    let storage = $3[0];
+    _block$4 = write_ship_hold_kind(
+      storage,
+      ship_id,
+      hold_id,
+      hold_kind$1
     );
-  })();
-  let effect = (() => {
-    let $3 = model$1.storage;
-    if ($3 instanceof None) {
-      return none();
-    } else {
-      let storage = $3[0];
-      return write_ship_hold_kind(
-        storage,
-        ship_id,
-        hold_id,
-        hold_kind$1
-      );
-    }
-  })();
+  }
+  let effect = _block$4;
   return [model$1, effect];
 }
 function user_added_hold_to_ship(model, ship_id) {
@@ -8483,76 +8830,76 @@ function user_added_hold_to_ship(model, ship_id) {
   let ship_entry = $[0];
   let ship = ship_entry.ship;
   let holds = insert(ship.holds, model.count_hold_index, new_hold);
-  let ship$1 = (() => {
-    let _record = ship;
-    return new Ship(_record.name, holds);
-  })();
-  let ship_entry$1 = (() => {
-    let _record = ship_entry;
-    return new ShipEntry(ship$1, _record.is_expanded);
-  })();
+  let _block;
+  let _record = ship;
+  _block = new Ship(_record.name, holds);
+  let ship$1 = _block;
+  let _block$1;
+  let _record$1 = ship_entry;
+  _block$1 = new ShipEntry(ship$1, _record$1.is_expanded);
+  let ship_entry$1 = _block$1;
   let ship_entries = insert(model.ships, ship_id, ship_entry$1);
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      ship_entries,
-      _record.current_ship,
-      _record.count_ship_index,
-      model.count_hold_index + 1,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
+  let _block$2;
+  let _record$2 = model;
+  _block$2 = new Model(
+    _record$2.storage,
+    ship_entries,
+    _record$2.current_ship,
+    _record$2.count_ship_index,
+    model.count_hold_index + 1,
+    _record$2.systems,
+    _record$2.source,
+    _record$2.destination,
+    _record$2.accounting_level,
+    _record$2.language,
+    _record$2.sidebar_expanded,
+    _record$2.collateral,
+    _record$2.multibuys
+  );
+  let model$1 = _block$2;
+  let _block$3;
+  let $1 = model$1.storage;
+  if ($1 instanceof None) {
+    _block$3 = none();
+  } else {
+    let storage = $1[0];
+    _block$3 = batch(
+      toList([
+        write_hold_indices(
+          storage,
+          (() => {
+            let _pipe = model$1.ships;
+            return map_values(
+              _pipe,
+              (_, ship_entry2) => {
+                let _pipe$1 = ship_entry2.ship.holds;
+                return keys(_pipe$1);
+              }
+            );
+          })()
+        ),
+        write_ship_hold_name(
+          storage,
+          ship_id,
+          model$1.count_hold_index - 1,
+          "New Hold"
+        ),
+        write_ship_hold_capacity(
+          storage,
+          ship_id,
+          model$1.count_hold_index - 1,
+          100
+        ),
+        write_ship_hold_kind(
+          storage,
+          ship_id,
+          model$1.count_hold_index - 1,
+          new Generic()
+        )
+      ])
     );
-  })();
-  let effect = (() => {
-    let $1 = model$1.storage;
-    if ($1 instanceof None) {
-      return none();
-    } else {
-      let storage = $1[0];
-      return batch(
-        toList([
-          write_hold_indices(
-            storage,
-            (() => {
-              let _pipe = model$1.ships;
-              return map_values(
-                _pipe,
-                (_, ship_entry2) => {
-                  let _pipe$1 = ship_entry2.ship.holds;
-                  return keys(_pipe$1);
-                }
-              );
-            })()
-          ),
-          write_ship_hold_name(
-            storage,
-            ship_id,
-            model$1.count_hold_index - 1,
-            "New Hold"
-          ),
-          write_ship_hold_capacity(
-            storage,
-            ship_id,
-            model$1.count_hold_index - 1,
-            100
-          ),
-          write_ship_hold_kind(
-            storage,
-            ship_id,
-            model$1.count_hold_index - 1,
-            new Generic()
-          )
-        ])
-      );
-    }
-  })();
+  }
+  let effect = _block$3;
   return [model$1, effect];
 }
 function user_deleted_hold_from_ship(model, hold_id, ship_id) {
@@ -8569,59 +8916,59 @@ function user_deleted_hold_from_ship(model, hold_id, ship_id) {
   }
   let ship_entry = $[0];
   let holds = delete$(ship_entry.ship.holds, hold_id);
-  let ship = (() => {
-    let _record = ship_entry.ship;
-    return new Ship(_record.name, holds);
-  })();
-  let ship_entry$1 = (() => {
-    let _record = ship_entry;
-    return new ShipEntry(ship, _record.is_expanded);
-  })();
+  let _block;
+  let _record = ship_entry.ship;
+  _block = new Ship(_record.name, holds);
+  let ship = _block;
+  let _block$1;
+  let _record$1 = ship_entry;
+  _block$1 = new ShipEntry(ship, _record$1.is_expanded);
+  let ship_entry$1 = _block$1;
   let ship_entries = insert(model.ships, ship_id, ship_entry$1);
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      ship_entries,
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
+  let _block$2;
+  let _record$2 = model;
+  _block$2 = new Model(
+    _record$2.storage,
+    ship_entries,
+    _record$2.current_ship,
+    _record$2.count_ship_index,
+    _record$2.count_hold_index,
+    _record$2.systems,
+    _record$2.source,
+    _record$2.destination,
+    _record$2.accounting_level,
+    _record$2.language,
+    _record$2.sidebar_expanded,
+    _record$2.collateral,
+    _record$2.multibuys
+  );
+  let model$1 = _block$2;
+  let _block$3;
+  let $1 = model$1.storage;
+  if ($1 instanceof None) {
+    _block$3 = none();
+  } else {
+    let storage = $1[0];
+    _block$3 = batch(
+      toList([
+        delete_hold(storage, ship_id, hold_id),
+        write_hold_indices(
+          storage,
+          (() => {
+            let _pipe = model$1.ships;
+            return map_values(
+              _pipe,
+              (_, ship_entry2) => {
+                let _pipe$1 = ship_entry2.ship.holds;
+                return keys(_pipe$1);
+              }
+            );
+          })()
+        )
+      ])
     );
-  })();
-  let effect = (() => {
-    let $1 = model$1.storage;
-    if ($1 instanceof None) {
-      return none();
-    } else {
-      let storage = $1[0];
-      return batch(
-        toList([
-          delete_hold(storage, ship_id, hold_id),
-          write_hold_indices(
-            storage,
-            (() => {
-              let _pipe = model$1.ships;
-              return map_values(
-                _pipe,
-                (_, ship_entry2) => {
-                  let _pipe$1 = ship_entry2.ship.holds;
-                  return keys(_pipe$1);
-                }
-              );
-            })()
-          )
-        ])
-      );
-    }
-  })();
+  }
+  let effect = _block$3;
   return [model$1, effect];
 }
 function user_collapsed_ship(model, ship_id) {
@@ -8637,29 +8984,29 @@ function user_collapsed_ship(model, ship_id) {
     );
   }
   let ship_entry = $[0];
-  let ship_entry$1 = (() => {
-    let _record = ship_entry;
-    return new ShipEntry(_record.ship, false);
-  })();
+  let _block;
+  let _record = ship_entry;
+  _block = new ShipEntry(_record.ship, false);
+  let ship_entry$1 = _block;
   let ship_entries = insert(model.ships, ship_id, ship_entry$1);
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      ship_entries,
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
-    );
-  })();
+  let _block$1;
+  let _record$1 = model;
+  _block$1 = new Model(
+    _record$1.storage,
+    ship_entries,
+    _record$1.current_ship,
+    _record$1.count_ship_index,
+    _record$1.count_hold_index,
+    _record$1.systems,
+    _record$1.source,
+    _record$1.destination,
+    _record$1.accounting_level,
+    _record$1.language,
+    _record$1.sidebar_expanded,
+    _record$1.collateral,
+    _record$1.multibuys
+  );
+  let model$1 = _block$1;
   return [model$1, none()];
 }
 function user_expanded_ship(model, ship_id) {
@@ -8675,29 +9022,29 @@ function user_expanded_ship(model, ship_id) {
     );
   }
   let ship_entry = $[0];
-  let ship_entry$1 = (() => {
-    let _record = ship_entry;
-    return new ShipEntry(_record.ship, true);
-  })();
+  let _block;
+  let _record = ship_entry;
+  _block = new ShipEntry(_record.ship, true);
+  let ship_entry$1 = _block;
   let ship_entries = insert(model.ships, ship_id, ship_entry$1);
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      ship_entries,
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
-    );
-  })();
+  let _block$1;
+  let _record$1 = model;
+  _block$1 = new Model(
+    _record$1.storage,
+    ship_entries,
+    _record$1.current_ship,
+    _record$1.count_ship_index,
+    _record$1.count_hold_index,
+    _record$1.systems,
+    _record$1.source,
+    _record$1.destination,
+    _record$1.accounting_level,
+    _record$1.language,
+    _record$1.sidebar_expanded,
+    _record$1.collateral,
+    _record$1.multibuys
+  );
+  let model$1 = _block$1;
   return [model$1, none()];
 }
 function fetch_input_value_from_element_id_or_default(element_id, default_value) {
@@ -8739,54 +9086,56 @@ function user_updated_ship_name(model, id2) {
     element_id,
     default_value
   );
-  let model$1 = (() => {
-    let $1 = map_get(model.ships, id2);
-    if (!$1.isOk()) {
+  let _block;
+  {
+    let $12 = map_get(model.ships, id2);
+    if (!$12.isOk()) {
       throw makeError(
         "let_assert",
         "mvu/update/ships",
         136,
         "user_updated_ship_name",
         "Pattern match failed, no pattern matched the value.",
-        { value: $1 }
+        { value: $12 }
       );
     }
-    let ship_entry = $1[0];
+    let ship_entry = $12[0];
     let ship$1 = ship_entry.ship;
-    let ship$2 = (() => {
-      let _record2 = ship$1;
-      return new Ship(name2, _record2.holds);
-    })();
-    let ship_entry$1 = (() => {
-      let _record2 = ship_entry;
-      return new ShipEntry(ship$2, _record2.is_expanded);
-    })();
-    let _record = model;
-    return new Model(
-      _record.storage,
+    let _block$12;
+    let _record = ship$1;
+    _block$12 = new Ship(name2, _record.holds);
+    let ship$2 = _block$12;
+    let _block$2;
+    let _record$1 = ship_entry;
+    _block$2 = new ShipEntry(ship$2, _record$1.is_expanded);
+    let ship_entry$1 = _block$2;
+    let _record$2 = model;
+    _block = new Model(
+      _record$2.storage,
       insert(model.ships, id2, ship_entry$1),
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
+      _record$2.current_ship,
+      _record$2.count_ship_index,
+      _record$2.count_hold_index,
+      _record$2.systems,
+      _record$2.source,
+      _record$2.destination,
+      _record$2.accounting_level,
+      _record$2.language,
+      _record$2.sidebar_expanded,
+      _record$2.collateral,
+      _record$2.multibuys
     );
-  })();
-  let effect = (() => {
-    let $1 = model$1.storage;
-    if ($1 instanceof None) {
-      return none();
-    } else {
-      let storage = $1[0];
-      return write_ship_name(storage, id2, name2);
-    }
-  })();
+  }
+  let model$1 = _block;
+  let _block$1;
+  let $1 = model$1.storage;
+  if ($1 instanceof None) {
+    _block$1 = none();
+  } else {
+    let storage = $1[0];
+    _block$1 = write_ship_name(storage, id2, name2);
+  }
+  let effect = _block$1;
   return [model$1, effect];
 }
 function user_updated_ship_hold_name(model, hold_id, ship_id) {
@@ -8821,52 +9170,52 @@ function user_updated_ship_hold_name(model, hold_id, ship_id) {
     element_id,
     default_value
   );
-  let hold$1 = (() => {
-    let _record = hold;
-    return new Hold(name2, _record.kind, _record.capacity);
-  })();
+  let _block;
+  let _record = hold;
+  _block = new Hold(name2, _record.kind, _record.capacity);
+  let hold$1 = _block;
   let holds = insert(ship.holds, hold_id, hold$1);
-  let new_ship = (() => {
-    let _record = ship;
-    return new Ship(_record.name, holds);
-  })();
-  let ship_entry$1 = (() => {
-    let _record = ship_entry;
-    return new ShipEntry(new_ship, _record.is_expanded);
-  })();
+  let _block$1;
+  let _record$1 = ship;
+  _block$1 = new Ship(_record$1.name, holds);
+  let new_ship = _block$1;
+  let _block$2;
+  let _record$2 = ship_entry;
+  _block$2 = new ShipEntry(new_ship, _record$2.is_expanded);
+  let ship_entry$1 = _block$2;
   let ship_entries = insert(model.ships, ship_id, ship_entry$1);
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      ship_entries,
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
+  let _block$3;
+  let _record$3 = model;
+  _block$3 = new Model(
+    _record$3.storage,
+    ship_entries,
+    _record$3.current_ship,
+    _record$3.count_ship_index,
+    _record$3.count_hold_index,
+    _record$3.systems,
+    _record$3.source,
+    _record$3.destination,
+    _record$3.accounting_level,
+    _record$3.language,
+    _record$3.sidebar_expanded,
+    _record$3.collateral,
+    _record$3.multibuys
+  );
+  let model$1 = _block$3;
+  let _block$4;
+  let $2 = model$1.storage;
+  if ($2 instanceof None) {
+    _block$4 = none();
+  } else {
+    let storage = $2[0];
+    _block$4 = write_ship_hold_name(
+      storage,
+      ship_id,
+      hold_id,
+      name2
     );
-  })();
-  let effect = (() => {
-    let $2 = model$1.storage;
-    if ($2 instanceof None) {
-      return none();
-    } else {
-      let storage = $2[0];
-      return write_ship_hold_name(
-        storage,
-        ship_id,
-        hold_id,
-        name2
-      );
-    }
-  })();
+  }
+  let effect = _block$4;
   return [model$1, effect];
 }
 function fetch_float_input_value_from_element_id_or_default(element_id, default_value) {
@@ -8878,14 +9227,14 @@ function fetch_float_input_value_from_element_id_or_default(element_id, default_
     }
   );
   let float_parse_result = try$(value_result, parse_float);
-  let int_parse_result = (() => {
-    let _pipe = try$(value_result, parse_int);
-    return map3(_pipe, identity);
-  })();
-  let value_result$1 = (() => {
-    let _pipe = float_parse_result;
-    return or(_pipe, int_parse_result);
-  })();
+  let _block;
+  let _pipe = try$(value_result, parse_int);
+  _block = map3(_pipe, identity);
+  let int_parse_result = _block;
+  let _block$1;
+  let _pipe$1 = float_parse_result;
+  _block$1 = or(_pipe$1, int_parse_result);
+  let value_result$1 = _block$1;
   return unwrap2(value_result$1, default_value);
 }
 function user_updated_ship_hold_capacity(model, hold_id, ship_id) {
@@ -8920,156 +9269,156 @@ function user_updated_ship_hold_capacity(model, hold_id, ship_id) {
     element_id,
     default_value
   );
-  let hold$1 = (() => {
-    let _record = hold;
-    return new Hold(_record.name, _record.kind, capacity);
-  })();
+  let _block;
+  let _record = hold;
+  _block = new Hold(_record.name, _record.kind, capacity);
+  let hold$1 = _block;
   let holds = insert(ship.holds, hold_id, hold$1);
-  let new_ship = (() => {
-    let _record = ship;
-    return new Ship(_record.name, holds);
-  })();
-  let ship_entry$1 = (() => {
-    let _record = ship_entry;
-    return new ShipEntry(new_ship, _record.is_expanded);
-  })();
+  let _block$1;
+  let _record$1 = ship;
+  _block$1 = new Ship(_record$1.name, holds);
+  let new_ship = _block$1;
+  let _block$2;
+  let _record$2 = ship_entry;
+  _block$2 = new ShipEntry(new_ship, _record$2.is_expanded);
+  let ship_entry$1 = _block$2;
   let ship_entries = insert(model.ships, ship_id, ship_entry$1);
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      ship_entries,
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
+  let _block$3;
+  let _record$3 = model;
+  _block$3 = new Model(
+    _record$3.storage,
+    ship_entries,
+    _record$3.current_ship,
+    _record$3.count_ship_index,
+    _record$3.count_hold_index,
+    _record$3.systems,
+    _record$3.source,
+    _record$3.destination,
+    _record$3.accounting_level,
+    _record$3.language,
+    _record$3.sidebar_expanded,
+    _record$3.collateral,
+    _record$3.multibuys
+  );
+  let model$1 = _block$3;
+  let _block$4;
+  let $2 = model$1.storage;
+  if ($2 instanceof None) {
+    _block$4 = none();
+  } else {
+    let storage = $2[0];
+    _block$4 = write_ship_hold_capacity(
+      storage,
+      ship_id,
+      hold_id,
+      capacity
     );
-  })();
-  let effect = (() => {
-    let $2 = model$1.storage;
-    if ($2 instanceof None) {
-      return none();
-    } else {
-      let storage = $2[0];
-      return write_ship_hold_capacity(
-        storage,
-        ship_id,
-        hold_id,
-        capacity
-      );
-    }
-  })();
+  }
+  let effect = _block$4;
   return [model$1, effect];
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/update/sidebar.mjs
 function user_clicked_collapse_sidebar(model) {
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      _record.ships,
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      false,
-      _record.collateral,
-      _record.multibuys
-    );
-  })();
+  let _block;
+  let _record = model;
+  _block = new Model(
+    _record.storage,
+    _record.ships,
+    _record.current_ship,
+    _record.count_ship_index,
+    _record.count_hold_index,
+    _record.systems,
+    _record.source,
+    _record.destination,
+    _record.accounting_level,
+    _record.language,
+    false,
+    _record.collateral,
+    _record.multibuys
+  );
+  let model$1 = _block;
   return [model$1, none()];
 }
 function user_clicked_expand_sidebar(model) {
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      _record.ships,
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      true,
-      _record.collateral,
-      _record.multibuys
-    );
-  })();
+  let _block;
+  let _record = model;
+  _block = new Model(
+    _record.storage,
+    _record.ships,
+    _record.current_ship,
+    _record.count_ship_index,
+    _record.count_hold_index,
+    _record.systems,
+    _record.source,
+    _record.destination,
+    _record.accounting_level,
+    _record.language,
+    true,
+    _record.collateral,
+    _record.multibuys
+  );
+  let model$1 = _block;
   return [model$1, none()];
 }
 function user_updated_collateral(model, value3) {
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      _record.ships,
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      value3,
-      _record.multibuys
-    );
-  })();
-  let effect = (() => {
-    let $ = model$1.storage;
-    if ($ instanceof None) {
-      return none();
-    } else {
-      let storage = $[0];
-      return write_collateral(storage, value3);
-    }
-  })();
+  let _block;
+  let _record = model;
+  _block = new Model(
+    _record.storage,
+    _record.ships,
+    _record.current_ship,
+    _record.count_ship_index,
+    _record.count_hold_index,
+    _record.systems,
+    _record.source,
+    _record.destination,
+    _record.accounting_level,
+    _record.language,
+    _record.sidebar_expanded,
+    value3,
+    _record.multibuys
+  );
+  let model$1 = _block;
+  let _block$1;
+  let $ = model$1.storage;
+  if ($ instanceof None) {
+    _block$1 = none();
+  } else {
+    let storage = $[0];
+    _block$1 = write_collateral(storage, value3);
+  }
+  let effect = _block$1;
   return [model$1, effect];
 }
 function user_updated_accounting_level(model, level) {
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      _record.ships,
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
-    );
-  })();
-  let effect = (() => {
-    let $ = model$1.storage;
-    if ($ instanceof None) {
-      return none();
-    } else {
-      let storage = $[0];
-      return write_accounting_level(storage, level);
-    }
-  })();
+  let _block;
+  let _record = model;
+  _block = new Model(
+    _record.storage,
+    _record.ships,
+    _record.current_ship,
+    _record.count_ship_index,
+    _record.count_hold_index,
+    _record.systems,
+    _record.source,
+    _record.destination,
+    level,
+    _record.language,
+    _record.sidebar_expanded,
+    _record.collateral,
+    _record.multibuys
+  );
+  let model$1 = _block;
+  let _block$1;
+  let $ = model$1.storage;
+  if ($ instanceof None) {
+    _block$1 = none();
+  } else {
+    let storage = $[0];
+    _block$1 = write_accounting_level(storage, level);
+  }
+  let effect = _block$1;
   return [model$1, effect];
 }
 
@@ -9080,24 +9429,24 @@ function alert(message) {
 
 // build/dev/javascript/eve_arbitrage/mvu/update/store.mjs
 function init_load_storage(model, storage) {
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      new Some(storage),
-      _record.ships,
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
-    );
-  })();
+  let _block;
+  let _record = model;
+  _block = new Model(
+    new Some(storage),
+    _record.ships,
+    _record.current_ship,
+    _record.count_ship_index,
+    _record.count_hold_index,
+    _record.systems,
+    _record.source,
+    _record.destination,
+    _record.accounting_level,
+    _record.language,
+    _record.sidebar_expanded,
+    _record.collateral,
+    _record.multibuys
+  );
+  let model$1 = _block;
   let effect = batch(
     toList([
       read_collateral(storage),
@@ -9123,7 +9472,8 @@ function store_read_failed(model, storage_key) {
   return [model, none()];
 }
 function store_read_ship_name(model, name2, id2) {
-  let model$1 = (() => {
+  let _block;
+  {
     let $ = map_get(model.ships, id2);
     if (!$.isOk()) {
       throw makeError(
@@ -9137,73 +9487,74 @@ function store_read_ship_name(model, name2, id2) {
     }
     let ship_entry = $[0];
     let ship = ship_entry.ship;
-    let ship$1 = (() => {
-      let _record2 = ship;
-      return new Ship(name2, _record2.holds);
-    })();
-    let ship_entry$1 = (() => {
-      let _record2 = ship_entry;
-      return new ShipEntry(ship$1, _record2.is_expanded);
-    })();
-    let _record = model;
-    return new Model(
-      _record.storage,
+    let _block$1;
+    let _record = ship;
+    _block$1 = new Ship(name2, _record.holds);
+    let ship$1 = _block$1;
+    let _block$2;
+    let _record$1 = ship_entry;
+    _block$2 = new ShipEntry(ship$1, _record$1.is_expanded);
+    let ship_entry$1 = _block$2;
+    let _record$2 = model;
+    _block = new Model(
+      _record$2.storage,
       insert(model.ships, id2, ship_entry$1),
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
+      _record$2.current_ship,
+      _record$2.count_ship_index,
+      _record$2.count_hold_index,
+      _record$2.systems,
+      _record$2.source,
+      _record$2.destination,
+      _record$2.accounting_level,
+      _record$2.language,
+      _record$2.sidebar_expanded,
+      _record$2.collateral,
+      _record$2.multibuys
     );
-  })();
+  }
+  let model$1 = _block;
   return [model$1, none()];
 }
 function store_read_accounting_level(model, accounting_level) {
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      _record.ships,
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
-    );
-  })();
+  let _block;
+  let _record = model;
+  _block = new Model(
+    _record.storage,
+    _record.ships,
+    _record.current_ship,
+    _record.count_ship_index,
+    _record.count_hold_index,
+    _record.systems,
+    _record.source,
+    _record.destination,
+    accounting_level,
+    _record.language,
+    _record.sidebar_expanded,
+    _record.collateral,
+    _record.multibuys
+  );
+  let model$1 = _block;
   return [model$1, none()];
 }
 function store_read_collateral(model, collateral) {
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      _record.ships,
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      collateral,
-      _record.multibuys
-    );
-  })();
+  let _block;
+  let _record = model;
+  _block = new Model(
+    _record.storage,
+    _record.ships,
+    _record.current_ship,
+    _record.count_ship_index,
+    _record.count_hold_index,
+    _record.systems,
+    _record.source,
+    _record.destination,
+    _record.accounting_level,
+    _record.language,
+    _record.sidebar_expanded,
+    collateral,
+    _record.multibuys
+  );
+  let model$1 = _block;
   return [model$1, none()];
 }
 function store_read_hold_capacity(model, capacity, ship_id, hold_id) {
@@ -9232,23 +9583,66 @@ function store_read_hold_capacity(model, capacity, ship_id, hold_id) {
     );
   }
   let hold = $1[0];
-  let hold$1 = (() => {
-    let _record = hold;
-    return new Hold(_record.name, _record.kind, capacity);
-  })();
+  let _block;
+  let _record = hold;
+  _block = new Hold(_record.name, _record.kind, capacity);
+  let hold$1 = _block;
   let holds = insert(ship.holds, hold_id, hold$1);
-  let new_ship = (() => {
-    let _record = ship;
-    return new Ship(_record.name, holds);
-  })();
-  let ship_entry$1 = (() => {
-    let _record = ship_entry;
-    return new ShipEntry(new_ship, _record.is_expanded);
-  })();
+  let _block$1;
+  let _record$1 = ship;
+  _block$1 = new Ship(_record$1.name, holds);
+  let new_ship = _block$1;
+  let _block$2;
+  let _record$2 = ship_entry;
+  _block$2 = new ShipEntry(new_ship, _record$2.is_expanded);
+  let ship_entry$1 = _block$2;
   let ship_entries = insert(model.ships, ship_id, ship_entry$1);
-  let model$1 = (() => {
+  let _block$3;
+  let _record$3 = model;
+  _block$3 = new Model(
+    _record$3.storage,
+    ship_entries,
+    _record$3.current_ship,
+    _record$3.count_ship_index,
+    _record$3.count_hold_index,
+    _record$3.systems,
+    _record$3.source,
+    _record$3.destination,
+    _record$3.accounting_level,
+    _record$3.language,
+    _record$3.sidebar_expanded,
+    _record$3.collateral,
+    _record$3.multibuys
+  );
+  let model$1 = _block$3;
+  return [model$1, none()];
+}
+function store_read_hold_indices(model, hold_indices) {
+  let $ = model.storage;
+  if ($ instanceof Some) {
+    let storage = $[0];
+    let ship_entries = map_values(
+      hold_indices,
+      (_, hold_ids) => {
+        let _block2;
+        let _pipe2 = map2(
+          hold_ids,
+          (hold_id) => {
+            return [
+              hold_id,
+              new Hold("New Hold", new Generic(), 100)
+            ];
+          }
+        );
+        _block2 = from_list(_pipe2);
+        let holds = _block2;
+        let ship = new Ship("New Ship", holds);
+        return new ShipEntry(ship, false);
+      }
+    );
+    let _block;
     let _record = model;
-    return new Model(
+    _block = new Model(
       _record.storage,
       ship_entries,
       _record.current_ship,
@@ -9263,91 +9657,44 @@ function store_read_hold_capacity(model, capacity, ship_id, hold_id) {
       _record.collateral,
       _record.multibuys
     );
-  })();
-  return [model$1, none()];
-}
-function store_read_hold_indices(model, hold_indices) {
-  let $ = model.storage;
-  if ($ instanceof Some) {
-    let storage = $[0];
-    let ship_entries = map_values(
+    let model$1 = _block;
+    let _block$1;
+    let _pipe = map_values(
       hold_indices,
-      (_, hold_ids) => {
-        let holds = (() => {
-          let _pipe = map2(
-            hold_ids,
-            (hold_id) => {
-              return [
-                hold_id,
-                new Hold("New Hold", new Generic(), 100)
-              ];
-            }
-          );
-          return from_list(_pipe);
-        })();
-        let ship = new Ship("New Ship", holds);
-        return new ShipEntry(ship, false);
-      }
-    );
-    let model$1 = (() => {
-      let _record = model;
-      return new Model(
-        _record.storage,
-        ship_entries,
-        _record.current_ship,
-        _record.count_ship_index,
-        _record.count_hold_index,
-        _record.systems,
-        _record.source,
-        _record.destination,
-        _record.accounting_level,
-        _record.language,
-        _record.sidebar_expanded,
-        _record.collateral,
-        _record.multibuys
-      );
-    })();
-    let effect = (() => {
-      let _pipe = map_values(
-        hold_indices,
-        (ship_id, hold_ids) => {
-          let ship_read_effects = toList([
-            read_ship_name(storage, ship_id)
-          ]);
-          return fold(
-            hold_ids,
-            ship_read_effects,
-            (effects, hold_id) => {
-              return prepend(
-                read_ship_hold_name(
+      (ship_id, hold_ids) => {
+        let ship_read_effects = toList([
+          read_ship_name(storage, ship_id)
+        ]);
+        return fold(
+          hold_ids,
+          ship_read_effects,
+          (effects, hold_id) => {
+            return prepend(
+              read_ship_hold_name(storage, ship_id, hold_id),
+              prepend(
+                read_ship_hold_capacity(
                   storage,
                   ship_id,
                   hold_id
                 ),
                 prepend(
-                  read_ship_hold_capacity(
+                  read_ship_hold_kind(
                     storage,
                     ship_id,
                     hold_id
                   ),
-                  prepend(
-                    read_ship_hold_kind(
-                      storage,
-                      ship_id,
-                      hold_id
-                    ),
-                    effects
-                  )
+                  effects
                 )
-              );
-            }
-          );
-        }
-      );
-      let _pipe$1 = values(_pipe);
-      let _pipe$2 = flatten(_pipe$1);
-      return batch(_pipe$2);
-    })();
+              )
+            );
+          }
+        );
+      }
+    );
+    let _pipe$1 = values(_pipe);
+    let _pipe$2 = flatten(_pipe$1);
+    _block$1 = batch(_pipe$2);
+    let effect = _block$1;
     return [model$1, effect];
   } else {
     return [model, none()];
@@ -9379,38 +9726,38 @@ function store_read_hold_kind(model, hold_kind, ship_id, hold_id) {
     );
   }
   let hold = $1[0];
-  let hold$1 = (() => {
-    let _record = hold;
-    return new Hold(_record.name, hold_kind, _record.capacity);
-  })();
+  let _block;
+  let _record = hold;
+  _block = new Hold(_record.name, hold_kind, _record.capacity);
+  let hold$1 = _block;
   let holds = insert(ship.holds, hold_id, hold$1);
-  let ship$1 = (() => {
-    let _record = ship;
-    return new Ship(_record.name, holds);
-  })();
-  let ship_entry$1 = (() => {
-    let _record = ship_entry;
-    return new ShipEntry(ship$1, _record.is_expanded);
-  })();
+  let _block$1;
+  let _record$1 = ship;
+  _block$1 = new Ship(_record$1.name, holds);
+  let ship$1 = _block$1;
+  let _block$2;
+  let _record$2 = ship_entry;
+  _block$2 = new ShipEntry(ship$1, _record$2.is_expanded);
+  let ship_entry$1 = _block$2;
   let ship_entries = insert(model.ships, ship_id, ship_entry$1);
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      ship_entries,
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
-    );
-  })();
+  let _block$3;
+  let _record$3 = model;
+  _block$3 = new Model(
+    _record$3.storage,
+    ship_entries,
+    _record$3.current_ship,
+    _record$3.count_ship_index,
+    _record$3.count_hold_index,
+    _record$3.systems,
+    _record$3.source,
+    _record$3.destination,
+    _record$3.accounting_level,
+    _record$3.language,
+    _record$3.sidebar_expanded,
+    _record$3.collateral,
+    _record$3.multibuys
+  );
+  let model$1 = _block$3;
   return [model$1, none()];
 }
 function store_read_hold_name(model, hold_name, ship_id, hold_id) {
@@ -9439,59 +9786,59 @@ function store_read_hold_name(model, hold_name, ship_id, hold_id) {
     );
   }
   let hold = $1[0];
-  let hold$1 = (() => {
-    let _record = hold;
-    return new Hold(hold_name, _record.kind, _record.capacity);
-  })();
+  let _block;
+  let _record = hold;
+  _block = new Hold(hold_name, _record.kind, _record.capacity);
+  let hold$1 = _block;
   let holds = insert(ship.holds, hold_id, hold$1);
-  let new_ship = (() => {
-    let _record = ship;
-    return new Ship(_record.name, holds);
-  })();
-  let ship_entry$1 = (() => {
-    let _record = ship_entry;
-    return new ShipEntry(new_ship, _record.is_expanded);
-  })();
+  let _block$1;
+  let _record$1 = ship;
+  _block$1 = new Ship(_record$1.name, holds);
+  let new_ship = _block$1;
+  let _block$2;
+  let _record$2 = ship_entry;
+  _block$2 = new ShipEntry(new_ship, _record$2.is_expanded);
+  let ship_entry$1 = _block$2;
   let ship_entries = insert(model.ships, ship_id, ship_entry$1);
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      ship_entries,
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
-    );
-  })();
+  let _block$3;
+  let _record$3 = model;
+  _block$3 = new Model(
+    _record$3.storage,
+    ship_entries,
+    _record$3.current_ship,
+    _record$3.count_ship_index,
+    _record$3.count_hold_index,
+    _record$3.systems,
+    _record$3.source,
+    _record$3.destination,
+    _record$3.accounting_level,
+    _record$3.language,
+    _record$3.sidebar_expanded,
+    _record$3.collateral,
+    _record$3.multibuys
+  );
+  let model$1 = _block$3;
   return [model$1, none()];
 }
 function store_read_selected_ship(model, ship_id) {
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      _record.ships,
-      ship_id,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
-    );
-  })();
+  let _block;
+  let _record = model;
+  _block = new Model(
+    _record.storage,
+    _record.ships,
+    ship_id,
+    _record.count_ship_index,
+    _record.count_hold_index,
+    _record.systems,
+    _record.source,
+    _record.destination,
+    _record.accounting_level,
+    _record.language,
+    _record.sidebar_expanded,
+    _record.collateral,
+    _record.multibuys
+  );
+  let model$1 = _block;
   return [model$1, none()];
 }
 
@@ -9519,47 +9866,47 @@ function get_query_buy_orders_side_effect(location, from2, page) {
 
 // build/dev/javascript/eve_arbitrage/mvu/update/systems.mjs
 function user_selected_source(new_source, model) {
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      _record.ships,
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      new Some(new_source),
-      _record.destination,
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
-    );
-  })();
+  let _block;
+  let _record = model;
+  _block = new Model(
+    _record.storage,
+    _record.ships,
+    _record.current_ship,
+    _record.count_ship_index,
+    _record.count_hold_index,
+    _record.systems,
+    new Some(new_source),
+    _record.destination,
+    _record.accounting_level,
+    _record.language,
+    _record.sidebar_expanded,
+    _record.collateral,
+    _record.multibuys
+  );
+  let model$1 = _block;
   let side_effect = none();
   console_log("Source " + new_source + " selected");
   return [model$1, side_effect];
 }
 function user_selected_destination(new_dest, model) {
-  let model$1 = (() => {
-    let _record = model;
-    return new Model(
-      _record.storage,
-      _record.ships,
-      _record.current_ship,
-      _record.count_ship_index,
-      _record.count_hold_index,
-      _record.systems,
-      _record.source,
-      new Some(new_dest),
-      _record.accounting_level,
-      _record.language,
-      _record.sidebar_expanded,
-      _record.collateral,
-      _record.multibuys
-    );
-  })();
+  let _block;
+  let _record = model;
+  _block = new Model(
+    _record.storage,
+    _record.ships,
+    _record.current_ship,
+    _record.count_ship_index,
+    _record.count_hold_index,
+    _record.systems,
+    _record.source,
+    new Some(new_dest),
+    _record.accounting_level,
+    _record.language,
+    _record.sidebar_expanded,
+    _record.collateral,
+    _record.multibuys
+  );
+  let model$1 = _block;
   let side_effect = none();
   console_log("Destination " + new_dest + " selected");
   return [model$1, side_effect];
@@ -9598,16 +9945,16 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
       );
     }
     let system$1 = $1[0];
-    let system$2 = (() => {
-      let _record = system$1;
-      return new System(
-        _record.location,
-        _record.buy_orders,
-        _record.buy_orders_status,
-        _record.sell_orders,
-        new Loaded(system_time2())
-      );
-    })();
+    let _block;
+    let _record = system$1;
+    _block = new System(
+      _record.location,
+      _record.buy_orders,
+      _record.buy_orders_status,
+      _record.sell_orders,
+      new Loaded(system_time2())
+    );
+    let system$2 = _block;
     let systems = upsert(
       model.systems,
       from2,
@@ -9628,24 +9975,24 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
         return system$2;
       }
     );
-    let model$1 = (() => {
-      let _record = model;
-      return new Model(
-        _record.storage,
-        _record.ships,
-        _record.current_ship,
-        _record.count_ship_index,
-        _record.count_hold_index,
-        systems,
-        _record.source,
-        _record.destination,
-        _record.accounting_level,
-        _record.language,
-        _record.sidebar_expanded,
-        _record.collateral,
-        _record.multibuys
-      );
-    })();
+    let _block$1;
+    let _record$1 = model;
+    _block$1 = new Model(
+      _record$1.storage,
+      _record$1.ships,
+      _record$1.current_ship,
+      _record$1.count_ship_index,
+      _record$1.count_hold_index,
+      systems,
+      _record$1.source,
+      _record$1.destination,
+      _record$1.accounting_level,
+      _record$1.language,
+      _record$1.sidebar_expanded,
+      _record$1.collateral,
+      _record$1.multibuys
+    );
+    let model$1 = _block$1;
     return [model$1, none()];
   } else if (!esi_response.isOk()) {
     let e = esi_response[0];
@@ -9764,16 +10111,16 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
       );
     }
     let system$1 = $1[0];
-    let system$2 = (() => {
-      let _record = system$1;
-      return new System(
-        _record.location,
-        _record.buy_orders,
-        new Loaded(system_time2()),
-        _record.sell_orders,
-        _record.sell_orders_status
-      );
-    })();
+    let _block;
+    let _record = system$1;
+    _block = new System(
+      _record.location,
+      _record.buy_orders,
+      new Loaded(system_time2()),
+      _record.sell_orders,
+      _record.sell_orders_status
+    );
+    let system$2 = _block;
     let systems = upsert(
       model.systems,
       from2,
@@ -9794,24 +10141,24 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
         return system$2;
       }
     );
-    let model$1 = (() => {
-      let _record = model;
-      return new Model(
-        _record.storage,
-        _record.ships,
-        _record.current_ship,
-        _record.count_ship_index,
-        _record.count_hold_index,
-        systems,
-        _record.source,
-        _record.destination,
-        _record.accounting_level,
-        _record.language,
-        _record.sidebar_expanded,
-        _record.collateral,
-        _record.multibuys
-      );
-    })();
+    let _block$1;
+    let _record$1 = model;
+    _block$1 = new Model(
+      _record$1.storage,
+      _record$1.ships,
+      _record$1.current_ship,
+      _record$1.count_ship_index,
+      _record$1.count_hold_index,
+      systems,
+      _record$1.source,
+      _record$1.destination,
+      _record$1.accounting_level,
+      _record$1.language,
+      _record$1.sidebar_expanded,
+      _record$1.collateral,
+      _record$1.multibuys
+    );
+    let model$1 = _block$1;
     return [model$1, none()];
   } else if (!esi_response.isOk()) {
     let e = esi_response[0];
@@ -9914,16 +10261,16 @@ function user_loaded_source(model, from2) {
     from2,
     1
   );
-  let system$1 = (() => {
-    let _record = system;
-    return new System(
-      _record.location,
-      _record.buy_orders,
-      _record.buy_orders_status,
-      toList([]),
-      new Loading()
-    );
-  })();
+  let _block;
+  let _record = system;
+  _block = new System(
+    _record.location,
+    _record.buy_orders,
+    _record.buy_orders_status,
+    toList([]),
+    new Loading()
+  );
+  let system$1 = _block;
   let systems = upsert(
     model.systems,
     from2,
@@ -9944,47 +10291,47 @@ function user_loaded_source(model, from2) {
       return system$1;
     }
   );
-  let model$1 = (() => {
-    let $1 = model.source;
-    if ($1 instanceof Some && $1[0] === from2) {
-      let current_source = $1[0];
-      let _record = model;
-      return new Model(
-        _record.storage,
-        _record.ships,
-        _record.current_ship,
-        _record.count_ship_index,
-        _record.count_hold_index,
-        _record.systems,
-        new None(),
-        _record.destination,
-        _record.accounting_level,
-        _record.language,
-        _record.sidebar_expanded,
-        _record.collateral,
-        _record.multibuys
-      );
-    } else {
-      return model;
-    }
-  })();
+  let _block$1;
+  let $1 = model.source;
+  if ($1 instanceof Some && $1[0] === from2) {
+    let current_source = $1[0];
+    let _record$1 = model;
+    _block$1 = new Model(
+      _record$1.storage,
+      _record$1.ships,
+      _record$1.current_ship,
+      _record$1.count_ship_index,
+      _record$1.count_hold_index,
+      _record$1.systems,
+      new None(),
+      _record$1.destination,
+      _record$1.accounting_level,
+      _record$1.language,
+      _record$1.sidebar_expanded,
+      _record$1.collateral,
+      _record$1.multibuys
+    );
+  } else {
+    _block$1 = model;
+  }
+  let model$1 = _block$1;
   return [
     (() => {
-      let _record = model$1;
+      let _record$1 = model$1;
       return new Model(
-        _record.storage,
-        _record.ships,
-        _record.current_ship,
-        _record.count_ship_index,
-        _record.count_hold_index,
+        _record$1.storage,
+        _record$1.ships,
+        _record$1.current_ship,
+        _record$1.count_ship_index,
+        _record$1.count_hold_index,
         systems,
-        _record.source,
-        _record.destination,
-        _record.accounting_level,
-        _record.language,
-        _record.sidebar_expanded,
-        _record.collateral,
-        _record.multibuys
+        _record$1.source,
+        _record$1.destination,
+        _record$1.accounting_level,
+        _record$1.language,
+        _record$1.sidebar_expanded,
+        _record$1.collateral,
+        _record$1.multibuys
       );
     })(),
     side_effect
@@ -10008,16 +10355,16 @@ function user_loaded_destination(model, to) {
     to,
     1
   );
-  let system$1 = (() => {
-    let _record = system;
-    return new System(
-      _record.location,
-      toList([]),
-      new Loading(),
-      _record.sell_orders,
-      _record.sell_orders_status
-    );
-  })();
+  let _block;
+  let _record = system;
+  _block = new System(
+    _record.location,
+    toList([]),
+    new Loading(),
+    _record.sell_orders,
+    _record.sell_orders_status
+  );
+  let system$1 = _block;
   let systems = upsert(
     model.systems,
     to,
@@ -10038,47 +10385,47 @@ function user_loaded_destination(model, to) {
       return system$1;
     }
   );
-  let model$1 = (() => {
-    let $1 = model.destination;
-    if ($1 instanceof Some && $1[0] === to) {
-      let current_destination = $1[0];
-      let _record = model;
-      return new Model(
-        _record.storage,
-        _record.ships,
-        _record.current_ship,
-        _record.count_ship_index,
-        _record.count_hold_index,
-        _record.systems,
-        _record.source,
-        new None(),
-        _record.accounting_level,
-        _record.language,
-        _record.sidebar_expanded,
-        _record.collateral,
-        _record.multibuys
-      );
-    } else {
-      return model;
-    }
-  })();
+  let _block$1;
+  let $1 = model.destination;
+  if ($1 instanceof Some && $1[0] === to) {
+    let current_destination = $1[0];
+    let _record$1 = model;
+    _block$1 = new Model(
+      _record$1.storage,
+      _record$1.ships,
+      _record$1.current_ship,
+      _record$1.count_ship_index,
+      _record$1.count_hold_index,
+      _record$1.systems,
+      _record$1.source,
+      new None(),
+      _record$1.accounting_level,
+      _record$1.language,
+      _record$1.sidebar_expanded,
+      _record$1.collateral,
+      _record$1.multibuys
+    );
+  } else {
+    _block$1 = model;
+  }
+  let model$1 = _block$1;
   return [
     (() => {
-      let _record = model$1;
+      let _record$1 = model$1;
       return new Model(
-        _record.storage,
-        _record.ships,
-        _record.current_ship,
-        _record.count_ship_index,
-        _record.count_hold_index,
+        _record$1.storage,
+        _record$1.ships,
+        _record$1.current_ship,
+        _record$1.count_ship_index,
+        _record$1.count_hold_index,
         systems,
-        _record.source,
-        _record.destination,
-        _record.accounting_level,
-        _record.language,
-        _record.sidebar_expanded,
-        _record.collateral,
-        _record.multibuys
+        _record$1.source,
+        _record$1.destination,
+        _record$1.accounting_level,
+        _record$1.language,
+        _record$1.sidebar_expanded,
+        _record$1.collateral,
+        _record$1.multibuys
       );
     })(),
     side_effect
@@ -10120,6 +10467,8 @@ function run2(model, msg) {
   } else if (msg instanceof UserClickedCopyMultibuy) {
     let multibuy = msg.multibuy;
     return user_clicked_copy_multibuy(model, multibuy);
+  } else if (msg instanceof UserClickedComputeMultibuys) {
+    return user_clicked_compute_multibuys(model);
   } else if (msg instanceof UserClickedCollapseSidebar) {
     return user_clicked_collapse_sidebar(model);
   } else if (msg instanceof UserClickedExpandSidebar) {
@@ -10275,6 +10624,46 @@ function on_blur(msg) {
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/view/multibuys.mjs
+function get_compute_multibuy_button() {
+  return div(
+    toList([class$("flex justify-center my-8")]),
+    toList([
+      button(
+        toList([
+          class$(
+            "bg-selected hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg shadow-md flex items-center transition-colors duration-200"
+          ),
+          on_click(new UserClickedComputeMultibuys())
+        ]),
+        toList([
+          svg(
+            toList([
+              attribute2("stroke", "currentColor"),
+              attribute2("viewBox", "0 0 24 24"),
+              attribute2("fill", "none"),
+              class$("h-5 w-5 mr-2"),
+              attribute2("xmlns", "http://www.w3.org/2000/svg")
+            ]),
+            toList([
+              path(
+                toList([
+                  attribute2(
+                    "d",
+                    "M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                  ),
+                  attribute2("stroke-width", "2"),
+                  attribute2("stroke-linejoin", "round"),
+                  attribute2("stroke-linecap", "round")
+                ])
+              )
+            ])
+          ),
+          text3("Compute Multibuys\n                    ")
+        ])
+      )
+    ])
+  );
+}
 function get_multibuy(multibuy) {
   return div(
     toList([class$("mb-6")]),
@@ -10376,6 +10765,7 @@ function get_section(model) {
     toList([]),
     (() => {
       let _pipe = toList([
+        get_compute_multibuy_button(),
         h2(
           toList([class$("text-2xl font-bold mb-4")]),
           toList([text3("Arbitrage Multibuys")])
@@ -10388,15 +10778,15 @@ function get_section(model) {
 
 // build/dev/javascript/eve_arbitrage/mvu/view/sidebar/accounting.mjs
 function get_section2(level) {
-  let level_string = (() => {
-    let _pipe = level;
-    return to_string(_pipe);
-  })();
-  let effective_tax_rate_string = (() => {
-    let _pipe = tax_percent_from_accounting_level(level);
-    let _pipe$1 = to_precision(_pipe, 3);
-    return float_to_string(_pipe$1);
-  })();
+  let _block;
+  let _pipe = level;
+  _block = to_string(_pipe);
+  let level_string = _block;
+  let _block$1;
+  let _pipe$1 = tax_percent_from_accounting_level(level);
+  let _pipe$2 = to_precision(_pipe$1, 3);
+  _block$1 = float_to_string(_pipe$2);
+  let effective_tax_rate_string = _block$1;
   return div(
     toList([class$("p-4 border-b border-gray-200")]),
     toList([
@@ -10521,10 +10911,10 @@ function get_set_collateral(value3) {
       ),
       on_input(
         (input2) => {
-          let value$1 = (() => {
-            let _pipe = parse_int(input2);
-            return from_result(_pipe);
-          })();
+          let _block;
+          let _pipe = parse_int(input2);
+          _block = from_result(_pipe);
+          let value$1 = _block;
           return new UserUpdatedCollateral(value$1);
         }
       )
@@ -10532,14 +10922,14 @@ function get_set_collateral(value3) {
   );
 }
 function get_section3(collateral) {
-  let collateral_input = (() => {
-    if (collateral instanceof None) {
-      return get_empty_collateral();
-    } else {
-      let value3 = collateral[0];
-      return get_set_collateral(value3);
-    }
-  })();
+  let _block;
+  if (collateral instanceof None) {
+    _block = get_empty_collateral();
+  } else {
+    let value3 = collateral[0];
+    _block = get_set_collateral(value3);
+  }
+  let collateral_input = _block;
   return div(
     toList([class$("p-4 border-b border-gray-200")]),
     toList([
@@ -10670,29 +11060,29 @@ function get_collapsed_ship(ship_id, ship, style) {
 function get_ship_hold(hold_id, hold, ship_id) {
   let name_element_id = "hold-name-" + to_string(hold_id);
   let capacity_element_id = "hold-capacity-" + to_string(hold_id);
-  let hold_kinds = (() => {
-    let _pipe = get_all_hold_kinds();
-    return map2(
-      _pipe,
-      (hold_kind) => {
-        let hold_kind_string = hold_kind_to_string(hold_kind);
-        let hold_kind_id = lowercase(hold_kind_string);
-        let $ = hold.kind;
-        if (isEqual($, hold_kind)) {
-          let k = $;
-          return option(
-            toList([value(hold_kind_id), selected(true)]),
-            hold_kind_string
-          );
-        } else {
-          return option(
-            toList([value(hold_kind_id)]),
-            hold_kind_string
-          );
-        }
+  let _block;
+  let _pipe = get_all_hold_kinds();
+  _block = map2(
+    _pipe,
+    (hold_kind) => {
+      let hold_kind_string = hold_kind_to_string(hold_kind);
+      let hold_kind_id = lowercase(hold_kind_string);
+      let $ = hold.kind;
+      if (isEqual($, hold_kind)) {
+        let k = $;
+        return option(
+          toList([value(hold_kind_id), selected(true)]),
+          hold_kind_string
+        );
+      } else {
+        return option(
+          toList([value(hold_kind_id)]),
+          hold_kind_string
+        );
       }
-    );
-  })();
+    }
+  );
+  let hold_kinds = _block;
   return div(
     toList([class$("mb-3 p-3 bg-white rounded-md shadow-sm")]),
     toList([
@@ -10720,8 +11110,8 @@ function get_ship_hold(hold_id, hold, ship_id) {
                   ),
                   value(
                     (() => {
-                      let _pipe = hold.capacity;
-                      return float_to_string(_pipe);
+                      let _pipe$1 = hold.capacity;
+                      return float_to_string(_pipe$1);
                     })()
                   ),
                   id(capacity_element_id),
@@ -10871,27 +11261,27 @@ function get_expanded_ship(ship_id, ship, style) {
     get_add_hold_button(ship_id),
     get_delete_ship_button(ship_id)
   ]);
-  let holds = (() => {
-    let _pipe = map_values(
-      ship.holds,
-      (hold_id, hold) => {
-        return get_ship_hold(hold_id, hold, ship_id);
-      }
-    );
-    return values(_pipe);
-  })();
+  let _block;
+  let _pipe = map_values(
+    ship.holds,
+    (hold_id, hold) => {
+      return get_ship_hold(hold_id, hold, ship_id);
+    }
+  );
+  _block = values(_pipe);
+  let holds = _block;
   let total_capacity_string = (() => {
-    let _pipe = fold(
+    let _pipe$1 = fold(
       (() => {
-        let _pipe2 = ship.holds;
-        return values(_pipe2);
+        let _pipe$12 = ship.holds;
+        return values(_pipe$12);
       })(),
       0,
       (total, hold) => {
         return total + hold.capacity;
       }
     );
-    return float_to_human_string(_pipe);
+    return float_to_human_string(_pipe$1);
   })() + " m\xB3";
   let holds_content = append(holds, holds_buttons);
   let attribute_id = "ship-name-" + to_string(ship_id);
@@ -11007,13 +11397,13 @@ var selected_ship_style = /* @__PURE__ */ new ShipStyle(
   "h-5 w-5 ml-2 text-selected"
 );
 function get_ship(ship_id, ship, is_selected) {
-  let style = (() => {
-    if (!is_selected) {
-      return default_ship_style;
-    } else {
-      return selected_ship_style;
-    }
-  })();
+  let _block;
+  if (!is_selected) {
+    _block = default_ship_style;
+  } else {
+    _block = selected_ship_style;
+  }
+  let style = _block;
   let $ = ship.is_expanded;
   if (!$) {
     return get_collapsed_ship(ship_id, ship.ship, style);
@@ -11023,21 +11413,21 @@ function get_ship(ship_id, ship, is_selected) {
 }
 function get_section4(model) {
   let mapping_fn = (ship_id, ship_entry) => {
-    let is_selected = (() => {
-      let $ = model.current_ship;
-      if ($ instanceof Some && $[0] === ship_id) {
-        let id2 = $[0];
-        return true;
-      } else {
-        return false;
-      }
-    })();
+    let _block2;
+    let $ = model.current_ship;
+    if ($ instanceof Some && $[0] === ship_id) {
+      let id2 = $[0];
+      _block2 = true;
+    } else {
+      _block2 = false;
+    }
+    let is_selected = _block2;
     return get_ship(ship_id, ship_entry, is_selected);
   };
-  let ships_contents = (() => {
-    let _pipe = map_values(model.ships, mapping_fn);
-    return values(_pipe);
-  })();
+  let _block;
+  let _pipe = map_values(model.ships, mapping_fn);
+  _block = values(_pipe);
+  let ships_contents = _block;
   let contents = prepend(
     h3(
       toList([class$("text-sm font-medium text-gray-700 mb-3")]),
@@ -11135,14 +11525,14 @@ function get_ship_selected_icon(ship_entry) {
   );
   let capacity_string = int_to_human_string(
     (() => {
-      let _pipe = total_capacity;
-      return truncate(_pipe);
+      let _pipe2 = total_capacity;
+      return truncate(_pipe2);
     })()
   ) + " m\xB3";
-  let $ = (() => {
-    let _pipe = ship_entry.ship.name;
-    return pop_grapheme(_pipe);
-  })();
+  let _block;
+  let _pipe = ship_entry.ship.name;
+  _block = pop_grapheme(_pipe);
+  let $ = _block;
   if (!$.isOk()) {
     throw makeError(
       "let_assert",
@@ -11173,43 +11563,43 @@ function get_ship_selected_icon(ship_entry) {
   );
 }
 function get_collapsed_sidebar(model) {
-  let collateral = (() => {
-    let _pipe = model.collateral;
-    return unwrap(_pipe, 0);
-  })();
+  let _block;
+  let _pipe = model.collateral;
+  _block = unwrap(_pipe, 0);
+  let collateral = _block;
   let collateral_amount_string = millions_to_unit_string(collateral);
   let accounting_level_string = "LvL " + (() => {
-    let _pipe = model.accounting_level;
-    return to_string(_pipe);
+    let _pipe$1 = model.accounting_level;
+    return to_string(_pipe$1);
   })();
   let tax_rate_string = (() => {
-    let _pipe = tax_percent_from_accounting_level(
+    let _pipe$1 = tax_percent_from_accounting_level(
       model.accounting_level
     );
-    let _pipe$1 = to_precision(_pipe, 3);
-    return float_to_string(_pipe$1);
+    let _pipe$2 = to_precision(_pipe$1, 3);
+    return float_to_string(_pipe$2);
   })() + "%";
-  let ship_icon = (() => {
-    let $ = model.current_ship;
-    if ($ instanceof None) {
-      return get_ship_no_selected_icon();
-    } else {
-      let ship_id = $[0];
-      let $1 = map_get(model.ships, ship_id);
-      if (!$1.isOk()) {
-        throw makeError(
-          "let_assert",
-          "mvu/view/sidebar",
-          92,
-          "get_collapsed_sidebar",
-          "Pattern match failed, no pattern matched the value.",
-          { value: $1 }
-        );
-      }
-      let ship_entry = $1[0];
-      return get_ship_selected_icon(ship_entry);
+  let _block$1;
+  let $ = model.current_ship;
+  if ($ instanceof None) {
+    _block$1 = get_ship_no_selected_icon();
+  } else {
+    let ship_id = $[0];
+    let $1 = map_get(model.ships, ship_id);
+    if (!$1.isOk()) {
+      throw makeError(
+        "let_assert",
+        "mvu/view/sidebar",
+        92,
+        "get_collapsed_sidebar",
+        "Pattern match failed, no pattern matched the value.",
+        { value: $1 }
+      );
     }
-  })();
+    let ship_entry = $1[0];
+    _block$1 = get_ship_selected_icon(ship_entry);
+  }
+  let ship_icon = _block$1;
   return aside(
     toList([
       class$(
@@ -11349,29 +11739,29 @@ function get_collapsed_sidebar(model) {
   );
 }
 function get_section5(model) {
-  return (() => {
-    let $ = model.sidebar_expanded;
-    if (!$) {
-      return get_collapsed_sidebar;
-    } else {
-      return get_expanded_sidebar;
-    }
-  })()(model);
+  let _block;
+  let $ = model.sidebar_expanded;
+  if (!$) {
+    _block = get_collapsed_sidebar;
+  } else {
+    _block = get_expanded_sidebar;
+  }
+  return _block(model);
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/view/systems_lists.mjs
 function get_refresh_button(name2, is_source_system) {
-  let msg = (() => {
-    if (!is_source_system) {
-      return (var0) => {
-        return new UserLoadedDestination(var0);
-      };
-    } else {
-      return (var0) => {
-        return new UserLoadedSource(var0);
-      };
-    }
-  })();
+  let _block;
+  if (!is_source_system) {
+    _block = (var0) => {
+      return new UserLoadedDestination(var0);
+    };
+  } else {
+    _block = (var0) => {
+      return new UserLoadedSource(var0);
+    };
+  }
+  let msg = _block;
   return button(
     toList([
       attribute2("title", "Reload item"),
@@ -11405,17 +11795,17 @@ function get_refresh_button(name2, is_source_system) {
   );
 }
 function get_download_button(name2, is_source_system) {
-  let msg = (() => {
-    if (!is_source_system) {
-      return (var0) => {
-        return new UserLoadedDestination(var0);
-      };
-    } else {
-      return (var0) => {
-        return new UserLoadedSource(var0);
-      };
-    }
-  })();
+  let _block;
+  if (!is_source_system) {
+    _block = (var0) => {
+      return new UserLoadedDestination(var0);
+    };
+  } else {
+    _block = (var0) => {
+      return new UserLoadedSource(var0);
+    };
+  }
+  let msg = _block;
   return button(
     toList([
       attribute2("title", "Download data"),
@@ -11493,20 +11883,20 @@ function get_loading_system(_, system, _1) {
   );
 }
 function get_orders_tag(amount, is_source_system, in_selected_system) {
-  let orders_string = (() => {
-    if (!is_source_system) {
-      return int_to_human_string(amount) + " buy orders";
-    } else {
-      return int_to_human_string(amount) + " sell orders";
-    }
-  })();
-  let colors_classes = (() => {
-    if (!in_selected_system) {
-      return "bg-gray-200 text-gray-700 ";
-    } else {
-      return "bg-selected text-white ";
-    }
-  })();
+  let _block;
+  if (!is_source_system) {
+    _block = int_to_human_string(amount) + " buy orders";
+  } else {
+    _block = int_to_human_string(amount) + " sell orders";
+  }
+  let orders_string = _block;
+  let _block$1;
+  if (!in_selected_system) {
+    _block$1 = "bg-gray-200 text-gray-700 ";
+  } else {
+    _block$1 = "bg-selected text-white ";
+  }
+  let colors_classes = _block$1;
   return span(
     toList([
       class$(
@@ -11517,48 +11907,48 @@ function get_orders_tag(amount, is_source_system, in_selected_system) {
   );
 }
 function get_selected_system(name2, system, is_source_system) {
-  let button2 = (() => {
-    let $ = system.buy_orders_status;
-    let $1 = system.sell_orders_status;
-    if (is_source_system && $1 instanceof Loading) {
-      return get_loading_button();
-    } else if (is_source_system && $1 instanceof Loaded) {
-      return get_refresh_button(name2, is_source_system);
-    } else if (is_source_system && $1 instanceof Empty2) {
-      throw makeError(
-        "panic",
-        "mvu/view/systems_lists",
-        97,
-        "get_selected_system",
-        "should not be able to select an empty system",
-        {}
-      );
-    } else if (!is_source_system && $ instanceof Loading) {
-      return get_loading_button();
-    } else if (!is_source_system && $ instanceof Loaded) {
-      return get_refresh_button(name2, is_source_system);
-    } else {
-      throw makeError(
-        "panic",
-        "mvu/view/systems_lists",
-        101,
-        "get_selected_system",
-        "should not be able to select an empty system",
-        {}
-      );
-    }
-  })();
-  let orders_tag = (() => {
-    if (!is_source_system) {
-      let _pipe = system.buy_orders;
-      let _pipe$1 = length(_pipe);
-      return get_orders_tag(_pipe$1, is_source_system, true);
-    } else {
-      let _pipe = system.sell_orders;
-      let _pipe$1 = length(_pipe);
-      return get_orders_tag(_pipe$1, is_source_system, true);
-    }
-  })();
+  let _block;
+  let $ = system.buy_orders_status;
+  let $1 = system.sell_orders_status;
+  if (is_source_system && $1 instanceof Loading) {
+    _block = get_loading_button();
+  } else if (is_source_system && $1 instanceof Loaded) {
+    _block = get_refresh_button(name2, is_source_system);
+  } else if (is_source_system && $1 instanceof Empty2) {
+    throw makeError(
+      "panic",
+      "mvu/view/systems_lists",
+      97,
+      "get_selected_system",
+      "should not be able to select an empty system",
+      {}
+    );
+  } else if (!is_source_system && $ instanceof Loading) {
+    _block = get_loading_button();
+  } else if (!is_source_system && $ instanceof Loaded) {
+    _block = get_refresh_button(name2, is_source_system);
+  } else {
+    throw makeError(
+      "panic",
+      "mvu/view/systems_lists",
+      101,
+      "get_selected_system",
+      "should not be able to select an empty system",
+      {}
+    );
+  }
+  let button2 = _block;
+  let _block$1;
+  if (!is_source_system) {
+    let _pipe = system.buy_orders;
+    let _pipe$1 = length(_pipe);
+    _block$1 = get_orders_tag(_pipe$1, is_source_system, true);
+  } else {
+    let _pipe = system.sell_orders;
+    let _pipe$1 = length(_pipe);
+    _block$1 = get_orders_tag(_pipe$1, is_source_system, true);
+  }
+  let orders_tag = _block$1;
   return li(
     toList([
       class$(
@@ -11586,28 +11976,28 @@ function get_selected_system(name2, system, is_source_system) {
   );
 }
 function get_loaded_system(name2, system, is_source_system) {
-  let msg = (() => {
-    if (!is_source_system) {
-      return (var0) => {
-        return new UserSelectedDestination(var0);
-      };
-    } else {
-      return (var0) => {
-        return new UserSelectedSource(var0);
-      };
-    }
-  })();
-  let orders_tag = (() => {
-    if (!is_source_system) {
-      let _pipe = system.buy_orders;
-      let _pipe$1 = length(_pipe);
-      return get_orders_tag(_pipe$1, is_source_system, false);
-    } else {
-      let _pipe = system.sell_orders;
-      let _pipe$1 = length(_pipe);
-      return get_orders_tag(_pipe$1, is_source_system, false);
-    }
-  })();
+  let _block;
+  if (!is_source_system) {
+    _block = (var0) => {
+      return new UserSelectedDestination(var0);
+    };
+  } else {
+    _block = (var0) => {
+      return new UserSelectedSource(var0);
+    };
+  }
+  let msg = _block;
+  let _block$1;
+  if (!is_source_system) {
+    let _pipe = system.buy_orders;
+    let _pipe$1 = length(_pipe);
+    _block$1 = get_orders_tag(_pipe$1, is_source_system, false);
+  } else {
+    let _pipe = system.sell_orders;
+    let _pipe$1 = length(_pipe);
+    _block$1 = get_orders_tag(_pipe$1, is_source_system, false);
+  }
+  let orders_tag = _block$1;
   return li(
     toList([
       class$("p-4 border-b hover:bg-gray-50 cursor-pointer"),
@@ -11636,24 +12026,21 @@ function get_loaded_system(name2, system, is_source_system) {
   );
 }
 function get_source_systems(systems, selected2) {
-  let _pipe = map_values(
-    systems,
-    (name2, system) => {
-      return (() => {
-        let $ = system.sell_orders_status;
-        if (selected2 instanceof Some && selected2[0] === name2) {
-          let selected_system = selected2[0];
-          return get_selected_system;
-        } else if ($ instanceof Empty2) {
-          return get_empty_system;
-        } else if ($ instanceof Loading) {
-          return get_loading_system;
-        } else {
-          return get_loaded_system;
-        }
-      })()(name2, system, true);
+  let _pipe = map_values(systems, (name2, system) => {
+    let _block;
+    let $ = system.sell_orders_status;
+    if (selected2 instanceof Some && selected2[0] === name2) {
+      let selected_system = selected2[0];
+      _block = get_selected_system;
+    } else if ($ instanceof Empty2) {
+      _block = get_empty_system;
+    } else if ($ instanceof Loading) {
+      _block = get_loading_system;
+    } else {
+      _block = get_loaded_system;
     }
-  );
+    return _block(name2, system, true);
+  });
   return values(_pipe);
 }
 function get_from_list(systems, selected2) {
@@ -11673,24 +12060,21 @@ function get_from_list(systems, selected2) {
   );
 }
 function get_destination_systems(systems, selected2) {
-  let _pipe = map_values(
-    systems,
-    (name2, system) => {
-      return (() => {
-        let $ = system.buy_orders_status;
-        if (selected2 instanceof Some && selected2[0] === name2) {
-          let selected_system = selected2[0];
-          return get_selected_system;
-        } else if ($ instanceof Empty2) {
-          return get_empty_system;
-        } else if ($ instanceof Loading) {
-          return get_loading_system;
-        } else {
-          return get_loaded_system;
-        }
-      })()(name2, system, false);
+  let _pipe = map_values(systems, (name2, system) => {
+    let _block;
+    let $ = system.buy_orders_status;
+    if (selected2 instanceof Some && selected2[0] === name2) {
+      let selected_system = selected2[0];
+      _block = get_selected_system;
+    } else if ($ instanceof Empty2) {
+      _block = get_empty_system;
+    } else if ($ instanceof Loading) {
+      _block = get_loading_system;
+    } else {
+      _block = get_loaded_system;
     }
-  );
+    return _block(name2, system, false);
+  });
   return values(_pipe);
 }
 function get_to_list(systems, selected2) {

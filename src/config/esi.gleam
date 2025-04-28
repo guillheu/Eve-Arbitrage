@@ -52,6 +52,33 @@ pub fn sell_orders_decoder() -> decode.Decoder(List(Order(Sell))) {
   decode.list(sell_order_decoder())
 }
 
+pub fn merge_orders(
+  order_1: Order(any),
+  order_2: Order(any),
+) -> Result(Order(any), Nil) {
+  let can_merge =
+    order_1.location_id == order_2.location_id
+    && order_1.price == order_2.price
+    && order_1.type_id == order_2.type_id
+    && order_1.system_id == order_2.system_id
+  case can_merge {
+    False -> Error(Nil)
+    True -> {
+      echo "FROM:"
+      echo order_1
+      echo order_2
+      echo "TO"
+      Ok(
+        echo Order(
+          ..order_1,
+          volume_remain: order_1.volume_remain + order_2.volume_remain,
+          volume_total: order_1.volume_total + order_2.volume_total,
+        ),
+      )
+    }
+  }
+}
+
 fn buy_order_decoder() -> decode.Decoder(Order(Buy)) {
   use duration <- decode.field("duration", decode.int)
   use is_buy_order <- decode.field("is_buy_order", decode.bool)
