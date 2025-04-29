@@ -9,7 +9,6 @@ import gleam/list
 import gleam/option
 import gleam/order
 import gleam/string
-import pprint
 import util/numbers
 
 const base_tax_rate = 7.5
@@ -163,7 +162,6 @@ fn selected_trades_to_multibuys(from: List(Trade)) -> List(Multibuy) {
     int.compare(trades_2 |> list.length, trades_1 |> list.length)
   })
   |> list.transpose
-  |> pprint.debug
   |> list.map(fn(list_of_trades) {
     list_of_trades
     |> list.map(trade_to_purchase)
@@ -368,6 +366,10 @@ pub fn get_multibuy_purchases(multibuy: Multibuy) -> List(Purchase) {
 
 pub fn get_multibuy_total_price(multibuy: Multibuy) -> Float {
   multibuy.total_price
+}
+
+pub fn get_multibuy_total_profit(multibuy: Multibuy) -> Float {
+  multibuy.total_profit
 }
 
 pub fn purchase_to_string(purchase: Purchase) -> String {

@@ -20,7 +20,6 @@ rsvp = ">= 1.0.3 and < 2.0.0"
 gleam_http = ">= 4.0.0 and < 5.0.0"
 gleam_time = ">= 1.2.0 and < 2.0.0"
 gleam_javascript = ">= 0.13.0 and < 1.0.0"
-pprint = ">= 1.0.5 and < 2.0.0"
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"

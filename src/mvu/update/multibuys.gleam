@@ -13,7 +13,6 @@ import lustre/effect
 import mvu
 import mvu/update/side_effects/clipboard
 import mvu/update/side_effects/fetch_esi
-import pprint
 import rsvp
 
 pub fn user_clicked_copy_multibuy(
