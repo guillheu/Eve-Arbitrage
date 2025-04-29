@@ -114,6 +114,7 @@ fn pick_trades_for_hold(
     case
       current_trade.total_volume <=. remaining_capacity
       && current_trade.total_price <=. remaining_collateral
+      && sde.is_item_allowed_in_hold(current_trade.item.id, hold.kind)
     {
       False -> #(
         selected_trades,
