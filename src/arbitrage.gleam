@@ -4,9 +4,13 @@ import gleam/bool
 import gleam/dict.{type Dict}
 import gleam/float
 import gleam/int
+import gleam/io
 import gleam/list
+import gleam/option
 import gleam/order
 import gleam/string
+import pprint
+import util/numbers
 
 const base_tax_rate = 7.5
 
@@ -25,6 +29,7 @@ pub type Trade {
     total_volume: Float,
     unit_buy_price: Float,
     unit_sell_price: Float,
+    total_price: Float,
     profit_per_volume: Float,
   )
 }
@@ -42,7 +47,7 @@ pub type RawTrade {
 }
 
 pub opaque type Multibuy {
-  Multibuy(purchases: List(Purchase), total_price: Float)
+  Multibuy(purchases: List(Purchase), total_price: Float, total_profit: Float)
 }
 
 pub opaque type Purchase {
@@ -51,6 +56,7 @@ pub opaque type Purchase {
     amount: Int,
     unit_price: Float,
     total_price: Float,
+    total_profit: Float,
   )
 }
 
@@ -61,25 +67,108 @@ pub opaque type Purchase {
 pub fn trades_to_multibuys(
   trades: List(Trade),
   collateral: Int,
-  holds: List(sde),
+  holds: List(sde.Hold),
 ) -> List(Multibuy) {
   let sorted_trades =
     list.sort(trades, fn(trade_1, trade_2) {
       float.compare(trade_2.profit_per_volume, trade_1.profit_per_volume)
     })
 
-  //TODO
+  let collateral =
+    { collateral * 1_000_000 }
+    |> int.to_float
 
-  todo as "trades to multibuys"
+  let #(selected_trades, _leftover_trades, _leftover_collateral) =
+    list.fold(holds, #([], sorted_trades, collateral), fn(input, hold) {
+      let #(old_selected_trades, leftover_trades, remaining_collateral) = input
+      let #(new_selected_trades, leftover_trades, remaining_collateral) =
+        pick_trades_for_hold(hold, remaining_collateral, leftover_trades)
+      let current_selected_trades =
+        list.append(new_selected_trades, old_selected_trades)
+      #(current_selected_trades, leftover_trades, remaining_collateral)
+    })
+
+  selected_trades_to_multibuys(selected_trades)
 }
 
-fn trade_to_purchase(trade: Trade, amount: Int, unit_price: Float) -> Purchase {
+fn pick_trades_for_hold(
+  hold: sde.Hold,
+  collateral: Float,
+  trades: List(Trade),
+) -> #(List(Trade), List(Trade), Float) {
+  let capacity = hold.capacity
+  let #(
+    selected_trades,
+    leftover_trades,
+    remaining_collateral,
+    _remaining_capacity,
+  ) = {
+    use
+      #(
+        selected_trades,
+        leftover_trades,
+        remaining_collateral,
+        remaining_capacity,
+      ),
+      current_trade
+    <- list.fold(trades, #([], [], collateral, capacity))
+    case
+      current_trade.total_volume <=. remaining_capacity
+      && current_trade.total_price <=. remaining_collateral
+    {
+      False -> #(
+        selected_trades,
+        [current_trade, ..leftover_trades],
+        remaining_collateral,
+        remaining_capacity,
+      )
+      True -> #(
+        [current_trade, ..selected_trades],
+        leftover_trades,
+        remaining_collateral -. current_trade.total_price,
+        remaining_capacity -. current_trade.total_volume,
+      )
+    }
+  }
+  #(selected_trades, leftover_trades, remaining_collateral)
+}
+
+fn trade_to_purchase(trade: Trade) -> Purchase {
   Purchase(
     item_name: trade.item.name,
-    amount: amount,
-    unit_price: unit_price,
-    total_price: unit_price *. { amount |> int.to_float },
+    amount: trade.amount,
+    unit_price: trade.unit_sell_price,
+    total_price: trade.unit_sell_price *. { trade.amount |> int.to_float },
+    total_profit: { trade.unit_buy_price -. trade.unit_sell_price }
+      *. { trade.amount |> int.to_float },
   )
+}
+
+fn selected_trades_to_multibuys(from: List(Trade)) -> List(Multibuy) {
+  {
+    use split_trades, current_trade <- list.fold(from, dict.new())
+    dict.upsert(
+      split_trades,
+      current_trade.item,
+      fn(optional_found_trades: option.Option(List(Trade))) {
+        option.unwrap(optional_found_trades, [])
+        |> list.prepend(current_trade)
+      },
+    )
+  }
+  |> dict.values
+  // sorting from longest to shortest list.
+  // The longest (first) list will become the list of multibuys
+  |> list.sort(fn(trades_1, trades_2) {
+    int.compare(trades_2 |> list.length, trades_1 |> list.length)
+  })
+  |> list.transpose
+  |> pprint.debug
+  |> list.map(fn(list_of_trades) {
+    list_of_trades
+    |> list.map(trade_to_purchase)
+  })
+  |> list.map(multibuy_from_purchases)
 }
 
 pub fn raw_trade_to_trade(
@@ -98,6 +187,8 @@ pub fn raw_trade_to_trade(
         unit_buy_price: raw_trade.unit_buy_price,
         unit_sell_price: raw_trade.unit_sell_price,
         profit_per_volume: raw_trade.unit_profit /. type_.volume,
+        total_price: raw_trade.unit_sell_price
+          *. { raw_trade.amount |> int.to_float },
       )
       |> Ok
   }
@@ -169,7 +260,7 @@ pub fn compute_trades(
       unit_profit: buy_price_with_taxes -. raw_trade.unit_sell_price,
     )
   })
-  |> list.filter(fn(raw_trade) { echo raw_trade.unit_profit >. 0.0 })
+  |> list.filter(fn(raw_trade) { raw_trade.unit_profit >. 0.0 })
 }
 
 fn recurse_compute_trades_from_item_orders(
@@ -243,16 +334,32 @@ fn recurse_compute_trades_from_item_orders(
 }
 
 pub fn multibuy_from_purchases(purchases: List(Purchase)) -> Multibuy {
+  let #(total_price, total_profit) =
+    list.fold(purchases, #(0.0, 0.0), fn(input, purchase) {
+      let #(price, profit) = input
+      #(price +. purchase.total_price, profit +. purchase.total_profit)
+    })
   Multibuy(
     purchases: purchases,
-    total_price: list.fold(purchases, 0.0, fn(total, purchase) {
-      total +. purchase.total_price
-    }),
+    total_price: total_price,
+    total_profit: total_profit,
   )
 }
 
-pub fn new_purchase(name: String, amount: Int, unit_price: Float) -> Purchase {
-  Purchase(name, amount, unit_price, unit_price *. { amount |> int.to_float })
+pub fn new_purchase(
+  name: String,
+  amount: Int,
+  unit_price: Float,
+  unit_profit: Float,
+) -> Purchase {
+  let amount_float = amount |> int.to_float
+  Purchase(
+    name,
+    amount,
+    unit_price,
+    unit_price *. amount_float,
+    total_profit: amount_float *. unit_profit,
+  )
 }
 
 pub fn get_multibuy_purchases(multibuy: Multibuy) -> List(Purchase) {

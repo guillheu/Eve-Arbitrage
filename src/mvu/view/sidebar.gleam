@@ -27,7 +27,7 @@ fn get_expanded_sidebar(model: mvu.Model) -> element.Element(mvu.Msg) {
   html.aside(
     [
       attribute.class(
-        "w-80 bg-white shadow-lg h-screen overflow-y-auto flex-shrink-0 border-r border-gray-200",
+        "fixed z-10 top-0 left-0 w-80 bg-white shadow-lg h-screen overflow-y-auto flex-shrink-0 border-r border-gray-200",
       ),
     ],
     [
@@ -96,7 +96,7 @@ fn get_collapsed_sidebar(model: mvu.Model) -> element.Element(mvu.Msg) {
   html.aside(
     [
       attribute.class(
-        "w-16 bg-white shadow-lg h-screen overflow-y-auto flex-shrink-0 border-r border-gray-200",
+        "fixed top-0 left-0 w-16 bg-white shadow-lg h-screen overflow-y-auto flex-shrink-0 border-r border-gray-200",
       ),
     ],
     [

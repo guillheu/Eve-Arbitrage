@@ -12,7 +12,7 @@ pub fn run(model: mvu.Model) -> element.Element(mvu.Msg) {
   let multibuys = multibuys.get_section(model)
   let page_contents = [systems_lists, multibuys]
   let page =
-    html.div([attribute.class("flex-1 overflow-auto")], [
+    html.div([attribute.class("flex-1 overflow-auto pl-14")], [
       html.div([attribute.class("max-w-6xl mx-auto p-8")], page_contents),
     ])
   html.div([attribute.class("min-h-screen flex")], [sidebar, page])

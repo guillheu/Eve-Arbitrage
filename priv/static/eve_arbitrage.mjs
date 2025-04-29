@@ -272,277 +272,6 @@ function bitArrayPrintDeprecationWarning(name2, message) {
   );
   isBitArrayDeprecationMessagePrinted[name2] = true;
 }
-function bitArraySlice(bitArray, start4, end) {
-  end ??= bitArray.bitSize;
-  bitArrayValidateRange(bitArray, start4, end);
-  if (start4 === end) {
-    return new BitArray(new Uint8Array());
-  }
-  if (start4 === 0 && end === bitArray.bitSize) {
-    return bitArray;
-  }
-  start4 += bitArray.bitOffset;
-  end += bitArray.bitOffset;
-  const startByteIndex = Math.trunc(start4 / 8);
-  const endByteIndex = Math.trunc((end + 7) / 8);
-  const byteLength = endByteIndex - startByteIndex;
-  let buffer;
-  if (startByteIndex === 0 && byteLength === bitArray.rawBuffer.byteLength) {
-    buffer = bitArray.rawBuffer;
-  } else {
-    buffer = new Uint8Array(
-      bitArray.rawBuffer.buffer,
-      bitArray.rawBuffer.byteOffset + startByteIndex,
-      byteLength
-    );
-  }
-  return new BitArray(buffer, end - start4, start4 % 8);
-}
-function bitArraySliceToInt(bitArray, start4, end, isBigEndian, isSigned) {
-  bitArrayValidateRange(bitArray, start4, end);
-  if (start4 === end) {
-    return 0;
-  }
-  start4 += bitArray.bitOffset;
-  end += bitArray.bitOffset;
-  const isStartByteAligned = start4 % 8 === 0;
-  const isEndByteAligned = end % 8 === 0;
-  if (isStartByteAligned && isEndByteAligned) {
-    return intFromAlignedSlice(
-      bitArray,
-      start4 / 8,
-      end / 8,
-      isBigEndian,
-      isSigned
-    );
-  }
-  const size2 = end - start4;
-  const startByteIndex = Math.trunc(start4 / 8);
-  const endByteIndex = Math.trunc((end - 1) / 8);
-  if (startByteIndex == endByteIndex) {
-    const mask2 = 255 >> start4 % 8;
-    const unusedLowBitCount = (8 - end % 8) % 8;
-    let value3 = (bitArray.rawBuffer[startByteIndex] & mask2) >> unusedLowBitCount;
-    if (isSigned) {
-      const highBit = 2 ** (size2 - 1);
-      if (value3 >= highBit) {
-        value3 -= highBit * 2;
-      }
-    }
-    return value3;
-  }
-  if (size2 <= 53) {
-    return intFromUnalignedSliceUsingNumber(
-      bitArray.rawBuffer,
-      start4,
-      end,
-      isBigEndian,
-      isSigned
-    );
-  } else {
-    return intFromUnalignedSliceUsingBigInt(
-      bitArray.rawBuffer,
-      start4,
-      end,
-      isBigEndian,
-      isSigned
-    );
-  }
-}
-function intFromAlignedSlice(bitArray, start4, end, isBigEndian, isSigned) {
-  const byteSize = end - start4;
-  if (byteSize <= 6) {
-    return intFromAlignedSliceUsingNumber(
-      bitArray.rawBuffer,
-      start4,
-      end,
-      isBigEndian,
-      isSigned
-    );
-  } else {
-    return intFromAlignedSliceUsingBigInt(
-      bitArray.rawBuffer,
-      start4,
-      end,
-      isBigEndian,
-      isSigned
-    );
-  }
-}
-function intFromAlignedSliceUsingNumber(buffer, start4, end, isBigEndian, isSigned) {
-  const byteSize = end - start4;
-  let value3 = 0;
-  if (isBigEndian) {
-    for (let i = start4; i < end; i++) {
-      value3 *= 256;
-      value3 += buffer[i];
-    }
-  } else {
-    for (let i = end - 1; i >= start4; i--) {
-      value3 *= 256;
-      value3 += buffer[i];
-    }
-  }
-  if (isSigned) {
-    const highBit = 2 ** (byteSize * 8 - 1);
-    if (value3 >= highBit) {
-      value3 -= highBit * 2;
-    }
-  }
-  return value3;
-}
-function intFromAlignedSliceUsingBigInt(buffer, start4, end, isBigEndian, isSigned) {
-  const byteSize = end - start4;
-  let value3 = 0n;
-  if (isBigEndian) {
-    for (let i = start4; i < end; i++) {
-      value3 *= 256n;
-      value3 += BigInt(buffer[i]);
-    }
-  } else {
-    for (let i = end - 1; i >= start4; i--) {
-      value3 *= 256n;
-      value3 += BigInt(buffer[i]);
-    }
-  }
-  if (isSigned) {
-    const highBit = 1n << BigInt(byteSize * 8 - 1);
-    if (value3 >= highBit) {
-      value3 -= highBit * 2n;
-    }
-  }
-  return Number(value3);
-}
-function intFromUnalignedSliceUsingNumber(buffer, start4, end, isBigEndian, isSigned) {
-  const isStartByteAligned = start4 % 8 === 0;
-  let size2 = end - start4;
-  let byteIndex = Math.trunc(start4 / 8);
-  let value3 = 0;
-  if (isBigEndian) {
-    if (!isStartByteAligned) {
-      const leadingBitsCount = 8 - start4 % 8;
-      value3 = buffer[byteIndex++] & (1 << leadingBitsCount) - 1;
-      size2 -= leadingBitsCount;
-    }
-    while (size2 >= 8) {
-      value3 *= 256;
-      value3 += buffer[byteIndex++];
-      size2 -= 8;
-    }
-    if (size2 > 0) {
-      value3 *= 2 ** size2;
-      value3 += buffer[byteIndex] >> 8 - size2;
-    }
-  } else {
-    if (isStartByteAligned) {
-      let size3 = end - start4;
-      let scale = 1;
-      while (size3 >= 8) {
-        value3 += buffer[byteIndex++] * scale;
-        scale *= 256;
-        size3 -= 8;
-      }
-      value3 += (buffer[byteIndex] >> 8 - size3) * scale;
-    } else {
-      const highBitsCount = start4 % 8;
-      const lowBitsCount = 8 - highBitsCount;
-      let size3 = end - start4;
-      let scale = 1;
-      while (size3 >= 8) {
-        const byte = buffer[byteIndex] << highBitsCount | buffer[byteIndex + 1] >> lowBitsCount;
-        value3 += (byte & 255) * scale;
-        scale *= 256;
-        size3 -= 8;
-        byteIndex++;
-      }
-      if (size3 > 0) {
-        const lowBitsUsed = size3 - Math.max(0, size3 - lowBitsCount);
-        let trailingByte = (buffer[byteIndex] & (1 << lowBitsCount) - 1) >> lowBitsCount - lowBitsUsed;
-        size3 -= lowBitsUsed;
-        if (size3 > 0) {
-          trailingByte *= 2 ** size3;
-          trailingByte += buffer[byteIndex + 1] >> 8 - size3;
-        }
-        value3 += trailingByte * scale;
-      }
-    }
-  }
-  if (isSigned) {
-    const highBit = 2 ** (end - start4 - 1);
-    if (value3 >= highBit) {
-      value3 -= highBit * 2;
-    }
-  }
-  return value3;
-}
-function intFromUnalignedSliceUsingBigInt(buffer, start4, end, isBigEndian, isSigned) {
-  const isStartByteAligned = start4 % 8 === 0;
-  let size2 = end - start4;
-  let byteIndex = Math.trunc(start4 / 8);
-  let value3 = 0n;
-  if (isBigEndian) {
-    if (!isStartByteAligned) {
-      const leadingBitsCount = 8 - start4 % 8;
-      value3 = BigInt(buffer[byteIndex++] & (1 << leadingBitsCount) - 1);
-      size2 -= leadingBitsCount;
-    }
-    while (size2 >= 8) {
-      value3 *= 256n;
-      value3 += BigInt(buffer[byteIndex++]);
-      size2 -= 8;
-    }
-    if (size2 > 0) {
-      value3 <<= BigInt(size2);
-      value3 += BigInt(buffer[byteIndex] >> 8 - size2);
-    }
-  } else {
-    if (isStartByteAligned) {
-      let size3 = end - start4;
-      let shift = 0n;
-      while (size3 >= 8) {
-        value3 += BigInt(buffer[byteIndex++]) << shift;
-        shift += 8n;
-        size3 -= 8;
-      }
-      value3 += BigInt(buffer[byteIndex] >> 8 - size3) << shift;
-    } else {
-      const highBitsCount = start4 % 8;
-      const lowBitsCount = 8 - highBitsCount;
-      let size3 = end - start4;
-      let shift = 0n;
-      while (size3 >= 8) {
-        const byte = buffer[byteIndex] << highBitsCount | buffer[byteIndex + 1] >> lowBitsCount;
-        value3 += BigInt(byte & 255) << shift;
-        shift += 8n;
-        size3 -= 8;
-        byteIndex++;
-      }
-      if (size3 > 0) {
-        const lowBitsUsed = size3 - Math.max(0, size3 - lowBitsCount);
-        let trailingByte = (buffer[byteIndex] & (1 << lowBitsCount) - 1) >> lowBitsCount - lowBitsUsed;
-        size3 -= lowBitsUsed;
-        if (size3 > 0) {
-          trailingByte <<= size3;
-          trailingByte += buffer[byteIndex + 1] >> 8 - size3;
-        }
-        value3 += BigInt(trailingByte) << shift;
-      }
-    }
-  }
-  if (isSigned) {
-    const highBit = 2n ** BigInt(end - start4 - 1);
-    if (value3 >= highBit) {
-      value3 -= highBit * 2n;
-    }
-  }
-  return Number(value3);
-}
-function bitArrayValidateRange(bitArray, start4, end) {
-  if (start4 < 0 || start4 > bitArray.bitSize || end < start4 || end > bitArray.bitSize) {
-    const msg = `Invalid bit array slice: start = ${start4}, end = ${end}, bit size = ${bitArray.bitSize}`;
-    throw new globalThis.Error(msg);
-  }
-}
 var Result = class _Result extends CustomType {
   // @internal
   static isResult(data) {
@@ -898,6 +627,24 @@ function try_map_loop(loop$list, loop$fun, loop$acc) {
 function try_map(list4, fun) {
   return try_map_loop(list4, fun, toList([]));
 }
+function drop(loop$list, loop$n) {
+  while (true) {
+    let list4 = loop$list;
+    let n = loop$n;
+    let $ = n <= 0;
+    if ($) {
+      return list4;
+    } else {
+      if (list4.hasLength(0)) {
+        return toList([]);
+      } else {
+        let rest$1 = list4.tail;
+        loop$list = rest$1;
+        loop$n = n - 1;
+      }
+    }
+  }
+}
 function append_loop(loop$first, loop$second) {
   while (true) {
     let first = loop$first;
@@ -988,6 +735,33 @@ function all(loop$list, loop$predicate) {
         return false;
       }
     }
+  }
+}
+function intersperse_loop(loop$list, loop$separator, loop$acc) {
+  while (true) {
+    let list4 = loop$list;
+    let separator = loop$separator;
+    let acc = loop$acc;
+    if (list4.hasLength(0)) {
+      return reverse(acc);
+    } else {
+      let first$1 = list4.head;
+      let rest$1 = list4.tail;
+      loop$list = rest$1;
+      loop$separator = separator;
+      loop$acc = prepend(first$1, prepend(separator, acc));
+    }
+  }
+}
+function intersperse(list4, elem) {
+  if (list4.hasLength(0)) {
+    return list4;
+  } else if (list4.hasLength(1)) {
+    return list4;
+  } else {
+    let first$1 = list4.head;
+    let rest$1 = list4.tail;
+    return intersperse_loop(rest$1, elem, toList([first$1]));
   }
 }
 function unique_loop(loop$list, loop$seen, loop$acc) {
@@ -1348,6 +1122,41 @@ function key_find(keyword_list, desired_key) {
     }
   );
 }
+function transpose(loop$list_of_list) {
+  while (true) {
+    let list_of_list = loop$list_of_list;
+    let take_first = (list4) => {
+      if (list4.hasLength(0)) {
+        return toList([]);
+      } else if (list4.hasLength(1)) {
+        let first$1 = list4.head;
+        return toList([first$1]);
+      } else {
+        let first$1 = list4.head;
+        return toList([first$1]);
+      }
+    };
+    if (list_of_list.hasLength(0)) {
+      return toList([]);
+    } else if (list_of_list.atLeastLength(1) && list_of_list.head.hasLength(0)) {
+      let rest$1 = list_of_list.tail;
+      loop$list_of_list = rest$1;
+    } else {
+      let rows = list_of_list;
+      let _block;
+      let _pipe = rows;
+      let _pipe$1 = map2(_pipe, take_first);
+      _block = flatten(_pipe$1);
+      let firsts = _block;
+      let rest$1 = transpose(
+        map2(rows, (_capture) => {
+          return drop(_capture, 1);
+        })
+      );
+      return prepend(firsts, rest$1);
+    }
+  }
+}
 
 // build/dev/javascript/gleam_stdlib/gleam/string.mjs
 function is_empty2(str) {
@@ -1358,6 +1167,19 @@ function replace(string5, pattern, substitute) {
   let _pipe$1 = identity(_pipe);
   let _pipe$2 = string_replace(_pipe$1, pattern, substitute);
   return identity(_pipe$2);
+}
+function compare3(a2, b) {
+  let $ = a2 === b;
+  if ($) {
+    return new Eq();
+  } else {
+    let $1 = less_than(a2, b);
+    if ($1) {
+      return new Lt();
+    } else {
+      return new Gt();
+    }
+  }
 }
 function slice(string5, idx, len) {
   let $ = len < 0;
@@ -2333,6 +2155,9 @@ function pop_codeunit(str) {
 function lowercase(string5) {
   return string5.toLowerCase();
 }
+function less_than(a2, b) {
+  return a2 < b;
+}
 function split(xs, pattern) {
   return List.fromArray(xs.split(pattern));
 }
@@ -2399,6 +2224,25 @@ function console_log(term) {
 }
 function console_error(term) {
   console.error(term);
+}
+function bit_array_to_string(bit_array3) {
+  if (bit_array3.bitSize % 8 !== 0) {
+    return new Error(Nil);
+  }
+  try {
+    const decoder = new TextDecoder("utf-8", { fatal: true });
+    if (bit_array3.bitOffset === 0) {
+      return new Ok(decoder.decode(bit_array3.rawBuffer));
+    } else {
+      const buffer = new Uint8Array(bit_array3.byteSize);
+      for (let i = 0; i < buffer.length; i++) {
+        buffer[i] = bit_array3.byteAt(i);
+      }
+      return new Ok(decoder.decode(buffer));
+    }
+  } catch {
+    return new Error(Nil);
+  }
 }
 function round(float3) {
   return Math.round(float3);
@@ -2727,6 +2571,30 @@ function list(data, decode2, pushPath, index5, emptyList) {
   }
   return [List.fromArray(decoded), emptyList];
 }
+function dict(data) {
+  if (data instanceof Dict) {
+    return new Ok(data);
+  }
+  if (data instanceof Map || data instanceof WeakMap) {
+    return new Ok(Dict.fromMap(data));
+  }
+  if (data == null) {
+    return new Error("Dict");
+  }
+  if (typeof data !== "object") {
+    return new Error("Dict");
+  }
+  const proto = Object.getPrototypeOf(data);
+  if (proto === Object.prototype || proto === null) {
+    return new Ok(Dict.fromObject(data));
+  }
+  return new Error("Dict");
+}
+function bit_array(data) {
+  if (data instanceof BitArray) return new Ok(data);
+  if (data instanceof Uint8Array) return new Ok(new BitArray(data));
+  return new Error(new BitArray(new Uint8Array()));
+}
 function float(data) {
   if (typeof data === "number") return new Ok(data);
   return new Error(0);
@@ -2769,6 +2637,9 @@ function success(data) {
   return new Decoder((_) => {
     return [data, toList([])];
   });
+}
+function decode_dynamic(data) {
+  return [data, toList([])];
 }
 function map4(decoder, transformer) {
   return new Decoder(
@@ -2817,6 +2688,15 @@ function one_of(first, alternatives) {
     }
   );
 }
+function recursive(inner) {
+  return new Decoder(
+    (data) => {
+      let decoder = inner();
+      return decoder.function(data);
+    }
+  );
+}
+var dynamic = /* @__PURE__ */ new Decoder(decode_dynamic);
 function decode_error(expected, found) {
   return toList([
     new DecodeError2(expected, classify_dynamic(found), toList([]))
@@ -2854,13 +2734,76 @@ function decode_int2(data) {
 function decode_float2(data) {
   return run_dynamic_function(data, "Float", float);
 }
+function decode_bit_array2(data) {
+  return run_dynamic_function(data, "BitArray", bit_array);
+}
+function new_primitive_decoder(name2, decoding_function) {
+  return new Decoder(
+    (d) => {
+      let $ = decoding_function(d);
+      if ($.isOk()) {
+        let t = $[0];
+        return [t, toList([])];
+      } else {
+        let zero = $[0];
+        return [
+          zero,
+          toList([new DecodeError2(name2, classify_dynamic(d), toList([]))])
+        ];
+      }
+    }
+  );
+}
 var bool = /* @__PURE__ */ new Decoder(decode_bool2);
 var int2 = /* @__PURE__ */ new Decoder(decode_int2);
 var float2 = /* @__PURE__ */ new Decoder(decode_float2);
+var bit_array2 = /* @__PURE__ */ new Decoder(decode_bit_array2);
 function decode_string2(data) {
   return run_dynamic_function(data, "String", string);
 }
 var string2 = /* @__PURE__ */ new Decoder(decode_string2);
+function fold_dict(acc, key, value3, key_decoder, value_decoder) {
+  let $ = key_decoder(key);
+  if ($[1].hasLength(0)) {
+    let key$1 = $[0];
+    let $1 = value_decoder(value3);
+    if ($1[1].hasLength(0)) {
+      let value$1 = $1[0];
+      let dict$1 = insert(acc[0], key$1, value$1);
+      return [dict$1, acc[1]];
+    } else {
+      let errors = $1[1];
+      return push_path([new_map(), errors], toList(["values"]));
+    }
+  } else {
+    let errors = $[1];
+    return push_path([new_map(), errors], toList(["keys"]));
+  }
+}
+function dict2(key, value3) {
+  return new Decoder(
+    (data) => {
+      let $ = dict(data);
+      if (!$.isOk()) {
+        return [new_map(), decode_error("Dict", data)];
+      } else {
+        let dict$1 = $[0];
+        return fold2(
+          dict$1,
+          [new_map(), toList([])],
+          (a2, k, v) => {
+            let $1 = a2[1];
+            if ($1.hasLength(0)) {
+              return fold_dict(a2, k, v, key.function, value3.function);
+            } else {
+              return a2;
+            }
+          }
+        );
+      }
+    }
+  );
+}
 function list2(inner) {
   return new Decoder(
     (data) => {
@@ -2980,6 +2923,13 @@ function field(field_name, field_decoder, next) {
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/bool.mjs
+function to_string2(bool4) {
+  if (!bool4) {
+    return "False";
+  } else {
+    return "True";
+  }
+}
 function guard(requirement, consequence, alternative) {
   if (requirement) {
     return consequence;
@@ -3163,7 +3113,7 @@ var option_none = /* @__PURE__ */ new None();
 var GT = /* @__PURE__ */ new Gt();
 var LT = /* @__PURE__ */ new Lt();
 var EQ = /* @__PURE__ */ new Eq();
-function compare3(a2, b) {
+function compare4(a2, b) {
   if (a2.name === b.name) {
     return EQ;
   } else if (a2.name < b.name) {
@@ -3278,7 +3228,7 @@ function prepare(attributes) {
   } else {
     let _pipe = attributes;
     let _pipe$1 = sort(_pipe, (a2, b) => {
-      return compare3(b, a2);
+      return compare4(b, a2);
     });
     return merge(_pipe$1, empty_list);
   }
@@ -3495,14 +3445,14 @@ function do_to_string(loop$path, loop$acc) {
     }
   }
 }
-function to_string2(path2) {
+function to_string3(path2) {
   return do_to_string(path2, toList([]));
 }
 function matches(path2, candidates) {
   if (candidates.hasLength(0)) {
     return false;
   } else {
-    return do_matches(to_string2(path2), candidates);
+    return do_matches(to_string3(path2), candidates);
   }
 }
 var separator_event = "\f";
@@ -3963,7 +3913,7 @@ function diff_attributes(loop$controlled, loop$path, loop$mapper, loop$events, l
       let remaining_old = old.tail;
       let next = new$8.head;
       let remaining_new = new$8.tail;
-      let $ = compare3(prev, next);
+      let $ = compare4(prev, next);
       if (prev instanceof Attribute && $ instanceof Eq && next instanceof Attribute) {
         let _block;
         let $1 = next.name;
@@ -5679,6 +5629,740 @@ function start3(app, selector, start_args) {
   );
 }
 
+// build/dev/javascript/glam/glam/doc.mjs
+var Line = class extends CustomType {
+  constructor(size2) {
+    super();
+    this.size = size2;
+  }
+};
+var Concat = class extends CustomType {
+  constructor(docs) {
+    super();
+    this.docs = docs;
+  }
+};
+var Text2 = class extends CustomType {
+  constructor(text4, length4) {
+    super();
+    this.text = text4;
+    this.length = length4;
+  }
+};
+var Nest = class extends CustomType {
+  constructor(doc, indentation2) {
+    super();
+    this.doc = doc;
+    this.indentation = indentation2;
+  }
+};
+var ForceBreak = class extends CustomType {
+  constructor(doc) {
+    super();
+    this.doc = doc;
+  }
+};
+var Break = class extends CustomType {
+  constructor(unbroken, broken) {
+    super();
+    this.unbroken = unbroken;
+    this.broken = broken;
+  }
+};
+var FlexBreak = class extends CustomType {
+  constructor(unbroken, broken) {
+    super();
+    this.unbroken = unbroken;
+    this.broken = broken;
+  }
+};
+var Group = class extends CustomType {
+  constructor(doc) {
+    super();
+    this.doc = doc;
+  }
+};
+var Broken = class extends CustomType {
+};
+var ForceBroken = class extends CustomType {
+};
+var Unbroken = class extends CustomType {
+};
+function break$(unbroken, broken) {
+  return new Break(unbroken, broken);
+}
+function concat3(docs) {
+  return new Concat(docs);
+}
+function from_string(string5) {
+  return new Text2(string5, string_length(string5));
+}
+function zero_width_string(string5) {
+  return new Text2(string5, 0);
+}
+function group(doc) {
+  return new Group(doc);
+}
+function join2(docs, separator) {
+  return concat3(intersperse(docs, separator));
+}
+function concat_join(docs, separators) {
+  return join2(docs, concat3(separators));
+}
+function nest(doc, indentation2) {
+  return new Nest(doc, indentation2);
+}
+function fits(loop$docs, loop$max_width, loop$current_width) {
+  while (true) {
+    let docs = loop$docs;
+    let max_width2 = loop$max_width;
+    let current_width = loop$current_width;
+    if (current_width > max_width2) {
+      return false;
+    } else if (docs.hasLength(0)) {
+      return true;
+    } else {
+      let indent = docs.head[0];
+      let mode = docs.head[1];
+      let doc = docs.head[2];
+      let rest = docs.tail;
+      if (doc instanceof Line) {
+        return true;
+      } else if (doc instanceof ForceBreak) {
+        return false;
+      } else if (doc instanceof Text2) {
+        let length4 = doc.length;
+        loop$docs = rest;
+        loop$max_width = max_width2;
+        loop$current_width = current_width + length4;
+      } else if (doc instanceof Nest) {
+        let doc$1 = doc.doc;
+        let i = doc.indentation;
+        let _pipe = prepend([indent + i, mode, doc$1], rest);
+        loop$docs = _pipe;
+        loop$max_width = max_width2;
+        loop$current_width = current_width;
+      } else if (doc instanceof Break) {
+        let unbroken = doc.unbroken;
+        if (mode instanceof Broken) {
+          return true;
+        } else if (mode instanceof ForceBroken) {
+          return true;
+        } else {
+          loop$docs = rest;
+          loop$max_width = max_width2;
+          loop$current_width = current_width + string_length(unbroken);
+        }
+      } else if (doc instanceof FlexBreak) {
+        let unbroken = doc.unbroken;
+        if (mode instanceof Broken) {
+          return true;
+        } else if (mode instanceof ForceBroken) {
+          return true;
+        } else {
+          loop$docs = rest;
+          loop$max_width = max_width2;
+          loop$current_width = current_width + string_length(unbroken);
+        }
+      } else if (doc instanceof Group) {
+        let doc$1 = doc.doc;
+        loop$docs = prepend([indent, mode, doc$1], rest);
+        loop$max_width = max_width2;
+        loop$current_width = current_width;
+      } else {
+        let docs$1 = doc.docs;
+        let _pipe = map2(docs$1, (doc2) => {
+          return [indent, mode, doc2];
+        });
+        let _pipe$1 = append(_pipe, rest);
+        loop$docs = _pipe$1;
+        loop$max_width = max_width2;
+        loop$current_width = current_width;
+      }
+    }
+  }
+}
+function indentation(size2) {
+  return repeat(" ", size2);
+}
+function do_to_string2(loop$acc, loop$max_width, loop$current_width, loop$docs) {
+  while (true) {
+    let acc = loop$acc;
+    let max_width2 = loop$max_width;
+    let current_width = loop$current_width;
+    let docs = loop$docs;
+    if (docs.hasLength(0)) {
+      return acc;
+    } else {
+      let indent = docs.head[0];
+      let mode = docs.head[1];
+      let doc = docs.head[2];
+      let rest = docs.tail;
+      if (doc instanceof Line) {
+        let size2 = doc.size;
+        let _pipe = acc + repeat("\n", size2) + indentation(indent);
+        loop$acc = _pipe;
+        loop$max_width = max_width2;
+        loop$current_width = indent;
+        loop$docs = rest;
+      } else if (doc instanceof FlexBreak) {
+        let unbroken = doc.unbroken;
+        let broken = doc.broken;
+        let new_unbroken_width = current_width + string_length(unbroken);
+        let $ = fits(rest, max_width2, new_unbroken_width);
+        if ($) {
+          let _pipe = acc + unbroken;
+          loop$acc = _pipe;
+          loop$max_width = max_width2;
+          loop$current_width = new_unbroken_width;
+          loop$docs = rest;
+        } else {
+          let _pipe = acc + broken + "\n" + indentation(indent);
+          loop$acc = _pipe;
+          loop$max_width = max_width2;
+          loop$current_width = indent;
+          loop$docs = rest;
+        }
+      } else if (doc instanceof Break) {
+        let unbroken = doc.unbroken;
+        let broken = doc.broken;
+        if (mode instanceof Unbroken) {
+          let new_width = current_width + string_length(unbroken);
+          loop$acc = acc + unbroken;
+          loop$max_width = max_width2;
+          loop$current_width = new_width;
+          loop$docs = rest;
+        } else if (mode instanceof Broken) {
+          let _pipe = acc + broken + "\n" + indentation(indent);
+          loop$acc = _pipe;
+          loop$max_width = max_width2;
+          loop$current_width = indent;
+          loop$docs = rest;
+        } else {
+          let _pipe = acc + broken + "\n" + indentation(indent);
+          loop$acc = _pipe;
+          loop$max_width = max_width2;
+          loop$current_width = indent;
+          loop$docs = rest;
+        }
+      } else if (doc instanceof ForceBreak) {
+        let doc$1 = doc.doc;
+        let docs$1 = prepend([indent, new ForceBroken(), doc$1], rest);
+        loop$acc = acc;
+        loop$max_width = max_width2;
+        loop$current_width = current_width;
+        loop$docs = docs$1;
+      } else if (doc instanceof Concat) {
+        let docs$1 = doc.docs;
+        let _block;
+        let _pipe = map2(docs$1, (doc2) => {
+          return [indent, mode, doc2];
+        });
+        _block = append(_pipe, rest);
+        let docs$2 = _block;
+        loop$acc = acc;
+        loop$max_width = max_width2;
+        loop$current_width = current_width;
+        loop$docs = docs$2;
+      } else if (doc instanceof Group) {
+        let doc$1 = doc.doc;
+        let fits$1 = fits(
+          toList([[indent, new Unbroken(), doc$1]]),
+          max_width2,
+          current_width
+        );
+        let _block;
+        if (fits$1) {
+          _block = new Unbroken();
+        } else {
+          _block = new Broken();
+        }
+        let new_mode = _block;
+        let docs$1 = prepend([indent, new_mode, doc$1], rest);
+        loop$acc = acc;
+        loop$max_width = max_width2;
+        loop$current_width = current_width;
+        loop$docs = docs$1;
+      } else if (doc instanceof Nest) {
+        let doc$1 = doc.doc;
+        let i = doc.indentation;
+        let docs$1 = prepend([indent + i, mode, doc$1], rest);
+        loop$acc = acc;
+        loop$max_width = max_width2;
+        loop$current_width = current_width;
+        loop$docs = docs$1;
+      } else {
+        let text4 = doc.text;
+        let length4 = doc.length;
+        loop$acc = acc + text4;
+        loop$max_width = max_width2;
+        loop$current_width = current_width + length4;
+        loop$docs = rest;
+      }
+    }
+  }
+}
+function to_string5(doc, limit) {
+  return do_to_string2("", limit, 0, toList([[0, new Unbroken(), doc]]));
+}
+var empty3 = /* @__PURE__ */ new Concat(/* @__PURE__ */ toList([]));
+var flex_space = /* @__PURE__ */ new FlexBreak(" ", "");
+var soft_break = /* @__PURE__ */ new Break("", "");
+var space = /* @__PURE__ */ new Break(" ", "");
+
+// build/dev/javascript/pprint/pprint_ffi.mjs
+function decode_custom_type(value3) {
+  if (value3 instanceof CustomType) {
+    const name2 = value3.constructor.name;
+    const fields = Object.keys(value3).map((label2) => {
+      return isNaN(parseInt(label2)) ? new Labelled(label2, value3[label2]) : new Positional(value3[label2]);
+    });
+    return new Ok(new TCustom(name2, toList(fields)));
+  }
+  return new Error(void 0);
+}
+function decode_tuple7(value3) {
+  if (Array.isArray(value3)) return new Ok(toList(value3));
+  return new Error(void 0);
+}
+function decode_nil(value3) {
+  if (value3 === void 0) return new Ok(void 0);
+  return new Error(void 0);
+}
+
+// build/dev/javascript/pprint/pprint/decoder.mjs
+var TString = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+var TInt = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+var TFloat = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+var TBool = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+var TNil = class extends CustomType {
+};
+var TBitArray = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+var TList = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+var TDict = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+var TTuple = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+var TCustom = class extends CustomType {
+  constructor(name2, fields) {
+    super();
+    this.name = name2;
+    this.fields = fields;
+  }
+};
+var TForeign = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
+  }
+};
+var Labelled = class extends CustomType {
+  constructor(label2, value3) {
+    super();
+    this.label = label2;
+    this.value = value3;
+  }
+};
+var Positional = class extends CustomType {
+  constructor(value3) {
+    super();
+    this.value = value3;
+  }
+};
+function custom_type() {
+  return new_primitive_decoder(
+    "CustomType",
+    (dynamic2) => {
+      return replace_error(
+        decode_custom_type(dynamic2),
+        new TCustom("", toList([]))
+      );
+    }
+  );
+}
+function tuple() {
+  return new_primitive_decoder(
+    "Tuple",
+    (dynamic2) => {
+      return replace_error(decode_tuple7(dynamic2), toList([]));
+    }
+  );
+}
+function nil() {
+  return new_primitive_decoder("Nil", decode_nil);
+}
+function type_decoder() {
+  return recursive(
+    () => {
+      return one_of(
+        map4(int2, (var0) => {
+          return new TInt(var0);
+        }),
+        toList([
+          map4(float2, (var0) => {
+            return new TFloat(var0);
+          }),
+          map4(float2, (var0) => {
+            return new TFloat(var0);
+          }),
+          map4(string2, (var0) => {
+            return new TString(var0);
+          }),
+          map4(bool, (var0) => {
+            return new TBool(var0);
+          }),
+          map4(nil(), (_) => {
+            return new TNil();
+          }),
+          map4(
+            bit_array2,
+            (var0) => {
+              return new TBitArray(var0);
+            }
+          ),
+          custom_type(),
+          map4(tuple(), (var0) => {
+            return new TTuple(var0);
+          }),
+          map4(
+            list2(dynamic),
+            (var0) => {
+              return new TList(var0);
+            }
+          ),
+          map4(
+            dict2(type_decoder(), type_decoder()),
+            (var0) => {
+              return new TDict(var0);
+            }
+          ),
+          map4(
+            dynamic,
+            (value3) => {
+              return new TForeign(inspect2(value3));
+            }
+          )
+        ])
+      );
+    }
+  );
+}
+function classify(value3) {
+  let $ = run(value3, type_decoder());
+  if (!$.isOk()) {
+    throw makeError(
+      "let_assert",
+      "pprint/decoder",
+      31,
+      "classify",
+      "Pattern match failed, no pattern matched the value.",
+      { value: $ }
+    );
+  }
+  let t = $[0];
+  return t;
+}
+
+// build/dev/javascript/pprint/pprint.mjs
+var Config3 = class extends CustomType {
+  constructor(style_mode, bit_array_mode, label_mode) {
+    super();
+    this.style_mode = style_mode;
+    this.bit_array_mode = bit_array_mode;
+    this.label_mode = label_mode;
+  }
+};
+var Styled = class extends CustomType {
+};
+var Unstyled = class extends CustomType {
+};
+var KeepBitArrays = class extends CustomType {
+};
+var Labels = class extends CustomType {
+};
+var NoLabels = class extends CustomType {
+};
+function comma_list_space(docs, open, close, space2) {
+  let _block;
+  if (docs.hasLength(0)) {
+    _block = empty3;
+  } else {
+    _block = break$("", ",");
+  }
+  let trailing = _block;
+  let _pipe = toList([
+    open,
+    (() => {
+      let _pipe2 = toList([
+        soft_break,
+        concat_join(docs, toList([from_string(","), space2]))
+      ]);
+      let _pipe$12 = concat3(_pipe2);
+      return nest(_pipe$12, 2);
+    })(),
+    trailing,
+    close
+  ]);
+  let _pipe$1 = concat3(_pipe);
+  return group(_pipe$1);
+}
+function comma_list(docs, open, close) {
+  return comma_list_space(docs, open, close, space);
+}
+var max_width = 40;
+var reset = "\x1B[0m";
+function ansi(text4, code, config) {
+  let text_doc = from_string(text4);
+  let $ = config.style_mode;
+  if ($ instanceof Unstyled) {
+    return text_doc;
+  } else {
+    return concat3(
+      toList([
+        zero_width_string(code),
+        text_doc,
+        zero_width_string(reset)
+      ])
+    );
+  }
+}
+var green = "\x1B[38;5;2m";
+function pretty_string(string5, config) {
+  let _pipe = '"' + string5 + '"';
+  return ansi(_pipe, green, config);
+}
+var yellow = "\x1B[38;5;3m";
+var blue = "\x1B[38;5;4m";
+var magenta = "\x1B[38;5;5m";
+function pretty_bit_array(bits, config) {
+  let _pipe = inspect2(bits);
+  return ansi(_pipe, magenta, config);
+}
+var bold = "\x1B[1m";
+var dim = "\x1B[2m";
+function pretty_tuple(items, config) {
+  let _pipe = map2(
+    items,
+    (_capture) => {
+      return pretty_dynamic(_capture, config);
+    }
+  );
+  return comma_list(_pipe, from_string("#("), from_string(")"));
+}
+function pretty_dynamic(value3, config) {
+  let _pipe = value3;
+  let _pipe$1 = classify(_pipe);
+  return pretty_type(_pipe$1, config);
+}
+function pretty_type(value3, config) {
+  if (value3 instanceof TString) {
+    let s = value3[0];
+    return pretty_string(s, config);
+  } else if (value3 instanceof TInt) {
+    let i = value3[0];
+    let _pipe = to_string(i);
+    return ansi(_pipe, yellow, config);
+  } else if (value3 instanceof TFloat) {
+    let f = value3[0];
+    let _pipe = float_to_string(f);
+    return ansi(_pipe, yellow, config);
+  } else if (value3 instanceof TBool) {
+    let b = value3[0];
+    let _pipe = to_string2(b);
+    return ansi(_pipe, blue, config);
+  } else if (value3 instanceof TBitArray) {
+    let b = value3[0];
+    let $ = config.bit_array_mode;
+    if ($ instanceof KeepBitArrays) {
+      return pretty_bit_array(b, config);
+    } else {
+      let $1 = bit_array_to_string(b);
+      if ($1.isOk()) {
+        let s = $1[0];
+        return pretty_string(s, config);
+      } else {
+        return pretty_bit_array(b, config);
+      }
+    }
+  } else if (value3 instanceof TNil) {
+    return ansi("Nil", blue, config);
+  } else if (value3 instanceof TList) {
+    let items = value3[0];
+    return pretty_list(items, config);
+  } else if (value3 instanceof TDict) {
+    let d = value3[0];
+    return pretty_dict(d, config);
+  } else if (value3 instanceof TTuple) {
+    let items = value3[0];
+    return pretty_tuple(items, config);
+  } else if (value3 instanceof TCustom) {
+    let name2 = value3.name;
+    let fields = value3.fields;
+    return pretty_custom_type(name2, fields, config);
+  } else {
+    let f = value3[0];
+    return ansi(f, dim, config);
+  }
+}
+function with_config(value3, config) {
+  let _pipe = value3;
+  let _pipe$1 = identity(_pipe);
+  let _pipe$2 = pretty_dynamic(_pipe$1, config);
+  return to_string5(_pipe$2, max_width);
+}
+function debug(value3) {
+  let _pipe = value3;
+  let _pipe$1 = with_config(
+    _pipe,
+    new Config3(new Styled(), new KeepBitArrays(), new Labels())
+  );
+  console_error(_pipe$1);
+  return value3;
+}
+function pretty_list(items, config) {
+  let items$1 = map2(items, classify);
+  let _block;
+  if (items$1.atLeastLength(1) && items$1.head instanceof TInt) {
+    _block = flex_space;
+  } else if (items$1.atLeastLength(1) && items$1.head instanceof TFloat) {
+    _block = flex_space;
+  } else {
+    _block = space;
+  }
+  let space2 = _block;
+  let _pipe = map2(
+    items$1,
+    (_capture) => {
+      return pretty_type(_capture, config);
+    }
+  );
+  return comma_list_space(
+    _pipe,
+    from_string("["),
+    from_string("]"),
+    space2
+  );
+}
+function pretty_dict(d, config) {
+  let _pipe = map_to_list(d);
+  let _pipe$1 = sort(
+    _pipe,
+    (one_field, other_field) => {
+      let one_key = one_field[0];
+      let other_key = other_field[0];
+      return compare3(
+        inspect2(one_key),
+        inspect2(other_key)
+      );
+    }
+  );
+  let _pipe$2 = map2(
+    _pipe$1,
+    (field2) => {
+      let _pipe$22 = toList([
+        pretty_type(field2[0], config),
+        pretty_type(field2[1], config)
+      ]);
+      return comma_list(_pipe$22, from_string("#("), from_string(")"));
+    }
+  );
+  return comma_list(
+    _pipe$2,
+    from_string("dict.from_list(["),
+    from_string("])")
+  );
+}
+function pretty_custom_type(name2, fields, config) {
+  let _block;
+  if (name2 === "Ok") {
+    _block = bold;
+  } else if (name2 === "Error") {
+    _block = bold;
+  } else if (name2 === "Some") {
+    _block = bold;
+  } else if (name2 === "None") {
+    _block = bold;
+  } else {
+    _block = "";
+  }
+  let style = _block;
+  let fields$1 = map2(
+    fields,
+    (field2) => {
+      let $ = config.label_mode;
+      if (field2 instanceof Positional && $ instanceof Labels) {
+        let value3 = field2.value;
+        return pretty_dynamic(value3, config);
+      } else if (field2 instanceof Positional && $ instanceof NoLabels) {
+        let value3 = field2.value;
+        return pretty_dynamic(value3, config);
+      } else if (field2 instanceof Labelled && $ instanceof NoLabels) {
+        let value3 = field2.value;
+        return pretty_dynamic(value3, config);
+      } else {
+        let label2 = field2.label;
+        let value3 = field2.value;
+        return concat3(
+          toList([
+            ansi(label2 + ": ", dim, config),
+            pretty_dynamic(value3, config)
+          ])
+        );
+      }
+    }
+  );
+  let name$1 = ansi(name2, style, config);
+  let open = concat3(toList([name$1, from_string("(")]));
+  let close = from_string(")");
+  if (fields$1.hasLength(0)) {
+    return name$1;
+  } else if (fields$1.hasLength(1)) {
+    let single = fields$1.head;
+    return concat3(toList([open, single, close]));
+  } else {
+    let _pipe = fields$1;
+    return comma_list(_pipe, open, close);
+  }
+}
+
 // build/dev/javascript/eve_arbitrage/config/sde.mjs
 var Location = class extends CustomType {
   constructor(name2, stations, system, region, contraband) {
@@ -6082,7 +6766,7 @@ function sell_order_decoder() {
 function sell_orders_decoder() {
   return list2(sell_order_decoder());
 }
-function type_decoder() {
+function type_decoder2() {
   return field(
     "type_id",
     int2,
@@ -6145,6 +6829,163 @@ function get_type_id_metadata_url(type_id) {
   })();
 }
 
+// build/dev/javascript/eve_arbitrage/util/numbers.mjs
+function int_to_segments(loop$acc, loop$from) {
+  while (true) {
+    let acc = loop$acc;
+    let from2 = loop$from;
+    let $ = divideInt(from2, 1e3);
+    if ($ > 0) {
+      let x = $;
+      let segment = "," + (() => {
+        let _pipe = to_string(remainderInt(from2, 1e3));
+        return pad_start(_pipe, 3, "0");
+      })();
+      loop$acc = prepend(segment, acc);
+      loop$from = x;
+    } else {
+      let _pipe = prepend(
+        (() => {
+          let _pipe2 = from2;
+          return to_string(_pipe2);
+        })(),
+        acc
+      );
+      return reverse(_pipe);
+    }
+  }
+}
+function float_to_human_string(from2) {
+  let truncated = truncate(from2);
+  let _pipe = int_to_segments(toList([]), truncated);
+  let _pipe$1 = reverse(_pipe);
+  return concat2(_pipe$1);
+}
+function millions_to_unit_string(from2) {
+  let thousands = int_to_segments(toList([]), from2);
+  let _block;
+  if (thousands.hasLength(0)) {
+    throw makeError(
+      "panic",
+      "util/numbers",
+      42,
+      "millions_to_unit_string",
+      "shouldnt be able to find an empty value",
+      {}
+    );
+  } else if (thousands.hasLength(1)) {
+    let v = thousands.head;
+    _block = [v, "M"];
+  } else {
+    let v = thousands.tail;
+    _block = [
+      (() => {
+        let _pipe = v;
+        let _pipe$1 = reverse(_pipe);
+        return concat2(_pipe$1);
+      })(),
+      "B"
+    ];
+  }
+  let $ = _block;
+  let value3 = $[0];
+  let units = $[1];
+  return value3 + " " + units;
+}
+function ints_to_string(from2) {
+  let _pipe = map2(
+    from2,
+    (value3) => {
+      return (() => {
+        let _pipe2 = value3;
+        return to_string(_pipe2);
+      })() + ",";
+    }
+  );
+  return concat2(_pipe);
+}
+function string_to_ints(from2) {
+  let _pipe = from2;
+  let _pipe$1 = drop_end(_pipe, 1);
+  let _pipe$2 = split2(_pipe$1, ",");
+  let _pipe$3 = map2(_pipe$2, parse_int);
+  return all2(_pipe$3);
+}
+function ints_dict_to_string(from2) {
+  return fold2(
+    from2,
+    "",
+    (acc, index5, ints) => {
+      return acc + (() => {
+        let _pipe = index5;
+        return to_string(_pipe);
+      })() + ":" + (() => {
+        let _pipe = ints;
+        return ints_to_string(_pipe);
+      })() + ";";
+    }
+  );
+}
+function string_to_ints_dict(from2) {
+  return guard(
+    is_empty2(from2),
+    new Ok(from_list(toList([]))),
+    () => {
+      let _block;
+      let _pipe = from2;
+      let _pipe$1 = drop_end(_pipe, 1);
+      _block = split2(_pipe$1, ";");
+      let sections = _block;
+      let _pipe$2 = map2(
+        sections,
+        (section2) => {
+          let $ = split2(section2, ":");
+          if (!$.hasLength(2)) {
+            throw makeError(
+              "let_assert",
+              "util/numbers",
+              79,
+              "",
+              "Pattern match failed, no pattern matched the value.",
+              { value: $ }
+            );
+          }
+          let index_string = $.head;
+          let int_list_string = $.tail.head;
+          return try$(
+            parse_int(index_string),
+            (index5) => {
+              return guard(
+                is_empty2(int_list_string),
+                new Ok([index5, toList([])]),
+                () => {
+                  return map3(
+                    string_to_ints(int_list_string),
+                    (int_list) => {
+                      return [index5, int_list];
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
+      let _pipe$3 = all2(_pipe$2);
+      return map3(_pipe$3, from_list);
+    }
+  );
+}
+function int_to_human_string(from2) {
+  let $ = divideInt(from2, 1e3);
+  if ($ > 10) {
+    let thousands = $;
+    return to_string(thousands) + "k";
+  } else {
+    return to_string(from2);
+  }
+}
+
 // build/dev/javascript/eve_arbitrage/arbitrage.mjs
 var Item = class extends CustomType {
   constructor(id2, name2, m3) {
@@ -6155,7 +6996,7 @@ var Item = class extends CustomType {
   }
 };
 var Trade = class extends CustomType {
-  constructor(source, destination, item, amount, total_volume, unit_buy_price, unit_sell_price, profit_per_volume) {
+  constructor(source, destination, item, amount, total_volume, unit_buy_price, unit_sell_price, total_price, profit_per_volume) {
     super();
     this.source = source;
     this.destination = destination;
@@ -6164,6 +7005,7 @@ var Trade = class extends CustomType {
     this.total_volume = total_volume;
     this.unit_buy_price = unit_buy_price;
     this.unit_sell_price = unit_sell_price;
+    this.total_price = total_price;
     this.profit_per_volume = profit_per_volume;
   }
 };
@@ -6179,23 +7021,70 @@ var RawTrade = class extends CustomType {
     this.unit_profit = unit_profit;
   }
 };
-function trades_to_multibuys(trades, collateral, holds) {
-  let sorted_trades = sort(
+var Multibuy = class extends CustomType {
+  constructor(purchases, total_price, total_profit) {
+    super();
+    this.purchases = purchases;
+    this.total_price = total_price;
+    this.total_profit = total_profit;
+  }
+};
+var Purchase = class extends CustomType {
+  constructor(item_name, amount, unit_price, total_price, total_profit) {
+    super();
+    this.item_name = item_name;
+    this.amount = amount;
+    this.unit_price = unit_price;
+    this.total_price = total_price;
+    this.total_profit = total_profit;
+  }
+};
+function pick_trades_for_hold(hold, collateral, trades) {
+  let capacity = hold.capacity;
+  let $ = fold(
     trades,
-    (trade_1, trade_2) => {
-      return compare(
-        trade_2.profit_per_volume,
-        trade_1.profit_per_volume
-      );
+    [toList([]), toList([]), collateral, capacity],
+    (_use0, current_trade) => {
+      let selected_trades2 = _use0[0];
+      let leftover_trades2 = _use0[1];
+      let remaining_collateral2 = _use0[2];
+      let remaining_capacity = _use0[3];
+      let $1 = current_trade.total_volume <= remaining_capacity && current_trade.total_price <= remaining_collateral2;
+      if (!$1) {
+        return [
+          selected_trades2,
+          prepend(current_trade, leftover_trades2),
+          remaining_collateral2,
+          remaining_capacity
+        ];
+      } else {
+        return [
+          prepend(current_trade, selected_trades2),
+          leftover_trades2,
+          remaining_collateral2 - current_trade.total_price,
+          remaining_capacity - current_trade.total_volume
+        ];
+      }
     }
   );
-  throw makeError(
-    "todo",
-    "arbitrage",
-    73,
-    "trades_to_multibuys",
-    "trades to multibuys",
-    {}
+  let selected_trades = $[0];
+  let leftover_trades = $[1];
+  let remaining_collateral = $[2];
+  return [selected_trades, leftover_trades, remaining_collateral];
+}
+function trade_to_purchase(trade) {
+  return new Purchase(
+    trade.item.name,
+    trade.amount,
+    trade.unit_sell_price,
+    trade.unit_sell_price * (() => {
+      let _pipe = trade.amount;
+      return identity(_pipe);
+    })(),
+    (trade.unit_buy_price - trade.unit_sell_price) * (() => {
+      let _pipe = trade.amount;
+      return identity(_pipe);
+    })()
   );
 }
 function raw_trade_to_trade(raw_trade, type_2) {
@@ -6214,6 +7103,10 @@ function raw_trade_to_trade(raw_trade, type_2) {
       })() * type_2.volume,
       raw_trade.unit_buy_price,
       raw_trade.unit_sell_price,
+      raw_trade.unit_sell_price * (() => {
+        let _pipe2 = raw_trade.amount;
+        return identity(_pipe2);
+      })(),
       divideFloat(raw_trade.unit_profit, type_2.volume)
     );
     return new Ok(_pipe);
@@ -6257,7 +7150,7 @@ function merge_orders2(orders) {
                 throw makeError(
                   "let_assert",
                   "arbitrage",
-                  125,
+                  216,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: new_orders }
@@ -6288,7 +7181,7 @@ function recurse_compute_trades_from_item_orders(sell_orders, buy_orders, acc) {
         throw makeError(
           "let_assert",
           "arbitrage",
-          184,
+          275,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: sell_orders }
@@ -6300,7 +7193,7 @@ function recurse_compute_trades_from_item_orders(sell_orders, buy_orders, acc) {
         throw makeError(
           "let_assert",
           "arbitrage",
-          185,
+          276,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: buy_orders }
@@ -6388,7 +7281,7 @@ function compute_trades(sell_orders, buy_orders, tax_rate) {
         throw makeError(
           "let_assert",
           "arbitrage",
-          147,
+          238,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $ }
@@ -6400,7 +7293,7 @@ function compute_trades(sell_orders, buy_orders, tax_rate) {
         throw makeError(
           "let_assert",
           "arbitrage",
-          148,
+          239,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $1 }
@@ -6446,9 +7339,104 @@ function compute_trades(sell_orders, buy_orders, tax_rate) {
   return filter(
     _pipe$2,
     (raw_trade) => {
-      return echo(raw_trade.unit_profit > 0, "src/arbitrage.gleam", 172);
+      return raw_trade.unit_profit > 0;
     }
   );
+}
+function multibuy_from_purchases(purchases) {
+  let $ = fold(
+    purchases,
+    [0, 0],
+    (input2, purchase) => {
+      let price = input2[0];
+      let profit = input2[1];
+      return [price + purchase.total_price, profit + purchase.total_profit];
+    }
+  );
+  let total_price = $[0];
+  let total_profit = $[1];
+  return new Multibuy(purchases, total_price, total_profit);
+}
+function selected_trades_to_multibuys(from2) {
+  let _pipe = fold(
+    from2,
+    new_map(),
+    (split_trades, current_trade) => {
+      return upsert(
+        split_trades,
+        current_trade.item,
+        (optional_found_trades) => {
+          let _pipe2 = unwrap(optional_found_trades, toList([]));
+          return prepend2(_pipe2, current_trade);
+        }
+      );
+    }
+  );
+  let _pipe$1 = values(_pipe);
+  let _pipe$2 = sort(
+    _pipe$1,
+    (trades_1, trades_2) => {
+      return compare2(
+        (() => {
+          let _pipe$22 = trades_2;
+          return length(_pipe$22);
+        })(),
+        (() => {
+          let _pipe$22 = trades_1;
+          return length(_pipe$22);
+        })()
+      );
+    }
+  );
+  let _pipe$3 = transpose(_pipe$2);
+  let _pipe$4 = debug(_pipe$3);
+  let _pipe$5 = map2(
+    _pipe$4,
+    (list_of_trades) => {
+      let _pipe$52 = list_of_trades;
+      return map2(_pipe$52, trade_to_purchase);
+    }
+  );
+  return map2(_pipe$5, multibuy_from_purchases);
+}
+function trades_to_multibuys(trades, collateral, holds) {
+  let sorted_trades = sort(
+    trades,
+    (trade_1, trade_2) => {
+      return compare(
+        trade_2.profit_per_volume,
+        trade_1.profit_per_volume
+      );
+    }
+  );
+  let _block;
+  let _pipe = collateral * 1e6;
+  _block = identity(_pipe);
+  let collateral$1 = _block;
+  let $ = fold(
+    holds,
+    [toList([]), sorted_trades, collateral$1],
+    (input2, hold) => {
+      let old_selected_trades = input2[0];
+      let leftover_trades = input2[1];
+      let remaining_collateral = input2[2];
+      let $1 = pick_trades_for_hold(hold, remaining_collateral, leftover_trades);
+      let new_selected_trades = $1[0];
+      let leftover_trades$1 = $1[1];
+      let remaining_collateral$1 = $1[2];
+      let current_selected_trades = append(
+        new_selected_trades,
+        old_selected_trades
+      );
+      return [
+        current_selected_trades,
+        leftover_trades$1,
+        remaining_collateral$1
+      ];
+    }
+  );
+  let selected_trades = $[0];
+  return selected_trades_to_multibuys(selected_trades);
 }
 function get_multibuy_purchases(multibuy) {
   return multibuy.purchases;
@@ -6484,142 +7472,6 @@ function tax_percent_from_accounting_level(accounting_level) {
   );
   let effective_tax_rate = base_tax_rate * remaining_tax_ratio;
   return effective_tax_rate;
-}
-function echo(value3, file, line) {
-  const grey = "\x1B[90m";
-  const reset_color = "\x1B[39m";
-  const file_line = `${file}:${line}`;
-  const string_value = echo$inspect(value3);
-  if (globalThis.process?.stderr?.write) {
-    const string5 = `${grey}${file_line}${reset_color}
-${string_value}
-`;
-    process.stderr.write(string5);
-  } else if (globalThis.Deno) {
-    const string5 = `${grey}${file_line}${reset_color}
-${string_value}
-`;
-    globalThis.Deno.stderr.writeSync(new TextEncoder().encode(string5));
-  } else {
-    const string5 = `${file_line}
-${string_value}`;
-    globalThis.console.log(string5);
-  }
-  return value3;
-}
-function echo$inspectString(str) {
-  let new_str = '"';
-  for (let i = 0; i < str.length; i++) {
-    let char = str[i];
-    if (char == "\n") new_str += "\\n";
-    else if (char == "\r") new_str += "\\r";
-    else if (char == "	") new_str += "\\t";
-    else if (char == "\f") new_str += "\\f";
-    else if (char == "\\") new_str += "\\\\";
-    else if (char == '"') new_str += '\\"';
-    else if (char < " " || char > "~" && char < "\xA0") {
-      new_str += "\\u{" + char.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0") + "}";
-    } else {
-      new_str += char;
-    }
-  }
-  new_str += '"';
-  return new_str;
-}
-function echo$inspectDict(map6) {
-  let body = "dict.from_list([";
-  let first = true;
-  let key_value_pairs = [];
-  map6.forEach((value3, key) => {
-    key_value_pairs.push([key, value3]);
-  });
-  key_value_pairs.sort();
-  key_value_pairs.forEach(([key, value3]) => {
-    if (!first) body = body + ", ";
-    body = body + "#(" + echo$inspect(key) + ", " + echo$inspect(value3) + ")";
-    first = false;
-  });
-  return body + "])";
-}
-function echo$inspectCustomType(record) {
-  const props = globalThis.Object.keys(record).map((label2) => {
-    const value3 = echo$inspect(record[label2]);
-    return isNaN(parseInt(label2)) ? `${label2}: ${value3}` : value3;
-  }).join(", ");
-  return props ? `${record.constructor.name}(${props})` : record.constructor.name;
-}
-function echo$inspectObject(v) {
-  const name2 = Object.getPrototypeOf(v)?.constructor?.name || "Object";
-  const props = [];
-  for (const k of Object.keys(v)) {
-    props.push(`${echo$inspect(k)}: ${echo$inspect(v[k])}`);
-  }
-  const body = props.length ? " " + props.join(", ") + " " : "";
-  const head = name2 === "Object" ? "" : name2 + " ";
-  return `//js(${head}{${body}})`;
-}
-function echo$inspect(v) {
-  const t = typeof v;
-  if (v === true) return "True";
-  if (v === false) return "False";
-  if (v === null) return "//js(null)";
-  if (v === void 0) return "Nil";
-  if (t === "string") return echo$inspectString(v);
-  if (t === "bigint" || t === "number") return v.toString();
-  if (globalThis.Array.isArray(v))
-    return `#(${v.map(echo$inspect).join(", ")})`;
-  if (v instanceof List)
-    return `[${v.toArray().map(echo$inspect).join(", ")}]`;
-  if (v instanceof UtfCodepoint)
-    return `//utfcodepoint(${String.fromCodePoint(v.value)})`;
-  if (v instanceof BitArray) return echo$inspectBitArray(v);
-  if (v instanceof CustomType) return echo$inspectCustomType(v);
-  if (echo$isDict(v)) return echo$inspectDict(v);
-  if (v instanceof Set)
-    return `//js(Set(${[...v].map(echo$inspect).join(", ")}))`;
-  if (v instanceof RegExp) return `//js(${v})`;
-  if (v instanceof Date) return `//js(Date("${v.toISOString()}"))`;
-  if (v instanceof Function) {
-    const args = [];
-    for (const i of Array(v.length).keys())
-      args.push(String.fromCharCode(i + 97));
-    return `//fn(${args.join(", ")}) { ... }`;
-  }
-  return echo$inspectObject(v);
-}
-function echo$inspectBitArray(bitArray) {
-  let endOfAlignedBytes = bitArray.bitOffset + 8 * Math.trunc(bitArray.bitSize / 8);
-  let alignedBytes = bitArraySlice(
-    bitArray,
-    bitArray.bitOffset,
-    endOfAlignedBytes
-  );
-  let remainingUnalignedBits = bitArray.bitSize % 8;
-  if (remainingUnalignedBits > 0) {
-    let remainingBits = bitArraySliceToInt(
-      bitArray,
-      endOfAlignedBytes,
-      bitArray.bitSize,
-      false,
-      false
-    );
-    let alignedBytesArray = Array.from(alignedBytes.rawBuffer);
-    let suffix = `${remainingBits}:size(${remainingUnalignedBits})`;
-    if (alignedBytesArray.length === 0) {
-      return `<<${suffix}>>`;
-    } else {
-      return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}, ${suffix}>>`;
-    }
-  } else {
-    return `<<${Array.from(alignedBytes.rawBuffer).join(", ")}>>`;
-  }
-}
-function echo$isDict(value3) {
-  try {
-    return value3 instanceof Dict;
-  } catch {
-    return false;
-  }
 }
 
 // build/dev/javascript/gleam_time/gleam_time_ffi.mjs
@@ -7399,7 +8251,7 @@ function parse_scheme_loop(loop$original, loop$uri_string, loop$pieces, loop$siz
     }
   }
 }
-function to_string4(uri) {
+function to_string6(uri) {
   let _block;
   let $ = uri.fragment;
   if ($ instanceof Some) {
@@ -7473,7 +8325,7 @@ function to_string4(uri) {
   let parts$5 = _block$4;
   return concat2(parts$5);
 }
-var empty4 = /* @__PURE__ */ new Uri(
+var empty5 = /* @__PURE__ */ new Uri(
   /* @__PURE__ */ new None(),
   /* @__PURE__ */ new None(),
   /* @__PURE__ */ new None(),
@@ -7483,7 +8335,7 @@ var empty4 = /* @__PURE__ */ new Uri(
   /* @__PURE__ */ new None()
 );
 function parse2(uri_string) {
-  return parse_scheme_loop(uri_string, uri_string, empty4, 0);
+  return parse_scheme_loop(uri_string, uri_string, empty5, 0);
 }
 
 // build/dev/javascript/gleam_http/gleam/http.mjs
@@ -7687,7 +8539,7 @@ function from_fetch_response(response) {
   );
 }
 function request_common(request) {
-  let url = to_string4(to_uri(request));
+  let url = to_string6(to_uri(request));
   let method = method_to_string(request.method).toUpperCase();
   let options = {
     headers: make_headers(request.headers),
@@ -8013,7 +8865,7 @@ var Trade2 = class extends CustomType {
     this.trade = trade;
   }
 };
-var Multibuy = class extends CustomType {
+var Multibuy2 = class extends CustomType {
   constructor(multibuy) {
     super();
     this.multibuy = multibuy;
@@ -8314,7 +9166,7 @@ function get_query_buy_orders_side_effect(location, from2, page) {
 }
 function get_query_type_metadata_side_effect(type_id) {
   let query_handler = expect_json(
-    type_decoder(),
+    type_decoder2(),
     (var0) => {
       return new EsiReturnedTypeMetadata(var0);
     }
@@ -8558,7 +9410,7 @@ function esi_returned_type_metadata(model, esi_response) {
       _block$1 = map2(
         _pipe$1,
         (var0) => {
-          return new Multibuy(var0);
+          return new Multibuy2(var0);
         }
       );
     } else {
@@ -8584,163 +9436,6 @@ function esi_returned_type_metadata(model, esi_response) {
     );
     let model$1 = _block$2;
     return [model$1, none()];
-  }
-}
-
-// build/dev/javascript/eve_arbitrage/util/numbers.mjs
-function int_to_segments(loop$acc, loop$from) {
-  while (true) {
-    let acc = loop$acc;
-    let from2 = loop$from;
-    let $ = divideInt(from2, 1e3);
-    if ($ > 0) {
-      let x = $;
-      let segment = "," + (() => {
-        let _pipe = to_string(remainderInt(from2, 1e3));
-        return pad_start(_pipe, 3, "0");
-      })();
-      loop$acc = prepend(segment, acc);
-      loop$from = x;
-    } else {
-      let _pipe = prepend(
-        (() => {
-          let _pipe2 = from2;
-          return to_string(_pipe2);
-        })(),
-        acc
-      );
-      return reverse(_pipe);
-    }
-  }
-}
-function float_to_human_string(from2) {
-  let truncated = truncate(from2);
-  let _pipe = int_to_segments(toList([]), truncated);
-  let _pipe$1 = reverse(_pipe);
-  return concat2(_pipe$1);
-}
-function millions_to_unit_string(from2) {
-  let thousands = int_to_segments(toList([]), from2);
-  let _block;
-  if (thousands.hasLength(0)) {
-    throw makeError(
-      "panic",
-      "util/numbers",
-      42,
-      "millions_to_unit_string",
-      "shouldnt be able to find an empty value",
-      {}
-    );
-  } else if (thousands.hasLength(1)) {
-    let v = thousands.head;
-    _block = [v, "M"];
-  } else {
-    let v = thousands.tail;
-    _block = [
-      (() => {
-        let _pipe = v;
-        let _pipe$1 = reverse(_pipe);
-        return concat2(_pipe$1);
-      })(),
-      "B"
-    ];
-  }
-  let $ = _block;
-  let value3 = $[0];
-  let units = $[1];
-  return value3 + " " + units;
-}
-function ints_to_string(from2) {
-  let _pipe = map2(
-    from2,
-    (value3) => {
-      return (() => {
-        let _pipe2 = value3;
-        return to_string(_pipe2);
-      })() + ",";
-    }
-  );
-  return concat2(_pipe);
-}
-function string_to_ints(from2) {
-  let _pipe = from2;
-  let _pipe$1 = drop_end(_pipe, 1);
-  let _pipe$2 = split2(_pipe$1, ",");
-  let _pipe$3 = map2(_pipe$2, parse_int);
-  return all2(_pipe$3);
-}
-function ints_dict_to_string(from2) {
-  return fold2(
-    from2,
-    "",
-    (acc, index5, ints) => {
-      return acc + (() => {
-        let _pipe = index5;
-        return to_string(_pipe);
-      })() + ":" + (() => {
-        let _pipe = ints;
-        return ints_to_string(_pipe);
-      })() + ";";
-    }
-  );
-}
-function string_to_ints_dict(from2) {
-  return guard(
-    is_empty2(from2),
-    new Ok(from_list(toList([]))),
-    () => {
-      let _block;
-      let _pipe = from2;
-      let _pipe$1 = drop_end(_pipe, 1);
-      _block = split2(_pipe$1, ";");
-      let sections = _block;
-      let _pipe$2 = map2(
-        sections,
-        (section2) => {
-          let $ = split2(section2, ":");
-          if (!$.hasLength(2)) {
-            throw makeError(
-              "let_assert",
-              "util/numbers",
-              79,
-              "",
-              "Pattern match failed, no pattern matched the value.",
-              { value: $ }
-            );
-          }
-          let index_string = $.head;
-          let int_list_string = $.tail.head;
-          return try$(
-            parse_int(index_string),
-            (index5) => {
-              return guard(
-                is_empty2(int_list_string),
-                new Ok([index5, toList([])]),
-                () => {
-                  return map3(
-                    string_to_ints(int_list_string),
-                    (int_list) => {
-                      return [index5, int_list];
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
-      let _pipe$3 = all2(_pipe$2);
-      return map3(_pipe$3, from_list);
-    }
-  );
-}
-function int_to_human_string(from2) {
-  let $ = divideInt(from2, 1e3);
-  if ($ > 10) {
-    let thousands = $;
-    return to_string(thousands) + "k";
-  } else {
-    return to_string(from2);
   }
 }
 
@@ -11113,7 +11808,7 @@ function get_inactive_compute_multibuys_button() {
       button(
         toList([
           class$(
-            "bg-gray-400 text-gray-200 font-bold py-3 px-8 rounded-lg shadow-md flex items-center cursor-not-allowed opacity-70"
+            "bg-gray-400 text-gray-200 font-bold py-3 px-8 rounded-lg shadow-md flex items-center cursor-not-allowed"
           ),
           disabled(true)
         ]),
@@ -11254,7 +11949,7 @@ function get_section(model) {
   let _pipe = map2(
     model.trades,
     (trade) => {
-      if (trade instanceof Multibuy) {
+      if (trade instanceof Multibuy2) {
         let multibuy = trade.multibuy;
         return new Ok(get_multibuy(multibuy));
       } else {
@@ -11952,7 +12647,7 @@ function get_expanded_sidebar(model) {
   return aside(
     toList([
       class$(
-        "w-80 bg-white shadow-lg h-screen overflow-y-auto flex-shrink-0 border-r border-gray-200"
+        "fixed z-10 top-0 left-0 w-80 bg-white shadow-lg h-screen overflow-y-auto flex-shrink-0 border-r border-gray-200"
       )
     ]),
     toList([
@@ -12112,7 +12807,7 @@ function get_collapsed_sidebar(model) {
   return aside(
     toList([
       class$(
-        "w-16 bg-white shadow-lg h-screen overflow-y-auto flex-shrink-0 border-r border-gray-200"
+        "fixed top-0 left-0 w-16 bg-white shadow-lg h-screen overflow-y-auto flex-shrink-0 border-r border-gray-200"
       )
     ]),
     toList([
@@ -12627,7 +13322,7 @@ function run3(model) {
   let multibuys = get_section(model);
   let page_contents = toList([systems_lists, multibuys]);
   let page = div(
-    toList([class$("flex-1 overflow-auto")]),
+    toList([class$("flex-1 overflow-auto pl-14")]),
     toList([
       div(
         toList([class$("max-w-6xl mx-auto p-8")]),

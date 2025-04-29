@@ -93,7 +93,7 @@ fn get_inactive_compute_multibuys_button() -> element.Element(mvu.Msg) {
     html.button(
       [
         attribute.class(
-          "bg-gray-400 text-gray-200 font-bold py-3 px-8 rounded-lg shadow-md flex items-center cursor-not-allowed opacity-70",
+          "bg-gray-400 text-gray-200 font-bold py-3 px-8 rounded-lg shadow-md flex items-center cursor-not-allowed",
         ),
         attribute.disabled(True),
       ],
