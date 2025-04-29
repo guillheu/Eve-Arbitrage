@@ -112,25 +112,79 @@ fn pick_trades_for_hold(
       current_trade
     <- list.fold(trades, #([], [], collateral, capacity))
     case
-      current_trade.total_volume <=. remaining_capacity
-      && current_trade.total_price <=. remaining_collateral
-      && sde.is_item_allowed_in_hold(current_trade.item.id, hold.kind)
+      current_trade.total_volume <=. remaining_capacity,
+      current_trade.total_price <=. remaining_collateral,
+      sde.is_item_allowed_in_hold(current_trade.item.id, hold.kind)
     {
-      False -> #(
+      _, _, False -> #(
         selected_trades,
         [current_trade, ..leftover_trades],
         remaining_collateral,
         remaining_capacity,
       )
-      True -> #(
+      True, True, True -> #(
         [current_trade, ..selected_trades],
         leftover_trades,
         remaining_collateral -. current_trade.total_price,
         remaining_capacity -. current_trade.total_volume,
       )
+      _, _, _ -> {
+        case
+          split_trade_to_fit(
+            current_trade,
+            remaining_collateral,
+            remaining_capacity,
+          )
+        {
+          Error(_) -> #(
+            selected_trades,
+            [current_trade, ..leftover_trades],
+            remaining_collateral,
+            remaining_capacity,
+          )
+          Ok(#(fitted_trade, leftover_trade)) -> #(
+            [fitted_trade, ..selected_trades],
+            [leftover_trade, ..leftover_trades],
+            remaining_collateral -. fitted_trade.total_price,
+            remaining_capacity -. fitted_trade.total_volume,
+          )
+        }
+      }
     }
   }
   #(selected_trades, leftover_trades, remaining_collateral)
+}
+
+fn split_trade_to_fit(
+  trade: Trade,
+  collateral: Float,
+  capacity: Float,
+) -> Result(#(Trade, Trade), Nil) {
+  let unit_volume = trade.total_volume /. int.to_float(trade.amount)
+  let collateral_fits =
+    { collateral /. trade.unit_sell_price } |> float.truncate
+  let capacity_fits = { capacity /. unit_volume } |> float.truncate
+  let can_fit = int.min(collateral_fits, capacity_fits)
+  let remaining_amount = trade.amount - can_fit
+  case int.compare(can_fit, 0) {
+    order.Eq -> Error(Nil)
+    order.Gt ->
+      Ok(#(
+        Trade(
+          ..trade,
+          amount: can_fit,
+          total_volume: unit_volume *. int.to_float(can_fit),
+          total_price: trade.unit_sell_price *. int.to_float(can_fit),
+        ),
+        Trade(
+          ..trade,
+          amount: remaining_amount,
+          total_volume: unit_volume *. int.to_float(remaining_amount),
+          total_price: trade.unit_sell_price *. int.to_float(remaining_amount),
+        ),
+      ))
+    order.Lt -> panic as "negative capacity ? negative collateral ?"
+  }
 }
 
 fn trade_to_purchase(trade: Trade) -> Purchase {
