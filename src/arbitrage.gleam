@@ -4,12 +4,10 @@ import gleam/bool
 import gleam/dict.{type Dict}
 import gleam/float
 import gleam/int
-import gleam/io
 import gleam/list
 import gleam/option
 import gleam/order
 import gleam/string
-import util/numbers
 
 const base_tax_rate = 7.5
 
@@ -280,12 +278,14 @@ pub fn compute_trades(
   buy_orders: List(esi.Order(esi.Buy)),
   tax_rate: Float,
 ) -> List(RawTrade) {
+  let tax_rate = 1.0 -. { tax_rate /. 100.0 }
   let sell_orders = merge_orders(sell_orders)
   let buy_orders = merge_orders(buy_orders)
   let sell_orders_items = dict.keys(sell_orders)
   let buy_orders_items = dict.keys(buy_orders)
   let tradeable_items =
     list.filter(sell_orders_items, list.contains(buy_orders_items, _))
+
   {
     use item <- list.map(tradeable_items)
     let assert Ok(item_sell_orders) = dict.get(sell_orders, item)

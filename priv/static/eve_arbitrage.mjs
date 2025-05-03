@@ -59456,163 +59456,6 @@ function get_market_orders_url(from2, is_buy_order, page) {
   );
 }
 
-// build/dev/javascript/eve_arbitrage/util/numbers.mjs
-function int_to_segments(loop$acc, loop$from) {
-  while (true) {
-    let acc = loop$acc;
-    let from2 = loop$from;
-    let $ = divideInt(from2, 1e3);
-    if ($ > 0) {
-      let x = $;
-      let segment = "," + (() => {
-        let _pipe = to_string(remainderInt(from2, 1e3));
-        return pad_start(_pipe, 3, "0");
-      })();
-      loop$acc = prepend(segment, acc);
-      loop$from = x;
-    } else {
-      let _pipe = prepend(
-        (() => {
-          let _pipe2 = from2;
-          return to_string(_pipe2);
-        })(),
-        acc
-      );
-      return reverse(_pipe);
-    }
-  }
-}
-function float_to_human_string(from2) {
-  let truncated = truncate(from2);
-  let _pipe = int_to_segments(toList([]), truncated);
-  let _pipe$1 = reverse(_pipe);
-  return concat2(_pipe$1);
-}
-function millions_to_unit_string(from2) {
-  let thousands = int_to_segments(toList([]), from2);
-  let _block;
-  if (thousands.hasLength(0)) {
-    throw makeError(
-      "panic",
-      "util/numbers",
-      42,
-      "millions_to_unit_string",
-      "shouldnt be able to find an empty value",
-      {}
-    );
-  } else if (thousands.hasLength(1)) {
-    let v = thousands.head;
-    _block = [v, "M"];
-  } else {
-    let v = thousands.tail;
-    _block = [
-      (() => {
-        let _pipe = v;
-        let _pipe$1 = reverse(_pipe);
-        return concat2(_pipe$1);
-      })(),
-      "B"
-    ];
-  }
-  let $ = _block;
-  let value3 = $[0];
-  let units = $[1];
-  return value3 + " " + units;
-}
-function ints_to_string(from2) {
-  let _pipe = map2(
-    from2,
-    (value3) => {
-      return (() => {
-        let _pipe2 = value3;
-        return to_string(_pipe2);
-      })() + ",";
-    }
-  );
-  return concat2(_pipe);
-}
-function string_to_ints(from2) {
-  let _pipe = from2;
-  let _pipe$1 = drop_end(_pipe, 1);
-  let _pipe$2 = split2(_pipe$1, ",");
-  let _pipe$3 = map2(_pipe$2, parse_int);
-  return all(_pipe$3);
-}
-function ints_dict_to_string(from2) {
-  return fold2(
-    from2,
-    "",
-    (acc, index5, ints) => {
-      return acc + (() => {
-        let _pipe = index5;
-        return to_string(_pipe);
-      })() + ":" + (() => {
-        let _pipe = ints;
-        return ints_to_string(_pipe);
-      })() + ";";
-    }
-  );
-}
-function string_to_ints_dict(from2) {
-  return guard(
-    is_empty2(from2),
-    new Ok(from_list(toList([]))),
-    () => {
-      let _block;
-      let _pipe = from2;
-      let _pipe$1 = drop_end(_pipe, 1);
-      _block = split2(_pipe$1, ";");
-      let sections = _block;
-      let _pipe$2 = map2(
-        sections,
-        (section2) => {
-          let $ = split2(section2, ":");
-          if (!$.hasLength(2)) {
-            throw makeError(
-              "let_assert",
-              "util/numbers",
-              79,
-              "",
-              "Pattern match failed, no pattern matched the value.",
-              { value: $ }
-            );
-          }
-          let index_string = $.head;
-          let int_list_string = $.tail.head;
-          return try$(
-            parse_int(index_string),
-            (index5) => {
-              return guard(
-                is_empty2(int_list_string),
-                new Ok([index5, toList([])]),
-                () => {
-                  return map3(
-                    string_to_ints(int_list_string),
-                    (int_list) => {
-                      return [index5, int_list];
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
-      let _pipe$3 = all(_pipe$2);
-      return map3(_pipe$3, from_list);
-    }
-  );
-}
-function int_to_human_string(from2) {
-  let $ = divideInt(from2, 1e3);
-  if ($ > 10) {
-    let thousands = $;
-    return to_string(thousands) + "k";
-  } else {
-    return to_string(from2);
-  }
-}
-
 // build/dev/javascript/eve_arbitrage/arbitrage.mjs
 var Item = class extends CustomType {
   constructor(id2, name2, m3) {
@@ -59718,7 +59561,7 @@ function split_trade_to_fit(trade, collateral, capacity) {
     throw makeError(
       "panic",
       "arbitrage",
-      186,
+      184,
       "split_trade_to_fit",
       "negative capacity ? negative collateral ?",
       {}
@@ -59861,7 +59704,7 @@ function merge_orders2(orders) {
                 throw makeError(
                   "let_assert",
                   "arbitrage",
-                  269,
+                  267,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: new_orders }
@@ -59974,6 +59817,7 @@ function recurse_compute_trades_from_item_orders(sell_orders, buy_orders, acc) {
   );
 }
 function compute_trades(sell_orders, buy_orders, tax_rate) {
+  let tax_rate$1 = 1 - divideFloat(tax_rate, 100);
   let sell_orders$1 = merge_orders2(sell_orders);
   let buy_orders$1 = merge_orders2(buy_orders);
   let sell_orders_items = keys(sell_orders$1);
@@ -60034,7 +59878,7 @@ function compute_trades(sell_orders, buy_orders, tax_rate) {
   let _pipe$2 = map2(
     _pipe$1,
     (raw_trade) => {
-      let buy_price_with_taxes = raw_trade.unit_buy_price * tax_rate;
+      let buy_price_with_taxes = raw_trade.unit_buy_price * tax_rate$1;
       let _record = raw_trade;
       return new RawTrade(
         _record.source,
@@ -62045,6 +61889,163 @@ function user_clicked_compute_multibuys(model) {
       return [model$1, none()];
     }
   );
+}
+
+// build/dev/javascript/eve_arbitrage/util/numbers.mjs
+function int_to_segments(loop$acc, loop$from) {
+  while (true) {
+    let acc = loop$acc;
+    let from2 = loop$from;
+    let $ = divideInt(from2, 1e3);
+    if ($ > 0) {
+      let x = $;
+      let segment = "," + (() => {
+        let _pipe = to_string(remainderInt(from2, 1e3));
+        return pad_start(_pipe, 3, "0");
+      })();
+      loop$acc = prepend(segment, acc);
+      loop$from = x;
+    } else {
+      let _pipe = prepend(
+        (() => {
+          let _pipe2 = from2;
+          return to_string(_pipe2);
+        })(),
+        acc
+      );
+      return reverse(_pipe);
+    }
+  }
+}
+function float_to_human_string(from2) {
+  let truncated = truncate(from2);
+  let _pipe = int_to_segments(toList([]), truncated);
+  let _pipe$1 = reverse(_pipe);
+  return concat2(_pipe$1);
+}
+function millions_to_unit_string(from2) {
+  let thousands = int_to_segments(toList([]), from2);
+  let _block;
+  if (thousands.hasLength(0)) {
+    throw makeError(
+      "panic",
+      "util/numbers",
+      42,
+      "millions_to_unit_string",
+      "shouldnt be able to find an empty value",
+      {}
+    );
+  } else if (thousands.hasLength(1)) {
+    let v = thousands.head;
+    _block = [v, "M"];
+  } else {
+    let v = thousands.tail;
+    _block = [
+      (() => {
+        let _pipe = v;
+        let _pipe$1 = reverse(_pipe);
+        return concat2(_pipe$1);
+      })(),
+      "B"
+    ];
+  }
+  let $ = _block;
+  let value3 = $[0];
+  let units = $[1];
+  return value3 + " " + units;
+}
+function ints_to_string(from2) {
+  let _pipe = map2(
+    from2,
+    (value3) => {
+      return (() => {
+        let _pipe2 = value3;
+        return to_string(_pipe2);
+      })() + ",";
+    }
+  );
+  return concat2(_pipe);
+}
+function string_to_ints(from2) {
+  let _pipe = from2;
+  let _pipe$1 = drop_end(_pipe, 1);
+  let _pipe$2 = split2(_pipe$1, ",");
+  let _pipe$3 = map2(_pipe$2, parse_int);
+  return all(_pipe$3);
+}
+function ints_dict_to_string(from2) {
+  return fold2(
+    from2,
+    "",
+    (acc, index5, ints) => {
+      return acc + (() => {
+        let _pipe = index5;
+        return to_string(_pipe);
+      })() + ":" + (() => {
+        let _pipe = ints;
+        return ints_to_string(_pipe);
+      })() + ";";
+    }
+  );
+}
+function string_to_ints_dict(from2) {
+  return guard(
+    is_empty2(from2),
+    new Ok(from_list(toList([]))),
+    () => {
+      let _block;
+      let _pipe = from2;
+      let _pipe$1 = drop_end(_pipe, 1);
+      _block = split2(_pipe$1, ";");
+      let sections = _block;
+      let _pipe$2 = map2(
+        sections,
+        (section2) => {
+          let $ = split2(section2, ":");
+          if (!$.hasLength(2)) {
+            throw makeError(
+              "let_assert",
+              "util/numbers",
+              79,
+              "",
+              "Pattern match failed, no pattern matched the value.",
+              { value: $ }
+            );
+          }
+          let index_string = $.head;
+          let int_list_string = $.tail.head;
+          return try$(
+            parse_int(index_string),
+            (index5) => {
+              return guard(
+                is_empty2(int_list_string),
+                new Ok([index5, toList([])]),
+                () => {
+                  return map3(
+                    string_to_ints(int_list_string),
+                    (int_list) => {
+                      return [index5, int_list];
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
+      let _pipe$3 = all(_pipe$2);
+      return map3(_pipe$3, from_list);
+    }
+  );
+}
+function int_to_human_string(from2) {
+  let $ = divideInt(from2, 1e3);
+  if ($ > 10) {
+    let thousands = $;
+    return to_string(thousands) + "k";
+  } else {
+    return to_string(from2);
+  }
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/update/side_effects/config_to_storage.mjs
