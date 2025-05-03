@@ -73,8 +73,8 @@ pub type Msg {
     location: String,
     page: Int,
   )
-  EsiReturnedTypeMetadata(Result(esi.Type, rsvp.Error))
 
+  // EsiReturnedTypeMetadata(Result(esi.Type, rsvp.Error))
   // multibuy messages
   UserClickedComputeMultibuys
   UserClickedCopyMultibuy(multibuy: arbitrage.Multibuy)

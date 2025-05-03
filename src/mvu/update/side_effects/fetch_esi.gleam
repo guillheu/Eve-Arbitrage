@@ -34,12 +34,11 @@ pub fn get_query_buy_orders_side_effect(
   let url = esi.get_market_orders_url(location, True, page)
   rsvp.get(url, query_handler)
 }
-
-pub fn get_query_type_metadata_side_effect(
-  type_id: Int,
-) -> effect.Effect(mvu.Msg) {
-  let query_handler =
-    rsvp.expect_json(esi.type_decoder(), mvu.EsiReturnedTypeMetadata)
-  let url = esi.get_type_id_metadata_url(type_id)
-  rsvp.get(url, query_handler)
-}
+// pub fn get_query_type_metadata_side_effect(
+//   type_id: Int,
+// ) -> effect.Effect(mvu.Msg) {
+//   let query_handler =
+//     rsvp.expect_json(esi.type_decoder(), mvu.EsiReturnedTypeMetadata)
+//   let url = esi.get_type_id_metadata_url(type_id)
+//   rsvp.get(url, query_handler)
+// }
