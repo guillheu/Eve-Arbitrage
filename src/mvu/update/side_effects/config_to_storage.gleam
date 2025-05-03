@@ -263,7 +263,7 @@ pub fn delete_ship_hold(
   effect.from(fn(_dispatch) {
     storage.remove_item(
       storage,
-      echo get_hold_id_storage_key_string(ship_id, hold_id) <> "/name",
+      get_hold_id_storage_key_string(ship_id, hold_id) <> "/name",
     )
     storage.remove_item(
       storage,
