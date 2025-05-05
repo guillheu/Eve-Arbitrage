@@ -28,6 +28,9 @@ pub fn run(
       multibuys.user_clicked_copy_multibuy(model, multibuy)
     mvu.UserClickedComputeMultibuys ->
       multibuys.user_clicked_compute_multibuys(model)
+
+    mvu.AppFinishedComputingMultibuys(multibuys) ->
+      multibuys.app_finished_computing_multibuys(model, multibuys)
     // mvu.EsiReturnedTypeMetadata(esi_response) ->
     //   multibuys.esi_returned_type_metadata(model, esi_response)
     mvu.UserClickedCollapseSidebar ->

@@ -4,7 +4,6 @@ import gleam/float
 import gleam/int
 import gleam/list
 import gleam/option.{Some}
-import gleam/result
 import gleam/string
 import lustre/attribute.{attribute}
 import lustre/element

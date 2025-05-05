@@ -1,7 +1,7 @@
 import arbitrage
 import gleam/float
 import gleam/list
-import gleam/option.{type Option, Some}
+import gleam/option.{type Option, None, Some}
 import gleam/result
 import lustre/attribute.{attribute}
 import lustre/element
@@ -12,16 +12,9 @@ import mvu
 import util/numbers
 
 pub fn get_section(model: mvu.Model) -> element.Element(mvu.Msg) {
-  let multibuys =
-    list.map(model.trades, fn(trade) {
-      case trade {
-        mvu.Multibuy(multibuy) -> Ok(multibuy)
-        _ -> Error(Nil)
-      }
-    })
-    |> result.all
-    |> result.unwrap([])
+  let multibuys = model.multibuys |> option.unwrap([])
   let multibuys_divs = list.map(multibuys, get_multibuy)
+  //list.map(multibuys, get_multibuy)
   let #(total_profit, total_cost) =
     list.fold(multibuys, #(0.0, 0.0), fn(input, multibuy) {
       let #(total_profit, total_cost) = input
@@ -31,10 +24,12 @@ pub fn get_section(model: mvu.Model) -> element.Element(mvu.Msg) {
       )
     })
   let roi = { total_profit /. total_cost } *. 100.0
-  let hidden = list.is_empty(multibuys)
-  let projected_profits = case hidden {
-    False -> get_projected_profits(total_profit, roi)
-    True -> html.div([attribute.hidden(True)], [])
+  let projected_profits = case model.multibuys {
+    Some([]) -> get_no_multibuys_profits_div()
+    Some(_multibuys) -> get_projected_profits(total_profit, roi)
+    None -> html.div([attribute.hidden(True)], [])
+    // False -> get_projected_profits(total_profit, roi)
+    // True -> html.div([attribute.hidden(True)], [])
   }
   html.section(
     [],
@@ -48,6 +43,36 @@ pub fn get_section(model: mvu.Model) -> element.Element(mvu.Msg) {
       projected_profits,
     ]
       |> list.append(multibuys_divs),
+  )
+}
+
+fn get_no_multibuys_profits_div() -> element.Element(mvu.Msg) {
+  html.div(
+    [
+      attribute.class(
+        "mb-6 bg-white rounded-lg shadow-md p-4 border-l-4 border-gray-400",
+      ),
+    ],
+    [
+      html.div([attribute.class("flex justify-between items-center")], [
+        html.div([], [
+          html.h3([attribute.class("text-lg font-semibold text-gray-800")], [
+            html.text("Total Projected Profits"),
+          ]),
+          html.p([attribute.class("text-sm text-gray-500")], [
+            html.text("Based on current market data"),
+          ]),
+        ]),
+        html.div([attribute.class("text-right")], [
+          html.span([attribute.class("text-2xl font-bold text-gray-600")], [
+            html.text("No profitable trades"),
+          ]),
+          html.p([attribute.class("text-sm text-gray-500")], [
+            html.text("Try different systems or items"),
+          ]),
+        ]),
+      ]),
+    ],
   )
 }
 

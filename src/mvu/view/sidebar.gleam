@@ -2,7 +2,6 @@ import arbitrage
 import gleam/dict
 import gleam/float
 import gleam/int
-import gleam/list
 import gleam/option
 import gleam/string
 import lustre/attribute.{attribute}

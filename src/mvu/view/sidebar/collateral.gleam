@@ -1,8 +1,6 @@
-import gleam/float
 import gleam/int
 import gleam/option.{type Option, None, Some}
-import gleam/result
-import lustre/attribute.{attribute}
+import lustre/attribute
 import lustre/element
 import lustre/element/html
 import lustre/event

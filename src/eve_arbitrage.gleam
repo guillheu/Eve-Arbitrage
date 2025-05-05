@@ -1,4 +1,3 @@
-import arbitrage
 import config/sde
 import gleam/dict
 import gleam/list
@@ -45,7 +44,7 @@ fn init(_args) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
       language: default_language,
       sidebar_expanded: False,
       collateral: None,
-      trades: [],
+      multibuys: None,
     ),
     effect,
   )

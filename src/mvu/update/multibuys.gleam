@@ -3,17 +3,13 @@ import config/esi
 import config/sde
 import gleam/bool
 import gleam/dict
-import gleam/float
 import gleam/io
 import gleam/list
-import gleam/option.{None, Some}
-import gleam/result
-import gleam/string
+import gleam/option.{Some}
 import lustre/effect
 import mvu
 import mvu/update/side_effects/clipboard
-import mvu/update/side_effects/fetch_esi
-import rsvp
+import mvu/update/side_effects/compute_multibuys
 
 pub fn user_clicked_copy_multibuy(
   model: mvu.Model,
@@ -37,36 +33,52 @@ pub fn user_clicked_compute_multibuys(
   let assert Some(dest) = model.destination
   let assert Ok(source) = dict.get(model.systems, source)
   let assert Ok(dest) = dict.get(model.systems, dest)
+  let assert Some(current_ship) = model.current_ship
+  let assert Some(collateral) = model.collateral
+  let assert Ok(selected_ship) = dict.get(model.ships, current_ship)
 
-  let trades =
-    arbitrage.compute_trades(
-      source.sell_orders,
-      dest.buy_orders,
-      model.accounting_level |> arbitrage.tax_percent_from_accounting_level,
-    )
-    |> list.map(fn(raw_trade) {
-      let assert Ok(#(name, volume)) = list.key_find(sde.items, raw_trade.item)
-      let assert Ok(trade) =
-        arbitrage.raw_trade_to_trade(
-          raw_trade,
-          esi.Type(type_id: raw_trade.item, volume: volume, name: name),
-        )
-      trade
-    })
+  // let trades =
+  //   arbitrage.compute_trades(
+  //     source.sell_orders,
+  //     dest.buy_orders,
+  //     model.accounting_level |> arbitrage.tax_percent_from_accounting_level,
+  //   )
+  //   |> list.map(fn(raw_trade) {
+  //     let assert Ok(#(name, volume)) = list.key_find(sde.items, raw_trade.item)
+  //     let assert Ok(trade) =
+  //       arbitrage.raw_trade_to_trade(
+  //         raw_trade,
+  //         esi.Type(type_id: raw_trade.item, volume: volume, name: name),
+  //       )
+  //     trade
+  //   })
 
-  let multibuys = {
-    let assert Some(current_ship) = model.current_ship
-    let assert Some(collateral) = model.collateral
-    let assert Ok(selected_ship) = dict.get(model.ships, current_ship)
-    arbitrage.trades_to_multibuys(
-      trades,
+  // let multibuys = {
+  //   arbitrage.trades_to_multibuys(
+  //     trades,
+  //     collateral,
+  //     selected_ship.ship.holds |> dict.values,
+  //   )
+  //   |> list.map(mvu.Multibuy)
+  // }
+
+  let effect =
+    compute_multibuys.get_compute_multibuys_side_effect(
+      source,
+      dest,
+      selected_ship,
       collateral,
-      selected_ship.ship.holds |> dict.values,
+      model.accounting_level,
     )
-    |> list.map(mvu.Multibuy)
-  }
 
-  let model = mvu.Model(..model, trades: multibuys)
+  #(model, effect)
+}
+
+pub fn app_finished_computing_multibuys(
+  model: mvu.Model,
+  multibuys: List(arbitrage.Multibuy),
+) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
+  let model = mvu.Model(..model, multibuys: Some(multibuys))
 
   #(model, effect.none())
 }

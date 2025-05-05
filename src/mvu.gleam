@@ -24,14 +24,8 @@ pub type Model {
     language: String,
     sidebar_expanded: Bool,
     collateral: Option(Int),
-    trades: List(TradeStages),
+    multibuys: Option(List(arbitrage.Multibuy)),
   )
-}
-
-pub type TradeStages {
-  RawTrade(raw_trade: arbitrage.RawTrade)
-  Trade(trade: arbitrage.Trade)
-  Multibuy(multibuy: arbitrage.Multibuy)
 }
 
 pub type ShipEntry {
@@ -78,6 +72,7 @@ pub type Msg {
   // multibuy messages
   UserClickedComputeMultibuys
   UserClickedCopyMultibuy(multibuy: arbitrage.Multibuy)
+  AppFinishedComputingMultibuys(List(arbitrage.Multibuy))
 
   // sidebar messages
   UserClickedExpandSidebar

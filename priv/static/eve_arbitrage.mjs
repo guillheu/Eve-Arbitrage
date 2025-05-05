@@ -59148,889 +59148,6 @@ var items = /* @__PURE__ */ toList([
   [371027, ["X-MS16 Snowball Launcher", 0.01]]
 ]);
 
-// build/dev/javascript/eve_arbitrage/config/esi.mjs
-var Order = class extends CustomType {
-  constructor(duration, issued, location_id, min_volume, order_id, price, range, system_id, type_id, volume_remain, volume_total) {
-    super();
-    this.duration = duration;
-    this.issued = issued;
-    this.location_id = location_id;
-    this.min_volume = min_volume;
-    this.order_id = order_id;
-    this.price = price;
-    this.range = range;
-    this.system_id = system_id;
-    this.type_id = type_id;
-    this.volume_remain = volume_remain;
-    this.volume_total = volume_total;
-  }
-};
-var Type = class extends CustomType {
-  constructor(type_id, volume, name2) {
-    super();
-    this.type_id = type_id;
-    this.volume = volume;
-    this.name = name2;
-  }
-};
-function merge_orders(order_1, order_2) {
-  let can_merge = order_1.location_id === order_2.location_id && order_1.price === order_2.price && order_1.type_id === order_2.type_id && order_1.system_id === order_2.system_id;
-  if (!can_merge) {
-    return new Error(void 0);
-  } else {
-    return new Ok(
-      (() => {
-        let _record = order_1;
-        return new Order(
-          _record.duration,
-          _record.issued,
-          _record.location_id,
-          _record.min_volume,
-          _record.order_id,
-          _record.price,
-          _record.range,
-          _record.system_id,
-          _record.type_id,
-          order_1.volume_remain + order_2.volume_remain,
-          order_1.volume_total + order_2.volume_total
-        );
-      })()
-    );
-  }
-}
-function drain_order(order, amount) {
-  let _record = order;
-  return new Order(
-    _record.duration,
-    _record.issued,
-    _record.location_id,
-    _record.min_volume,
-    _record.order_id,
-    _record.price,
-    _record.range,
-    _record.system_id,
-    _record.type_id,
-    order.volume_remain - amount,
-    _record.volume_total
-  );
-}
-function buy_order_decoder() {
-  return field(
-    "duration",
-    int2,
-    (duration) => {
-      return field(
-        "is_buy_order",
-        bool,
-        (is_buy_order) => {
-          return lazy_guard(
-            !is_buy_order,
-            () => {
-              throw makeError(
-                "panic",
-                "config/esi",
-                100,
-                "",
-                "found a sell order, should be a buy order",
-                {}
-              );
-            },
-            () => {
-              return field(
-                "issued",
-                string2,
-                (issued) => {
-                  return field(
-                    "location_id",
-                    int2,
-                    (location_id) => {
-                      return field(
-                        "min_volume",
-                        int2,
-                        (min_volume) => {
-                          return field(
-                            "order_id",
-                            int2,
-                            (order_id) => {
-                              return field(
-                                "price",
-                                float2,
-                                (price) => {
-                                  return field(
-                                    "range",
-                                    string2,
-                                    (range) => {
-                                      return field(
-                                        "system_id",
-                                        int2,
-                                        (system_id) => {
-                                          return field(
-                                            "type_id",
-                                            int2,
-                                            (type_id) => {
-                                              return field(
-                                                "volume_remain",
-                                                int2,
-                                                (volume_remain) => {
-                                                  return field(
-                                                    "volume_total",
-                                                    int2,
-                                                    (volume_total) => {
-                                                      return success(
-                                                        new Order(
-                                                          duration,
-                                                          issued,
-                                                          location_id,
-                                                          min_volume,
-                                                          order_id,
-                                                          price,
-                                                          range,
-                                                          system_id,
-                                                          type_id,
-                                                          volume_remain,
-                                                          volume_total
-                                                        )
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
-    }
-  );
-}
-function buy_orders_decoder() {
-  return list2(buy_order_decoder());
-}
-function sell_order_decoder() {
-  return field(
-    "duration",
-    int2,
-    (duration) => {
-      return field(
-        "is_buy_order",
-        bool,
-        (is_buy_order) => {
-          return lazy_guard(
-            is_buy_order,
-            () => {
-              throw makeError(
-                "panic",
-                "config/esi",
-                131,
-                "",
-                "found a buy order, should be a sell order",
-                {}
-              );
-            },
-            () => {
-              return field(
-                "issued",
-                string2,
-                (issued) => {
-                  return field(
-                    "location_id",
-                    int2,
-                    (location_id) => {
-                      return field(
-                        "min_volume",
-                        int2,
-                        (min_volume) => {
-                          return field(
-                            "order_id",
-                            int2,
-                            (order_id) => {
-                              return field(
-                                "price",
-                                float2,
-                                (price) => {
-                                  return field(
-                                    "range",
-                                    string2,
-                                    (range) => {
-                                      return field(
-                                        "system_id",
-                                        int2,
-                                        (system_id) => {
-                                          return field(
-                                            "type_id",
-                                            int2,
-                                            (type_id) => {
-                                              return field(
-                                                "volume_remain",
-                                                int2,
-                                                (volume_remain) => {
-                                                  return field(
-                                                    "volume_total",
-                                                    int2,
-                                                    (volume_total) => {
-                                                      return success(
-                                                        new Order(
-                                                          duration,
-                                                          issued,
-                                                          location_id,
-                                                          min_volume,
-                                                          order_id,
-                                                          price,
-                                                          range,
-                                                          system_id,
-                                                          type_id,
-                                                          volume_remain,
-                                                          volume_total
-                                                        )
-                                                      );
-                                                    }
-                                                  );
-                                                }
-                                              );
-                                            }
-                                          );
-                                        }
-                                      );
-                                    }
-                                  );
-                                }
-                              );
-                            }
-                          );
-                        }
-                      );
-                    }
-                  );
-                }
-              );
-            }
-          );
-        }
-      );
-    }
-  );
-}
-function sell_orders_decoder() {
-  return list2(sell_order_decoder());
-}
-var esi_url = "https://esi.evetech.net/latest";
-var market_order_url = "/markets/{region_id}/orders/?datasource=tranquility&order_type={order_kind}&page={page}";
-function get_market_orders_url(from2, is_buy_order, page) {
-  let _block;
-  if (!is_buy_order) {
-    _block = "sell";
-  } else {
-    _block = "buy";
-  }
-  let order_kind = _block;
-  let _pipe = toList([esi_url, market_order_url]);
-  let _pipe$1 = concat2(_pipe);
-  let _pipe$2 = replace(
-    _pipe$1,
-    "{region_id}",
-    to_string(from2.region)
-  );
-  let _pipe$3 = replace(_pipe$2, "{order_kind}", order_kind);
-  return replace(
-    _pipe$3,
-    "{page}",
-    (() => {
-      let _pipe$4 = page;
-      return to_string(_pipe$4);
-    })()
-  );
-}
-
-// build/dev/javascript/eve_arbitrage/arbitrage.mjs
-var Item = class extends CustomType {
-  constructor(id2, name2, m3) {
-    super();
-    this.id = id2;
-    this.name = name2;
-    this.m3 = m3;
-  }
-};
-var Trade = class extends CustomType {
-  constructor(source, destination, item, amount, total_volume, unit_buy_price, unit_sell_price, total_price, profit_per_volume) {
-    super();
-    this.source = source;
-    this.destination = destination;
-    this.item = item;
-    this.amount = amount;
-    this.total_volume = total_volume;
-    this.unit_buy_price = unit_buy_price;
-    this.unit_sell_price = unit_sell_price;
-    this.total_price = total_price;
-    this.profit_per_volume = profit_per_volume;
-  }
-};
-var RawTrade = class extends CustomType {
-  constructor(source, destination, item, amount, unit_buy_price, unit_sell_price, unit_profit) {
-    super();
-    this.source = source;
-    this.destination = destination;
-    this.item = item;
-    this.amount = amount;
-    this.unit_buy_price = unit_buy_price;
-    this.unit_sell_price = unit_sell_price;
-    this.unit_profit = unit_profit;
-  }
-};
-var Multibuy = class extends CustomType {
-  constructor(purchases, total_price, total_profit) {
-    super();
-    this.purchases = purchases;
-    this.total_price = total_price;
-    this.total_profit = total_profit;
-  }
-};
-var Purchase = class extends CustomType {
-  constructor(item_name, amount, unit_price, total_price, total_profit) {
-    super();
-    this.item_name = item_name;
-    this.amount = amount;
-    this.unit_price = unit_price;
-    this.total_price = total_price;
-    this.total_profit = total_profit;
-  }
-};
-function split_trade_to_fit(trade, collateral, capacity) {
-  let unit_volume = divideFloat(trade.total_volume, identity(trade.amount));
-  let _block;
-  let _pipe = divideFloat(collateral, trade.unit_sell_price);
-  _block = truncate(_pipe);
-  let collateral_fits = _block;
-  let _block$1;
-  let _pipe$1 = divideFloat(capacity, unit_volume);
-  _block$1 = truncate(_pipe$1);
-  let capacity_fits = _block$1;
-  let can_fit = min(collateral_fits, capacity_fits);
-  let remaining_amount = trade.amount - can_fit;
-  let $ = compare2(can_fit, 0);
-  if ($ instanceof Eq) {
-    return new Error(void 0);
-  } else if ($ instanceof Gt) {
-    return new Ok(
-      [
-        (() => {
-          let _record = trade;
-          return new Trade(
-            _record.source,
-            _record.destination,
-            _record.item,
-            can_fit,
-            unit_volume * identity(can_fit),
-            _record.unit_buy_price,
-            _record.unit_sell_price,
-            trade.unit_sell_price * identity(can_fit),
-            _record.profit_per_volume
-          );
-        })(),
-        (() => {
-          let _record = trade;
-          return new Trade(
-            _record.source,
-            _record.destination,
-            _record.item,
-            remaining_amount,
-            unit_volume * identity(remaining_amount),
-            _record.unit_buy_price,
-            _record.unit_sell_price,
-            trade.unit_sell_price * identity(remaining_amount),
-            _record.profit_per_volume
-          );
-        })()
-      ]
-    );
-  } else {
-    throw makeError(
-      "panic",
-      "arbitrage",
-      184,
-      "split_trade_to_fit",
-      "negative capacity ? negative collateral ?",
-      {}
-    );
-  }
-}
-function pick_trades_for_hold(hold, collateral, trades) {
-  let capacity = hold.capacity;
-  let $ = fold(
-    trades,
-    [toList([]), toList([]), collateral, capacity],
-    (_use0, current_trade) => {
-      let selected_trades2 = _use0[0];
-      let leftover_trades2 = _use0[1];
-      let remaining_collateral2 = _use0[2];
-      let remaining_capacity = _use0[3];
-      let $1 = current_trade.total_volume <= remaining_capacity;
-      let $2 = current_trade.total_price <= remaining_collateral2;
-      let $3 = is_item_allowed_in_hold(current_trade.item.id, hold.kind);
-      if (!$3) {
-        return [
-          selected_trades2,
-          prepend(current_trade, leftover_trades2),
-          remaining_collateral2,
-          remaining_capacity
-        ];
-      } else if ($1 && $2 && $3) {
-        return [
-          prepend(current_trade, selected_trades2),
-          leftover_trades2,
-          remaining_collateral2 - current_trade.total_price,
-          remaining_capacity - current_trade.total_volume
-        ];
-      } else {
-        let $4 = split_trade_to_fit(
-          current_trade,
-          remaining_collateral2,
-          remaining_capacity
-        );
-        if (!$4.isOk()) {
-          return [
-            selected_trades2,
-            prepend(current_trade, leftover_trades2),
-            remaining_collateral2,
-            remaining_capacity
-          ];
-        } else {
-          let fitted_trade = $4[0][0];
-          let leftover_trade = $4[0][1];
-          return [
-            prepend(fitted_trade, selected_trades2),
-            prepend(leftover_trade, leftover_trades2),
-            remaining_collateral2 - fitted_trade.total_price,
-            remaining_capacity - fitted_trade.total_volume
-          ];
-        }
-      }
-    }
-  );
-  let selected_trades = $[0];
-  let leftover_trades = $[1];
-  let remaining_collateral = $[2];
-  return [selected_trades, leftover_trades, remaining_collateral];
-}
-function trade_to_purchase(trade) {
-  return new Purchase(
-    trade.item.name,
-    trade.amount,
-    trade.unit_sell_price,
-    trade.unit_sell_price * (() => {
-      let _pipe = trade.amount;
-      return identity(_pipe);
-    })(),
-    (trade.unit_buy_price - trade.unit_sell_price) * (() => {
-      let _pipe = trade.amount;
-      return identity(_pipe);
-    })()
-  );
-}
-function raw_trade_to_trade(raw_trade, type_2) {
-  let $ = raw_trade.item === type_2.type_id;
-  if (!$) {
-    return new Error(void 0);
-  } else {
-    let _pipe = new Trade(
-      raw_trade.source,
-      raw_trade.destination,
-      new Item(type_2.type_id, type_2.name, type_2.volume),
-      raw_trade.amount,
-      (() => {
-        let _pipe2 = raw_trade.amount;
-        return identity(_pipe2);
-      })() * type_2.volume,
-      raw_trade.unit_buy_price,
-      raw_trade.unit_sell_price,
-      raw_trade.unit_sell_price * (() => {
-        let _pipe2 = raw_trade.amount;
-        return identity(_pipe2);
-      })(),
-      divideFloat(raw_trade.unit_profit, type_2.volume)
-    );
-    return new Ok(_pipe);
-  }
-}
-function merge_orders2(orders) {
-  let r = fold(
-    orders,
-    new_map(),
-    (acc, order) => {
-      let _block;
-      let $ = map_get(acc, order.type_id);
-      if (!$.isOk()) {
-        _block = toList([order]);
-      } else {
-        let list4 = $[0];
-        _block = prepend(order, list4);
-      }
-      let current_item_orders_list = _block;
-      return insert(acc, order.type_id, current_item_orders_list);
-    }
-  );
-  return map_values(
-    r,
-    (_, orders2) => {
-      let ordered_orders = sort(
-        orders2,
-        (order_1, order_2) => {
-          return compare(order_1.price, order_2.price);
-        }
-      );
-      return fold(
-        ordered_orders,
-        toList([]),
-        (new_orders, order) => {
-          return guard(
-            is_empty(new_orders),
-            toList([order]),
-            () => {
-              if (!new_orders.atLeastLength(1)) {
-                throw makeError(
-                  "let_assert",
-                  "arbitrage",
-                  267,
-                  "",
-                  "Pattern match failed, no pattern matched the value.",
-                  { value: new_orders }
-                );
-              }
-              let top = new_orders.head;
-              let rest = new_orders.tail;
-              let $ = merge_orders(top, order);
-              if (!$.isOk()) {
-                return prepend(order, prepend(top, rest));
-              } else {
-                let merged_order = $[0];
-                return prepend(merged_order, rest);
-              }
-            }
-          );
-        }
-      );
-    }
-  );
-}
-function recurse_compute_trades_from_item_orders(sell_orders, buy_orders, acc) {
-  return guard(
-    is_empty(sell_orders) || is_empty(buy_orders),
-    acc,
-    () => {
-      if (!sell_orders.atLeastLength(1)) {
-        throw makeError(
-          "let_assert",
-          "arbitrage",
-          328,
-          "",
-          "Pattern match failed, no pattern matched the value.",
-          { value: sell_orders }
-        );
-      }
-      let top_sell_order = sell_orders.head;
-      let rest_sell_orders = sell_orders.tail;
-      if (!buy_orders.atLeastLength(1)) {
-        throw makeError(
-          "let_assert",
-          "arbitrage",
-          329,
-          "",
-          "Pattern match failed, no pattern matched the value.",
-          { value: buy_orders }
-        );
-      }
-      let top_buy_order = buy_orders.head;
-      let rest_buy_orders = buy_orders.tail;
-      let $ = compare2(
-        top_sell_order.volume_remain,
-        top_buy_order.volume_remain
-      );
-      if ($ instanceof Eq) {
-        let trade = new RawTrade(
-          top_sell_order.location_id,
-          top_buy_order.location_id,
-          top_sell_order.type_id,
-          top_sell_order.volume_remain,
-          top_buy_order.price,
-          top_sell_order.price,
-          top_buy_order.price - top_sell_order.price
-        );
-        return recurse_compute_trades_from_item_orders(
-          rest_sell_orders,
-          rest_buy_orders,
-          prepend(trade, acc)
-        );
-      } else if ($ instanceof Gt) {
-        let trade = new RawTrade(
-          top_sell_order.location_id,
-          top_buy_order.location_id,
-          top_sell_order.type_id,
-          top_buy_order.volume_remain,
-          top_buy_order.price,
-          top_sell_order.price,
-          top_buy_order.price - top_sell_order.price
-        );
-        let remaining_top_sell_order = drain_order(
-          top_sell_order,
-          top_buy_order.volume_remain
-        );
-        return recurse_compute_trades_from_item_orders(
-          prepend(remaining_top_sell_order, rest_sell_orders),
-          rest_buy_orders,
-          prepend(trade, acc)
-        );
-      } else {
-        let trade = new RawTrade(
-          top_sell_order.location_id,
-          top_buy_order.location_id,
-          top_sell_order.type_id,
-          top_sell_order.volume_remain,
-          top_buy_order.price,
-          top_sell_order.price,
-          top_buy_order.price - top_sell_order.price
-        );
-        let remaining_top_buy_order = drain_order(
-          top_buy_order,
-          top_sell_order.volume_remain
-        );
-        return recurse_compute_trades_from_item_orders(
-          rest_sell_orders,
-          prepend(remaining_top_buy_order, rest_buy_orders),
-          prepend(trade, acc)
-        );
-      }
-    }
-  );
-}
-function compute_trades(sell_orders, buy_orders, tax_rate) {
-  let tax_rate$1 = 1 - divideFloat(tax_rate, 100);
-  let sell_orders$1 = merge_orders2(sell_orders);
-  let buy_orders$1 = merge_orders2(buy_orders);
-  let sell_orders_items = keys(sell_orders$1);
-  let buy_orders_items = keys(buy_orders$1);
-  let tradeable_items = filter(
-    sell_orders_items,
-    (_capture) => {
-      return contains(buy_orders_items, _capture);
-    }
-  );
-  let _pipe = map2(
-    tradeable_items,
-    (item) => {
-      let $ = map_get(sell_orders$1, item);
-      if (!$.isOk()) {
-        throw makeError(
-          "let_assert",
-          "arbitrage",
-          291,
-          "",
-          "Pattern match failed, no pattern matched the value.",
-          { value: $ }
-        );
-      }
-      let item_sell_orders = $[0];
-      let $1 = map_get(buy_orders$1, item);
-      if (!$1.isOk()) {
-        throw makeError(
-          "let_assert",
-          "arbitrage",
-          292,
-          "",
-          "Pattern match failed, no pattern matched the value.",
-          { value: $1 }
-        );
-      }
-      let item_buy_orders = $1[0];
-      let sorted_item_sell_orders = sort(
-        item_sell_orders,
-        (order_1, order_2) => {
-          return compare(order_1.price, order_2.price);
-        }
-      );
-      let sorted_item_buy_orders = sort(
-        item_buy_orders,
-        (order_1, order_2) => {
-          return compare(order_2.price, order_1.price);
-        }
-      );
-      return recurse_compute_trades_from_item_orders(
-        sorted_item_sell_orders,
-        sorted_item_buy_orders,
-        toList([])
-      );
-    }
-  );
-  let _pipe$1 = flatten(_pipe);
-  let _pipe$2 = map2(
-    _pipe$1,
-    (raw_trade) => {
-      let buy_price_with_taxes = raw_trade.unit_buy_price * tax_rate$1;
-      let _record = raw_trade;
-      return new RawTrade(
-        _record.source,
-        _record.destination,
-        _record.item,
-        _record.amount,
-        buy_price_with_taxes,
-        _record.unit_sell_price,
-        buy_price_with_taxes - raw_trade.unit_sell_price
-      );
-    }
-  );
-  return filter(
-    _pipe$2,
-    (raw_trade) => {
-      return raw_trade.unit_profit > 0;
-    }
-  );
-}
-function multibuy_from_purchases(purchases) {
-  let $ = fold(
-    purchases,
-    [0, 0],
-    (input2, purchase) => {
-      let price = input2[0];
-      let profit = input2[1];
-      return [price + purchase.total_price, profit + purchase.total_profit];
-    }
-  );
-  let total_price = $[0];
-  let total_profit = $[1];
-  return new Multibuy(purchases, total_price, total_profit);
-}
-function selected_trades_to_multibuys(from2) {
-  let _pipe = fold(
-    from2,
-    new_map(),
-    (split_trades, current_trade) => {
-      return upsert(
-        split_trades,
-        current_trade.item,
-        (optional_found_trades) => {
-          let _pipe2 = unwrap(optional_found_trades, toList([]));
-          return prepend2(_pipe2, current_trade);
-        }
-      );
-    }
-  );
-  let _pipe$1 = values(_pipe);
-  let _pipe$2 = sort(
-    _pipe$1,
-    (trades_1, trades_2) => {
-      return compare2(
-        (() => {
-          let _pipe$22 = trades_2;
-          return length(_pipe$22);
-        })(),
-        (() => {
-          let _pipe$22 = trades_1;
-          return length(_pipe$22);
-        })()
-      );
-    }
-  );
-  let _pipe$3 = transpose(_pipe$2);
-  let _pipe$4 = map2(
-    _pipe$3,
-    (list_of_trades) => {
-      let _pipe$42 = list_of_trades;
-      return map2(_pipe$42, trade_to_purchase);
-    }
-  );
-  return map2(_pipe$4, multibuy_from_purchases);
-}
-function trades_to_multibuys(trades, collateral, holds) {
-  let sorted_trades = sort(
-    trades,
-    (trade_1, trade_2) => {
-      return compare(
-        trade_2.profit_per_volume,
-        trade_1.profit_per_volume
-      );
-    }
-  );
-  let _block;
-  let _pipe = collateral * 1e6;
-  _block = identity(_pipe);
-  let collateral$1 = _block;
-  let $ = fold(
-    holds,
-    [toList([]), sorted_trades, collateral$1],
-    (input2, hold) => {
-      let old_selected_trades = input2[0];
-      let leftover_trades = input2[1];
-      let remaining_collateral = input2[2];
-      let $1 = pick_trades_for_hold(hold, remaining_collateral, leftover_trades);
-      let new_selected_trades = $1[0];
-      let leftover_trades$1 = $1[1];
-      let remaining_collateral$1 = $1[2];
-      let current_selected_trades = append(
-        new_selected_trades,
-        old_selected_trades
-      );
-      return [
-        current_selected_trades,
-        leftover_trades$1,
-        remaining_collateral$1
-      ];
-    }
-  );
-  let selected_trades = $[0];
-  return selected_trades_to_multibuys(selected_trades);
-}
-function get_multibuy_purchases(multibuy) {
-  return multibuy.purchases;
-}
-function get_multibuy_total_price(multibuy) {
-  return multibuy.total_price;
-}
-function get_multibuy_total_profit(multibuy) {
-  return multibuy.total_profit;
-}
-function purchase_to_string(purchase) {
-  return purchase.item_name + "	" + to_string(purchase.amount) + "	" + float_to_string(
-    purchase.unit_price
-  ) + "	" + float_to_string(purchase.total_price);
-}
-function multibuy_to_string(multibuy) {
-  let _pipe = map2(
-    multibuy.purchases,
-    (purchase) => {
-      return purchase_to_string(purchase) + "\n";
-    }
-  );
-  let _pipe$1 = concat2(_pipe);
-  return drop_end(_pipe$1, 1);
-}
-var base_tax_rate = 7.5;
-var tax_reduction_per_accounting_level = 11;
-function tax_percent_from_accounting_level(accounting_level) {
-  let accounting_tax_percent_reduction = (() => {
-    let _pipe = accounting_level;
-    return identity(_pipe);
-  })() * tax_reduction_per_accounting_level;
-  let remaining_tax_ratio = 1 - divideFloat(
-    accounting_tax_percent_reduction,
-    100
-  );
-  let effective_tax_rate = base_tax_rate * remaining_tax_ratio;
-  return effective_tax_rate;
-}
-
 // build/dev/javascript/gleam_time/gleam_time_ffi.mjs
 function system_time() {
   const now = Date.now();
@@ -61348,6 +60465,889 @@ function get2(url, handler) {
   }
 }
 
+// build/dev/javascript/eve_arbitrage/config/esi.mjs
+var Order = class extends CustomType {
+  constructor(duration, issued, location_id, min_volume, order_id, price, range, system_id, type_id, volume_remain, volume_total) {
+    super();
+    this.duration = duration;
+    this.issued = issued;
+    this.location_id = location_id;
+    this.min_volume = min_volume;
+    this.order_id = order_id;
+    this.price = price;
+    this.range = range;
+    this.system_id = system_id;
+    this.type_id = type_id;
+    this.volume_remain = volume_remain;
+    this.volume_total = volume_total;
+  }
+};
+var Type = class extends CustomType {
+  constructor(type_id, volume, name2) {
+    super();
+    this.type_id = type_id;
+    this.volume = volume;
+    this.name = name2;
+  }
+};
+function merge_orders(order_1, order_2) {
+  let can_merge = order_1.location_id === order_2.location_id && order_1.price === order_2.price && order_1.type_id === order_2.type_id && order_1.system_id === order_2.system_id;
+  if (!can_merge) {
+    return new Error(void 0);
+  } else {
+    return new Ok(
+      (() => {
+        let _record = order_1;
+        return new Order(
+          _record.duration,
+          _record.issued,
+          _record.location_id,
+          _record.min_volume,
+          _record.order_id,
+          _record.price,
+          _record.range,
+          _record.system_id,
+          _record.type_id,
+          order_1.volume_remain + order_2.volume_remain,
+          order_1.volume_total + order_2.volume_total
+        );
+      })()
+    );
+  }
+}
+function drain_order(order, amount) {
+  let _record = order;
+  return new Order(
+    _record.duration,
+    _record.issued,
+    _record.location_id,
+    _record.min_volume,
+    _record.order_id,
+    _record.price,
+    _record.range,
+    _record.system_id,
+    _record.type_id,
+    order.volume_remain - amount,
+    _record.volume_total
+  );
+}
+function buy_order_decoder() {
+  return field(
+    "duration",
+    int2,
+    (duration) => {
+      return field(
+        "is_buy_order",
+        bool,
+        (is_buy_order) => {
+          return lazy_guard(
+            !is_buy_order,
+            () => {
+              throw makeError(
+                "panic",
+                "config/esi",
+                100,
+                "",
+                "found a sell order, should be a buy order",
+                {}
+              );
+            },
+            () => {
+              return field(
+                "issued",
+                string2,
+                (issued) => {
+                  return field(
+                    "location_id",
+                    int2,
+                    (location_id) => {
+                      return field(
+                        "min_volume",
+                        int2,
+                        (min_volume) => {
+                          return field(
+                            "order_id",
+                            int2,
+                            (order_id) => {
+                              return field(
+                                "price",
+                                float2,
+                                (price) => {
+                                  return field(
+                                    "range",
+                                    string2,
+                                    (range) => {
+                                      return field(
+                                        "system_id",
+                                        int2,
+                                        (system_id) => {
+                                          return field(
+                                            "type_id",
+                                            int2,
+                                            (type_id) => {
+                                              return field(
+                                                "volume_remain",
+                                                int2,
+                                                (volume_remain) => {
+                                                  return field(
+                                                    "volume_total",
+                                                    int2,
+                                                    (volume_total) => {
+                                                      return success(
+                                                        new Order(
+                                                          duration,
+                                                          issued,
+                                                          location_id,
+                                                          min_volume,
+                                                          order_id,
+                                                          price,
+                                                          range,
+                                                          system_id,
+                                                          type_id,
+                                                          volume_remain,
+                                                          volume_total
+                                                        )
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
+    }
+  );
+}
+function buy_orders_decoder() {
+  return list2(buy_order_decoder());
+}
+function sell_order_decoder() {
+  return field(
+    "duration",
+    int2,
+    (duration) => {
+      return field(
+        "is_buy_order",
+        bool,
+        (is_buy_order) => {
+          return lazy_guard(
+            is_buy_order,
+            () => {
+              throw makeError(
+                "panic",
+                "config/esi",
+                131,
+                "",
+                "found a buy order, should be a sell order",
+                {}
+              );
+            },
+            () => {
+              return field(
+                "issued",
+                string2,
+                (issued) => {
+                  return field(
+                    "location_id",
+                    int2,
+                    (location_id) => {
+                      return field(
+                        "min_volume",
+                        int2,
+                        (min_volume) => {
+                          return field(
+                            "order_id",
+                            int2,
+                            (order_id) => {
+                              return field(
+                                "price",
+                                float2,
+                                (price) => {
+                                  return field(
+                                    "range",
+                                    string2,
+                                    (range) => {
+                                      return field(
+                                        "system_id",
+                                        int2,
+                                        (system_id) => {
+                                          return field(
+                                            "type_id",
+                                            int2,
+                                            (type_id) => {
+                                              return field(
+                                                "volume_remain",
+                                                int2,
+                                                (volume_remain) => {
+                                                  return field(
+                                                    "volume_total",
+                                                    int2,
+                                                    (volume_total) => {
+                                                      return success(
+                                                        new Order(
+                                                          duration,
+                                                          issued,
+                                                          location_id,
+                                                          min_volume,
+                                                          order_id,
+                                                          price,
+                                                          range,
+                                                          system_id,
+                                                          type_id,
+                                                          volume_remain,
+                                                          volume_total
+                                                        )
+                                                      );
+                                                    }
+                                                  );
+                                                }
+                                              );
+                                            }
+                                          );
+                                        }
+                                      );
+                                    }
+                                  );
+                                }
+                              );
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
+            }
+          );
+        }
+      );
+    }
+  );
+}
+function sell_orders_decoder() {
+  return list2(sell_order_decoder());
+}
+var esi_url = "https://esi.evetech.net/latest";
+var market_order_url = "/markets/{region_id}/orders/?datasource=tranquility&order_type={order_kind}&page={page}";
+function get_market_orders_url(from2, is_buy_order, page) {
+  let _block;
+  if (!is_buy_order) {
+    _block = "sell";
+  } else {
+    _block = "buy";
+  }
+  let order_kind = _block;
+  let _pipe = toList([esi_url, market_order_url]);
+  let _pipe$1 = concat2(_pipe);
+  let _pipe$2 = replace(
+    _pipe$1,
+    "{region_id}",
+    to_string(from2.region)
+  );
+  let _pipe$3 = replace(_pipe$2, "{order_kind}", order_kind);
+  return replace(
+    _pipe$3,
+    "{page}",
+    (() => {
+      let _pipe$4 = page;
+      return to_string(_pipe$4);
+    })()
+  );
+}
+
+// build/dev/javascript/eve_arbitrage/arbitrage.mjs
+var Item = class extends CustomType {
+  constructor(id2, name2, m3) {
+    super();
+    this.id = id2;
+    this.name = name2;
+    this.m3 = m3;
+  }
+};
+var Trade = class extends CustomType {
+  constructor(source, destination, item, amount, total_volume, unit_buy_price, unit_sell_price, total_price, profit_per_volume) {
+    super();
+    this.source = source;
+    this.destination = destination;
+    this.item = item;
+    this.amount = amount;
+    this.total_volume = total_volume;
+    this.unit_buy_price = unit_buy_price;
+    this.unit_sell_price = unit_sell_price;
+    this.total_price = total_price;
+    this.profit_per_volume = profit_per_volume;
+  }
+};
+var RawTrade = class extends CustomType {
+  constructor(source, destination, item, amount, unit_buy_price, unit_sell_price, unit_profit) {
+    super();
+    this.source = source;
+    this.destination = destination;
+    this.item = item;
+    this.amount = amount;
+    this.unit_buy_price = unit_buy_price;
+    this.unit_sell_price = unit_sell_price;
+    this.unit_profit = unit_profit;
+  }
+};
+var Multibuy = class extends CustomType {
+  constructor(purchases, total_price, total_profit) {
+    super();
+    this.purchases = purchases;
+    this.total_price = total_price;
+    this.total_profit = total_profit;
+  }
+};
+var Purchase = class extends CustomType {
+  constructor(item_name, amount, unit_price, total_price, total_profit) {
+    super();
+    this.item_name = item_name;
+    this.amount = amount;
+    this.unit_price = unit_price;
+    this.total_price = total_price;
+    this.total_profit = total_profit;
+  }
+};
+function split_trade_to_fit(trade, collateral, capacity) {
+  let unit_volume = divideFloat(trade.total_volume, identity(trade.amount));
+  let _block;
+  let _pipe = divideFloat(collateral, trade.unit_sell_price);
+  _block = truncate(_pipe);
+  let collateral_fits = _block;
+  let _block$1;
+  let _pipe$1 = divideFloat(capacity, unit_volume);
+  _block$1 = truncate(_pipe$1);
+  let capacity_fits = _block$1;
+  let can_fit = min(collateral_fits, capacity_fits);
+  let remaining_amount = trade.amount - can_fit;
+  let $ = compare2(can_fit, 0);
+  if ($ instanceof Eq) {
+    return new Error(void 0);
+  } else if ($ instanceof Gt) {
+    return new Ok(
+      [
+        (() => {
+          let _record = trade;
+          return new Trade(
+            _record.source,
+            _record.destination,
+            _record.item,
+            can_fit,
+            unit_volume * identity(can_fit),
+            _record.unit_buy_price,
+            _record.unit_sell_price,
+            trade.unit_sell_price * identity(can_fit),
+            _record.profit_per_volume
+          );
+        })(),
+        (() => {
+          let _record = trade;
+          return new Trade(
+            _record.source,
+            _record.destination,
+            _record.item,
+            remaining_amount,
+            unit_volume * identity(remaining_amount),
+            _record.unit_buy_price,
+            _record.unit_sell_price,
+            trade.unit_sell_price * identity(remaining_amount),
+            _record.profit_per_volume
+          );
+        })()
+      ]
+    );
+  } else {
+    throw makeError(
+      "panic",
+      "arbitrage",
+      184,
+      "split_trade_to_fit",
+      "negative capacity ? negative collateral ?",
+      {}
+    );
+  }
+}
+function pick_trades_for_hold(hold, collateral, trades) {
+  let capacity = hold.capacity;
+  let $ = fold(
+    trades,
+    [toList([]), toList([]), collateral, capacity],
+    (_use0, current_trade) => {
+      let selected_trades2 = _use0[0];
+      let leftover_trades2 = _use0[1];
+      let remaining_collateral2 = _use0[2];
+      let remaining_capacity = _use0[3];
+      let $1 = current_trade.total_volume <= remaining_capacity;
+      let $2 = current_trade.total_price <= remaining_collateral2;
+      let $3 = is_item_allowed_in_hold(current_trade.item.id, hold.kind);
+      if (!$3) {
+        return [
+          selected_trades2,
+          prepend(current_trade, leftover_trades2),
+          remaining_collateral2,
+          remaining_capacity
+        ];
+      } else if ($1 && $2 && $3) {
+        return [
+          prepend(current_trade, selected_trades2),
+          leftover_trades2,
+          remaining_collateral2 - current_trade.total_price,
+          remaining_capacity - current_trade.total_volume
+        ];
+      } else {
+        let $4 = split_trade_to_fit(
+          current_trade,
+          remaining_collateral2,
+          remaining_capacity
+        );
+        if (!$4.isOk()) {
+          return [
+            selected_trades2,
+            prepend(current_trade, leftover_trades2),
+            remaining_collateral2,
+            remaining_capacity
+          ];
+        } else {
+          let fitted_trade = $4[0][0];
+          let leftover_trade = $4[0][1];
+          return [
+            prepend(fitted_trade, selected_trades2),
+            prepend(leftover_trade, leftover_trades2),
+            remaining_collateral2 - fitted_trade.total_price,
+            remaining_capacity - fitted_trade.total_volume
+          ];
+        }
+      }
+    }
+  );
+  let selected_trades = $[0];
+  let leftover_trades = $[1];
+  let remaining_collateral = $[2];
+  return [selected_trades, leftover_trades, remaining_collateral];
+}
+function trade_to_purchase(trade) {
+  return new Purchase(
+    trade.item.name,
+    trade.amount,
+    trade.unit_sell_price,
+    trade.unit_sell_price * (() => {
+      let _pipe = trade.amount;
+      return identity(_pipe);
+    })(),
+    (trade.unit_buy_price - trade.unit_sell_price) * (() => {
+      let _pipe = trade.amount;
+      return identity(_pipe);
+    })()
+  );
+}
+function raw_trade_to_trade(raw_trade, type_2) {
+  let $ = raw_trade.item === type_2.type_id;
+  if (!$) {
+    return new Error(void 0);
+  } else {
+    let _pipe = new Trade(
+      raw_trade.source,
+      raw_trade.destination,
+      new Item(type_2.type_id, type_2.name, type_2.volume),
+      raw_trade.amount,
+      (() => {
+        let _pipe2 = raw_trade.amount;
+        return identity(_pipe2);
+      })() * type_2.volume,
+      raw_trade.unit_buy_price,
+      raw_trade.unit_sell_price,
+      raw_trade.unit_sell_price * (() => {
+        let _pipe2 = raw_trade.amount;
+        return identity(_pipe2);
+      })(),
+      divideFloat(raw_trade.unit_profit, type_2.volume)
+    );
+    return new Ok(_pipe);
+  }
+}
+function merge_orders2(orders) {
+  let r = fold(
+    orders,
+    new_map(),
+    (acc, order) => {
+      let _block;
+      let $ = map_get(acc, order.type_id);
+      if (!$.isOk()) {
+        _block = toList([order]);
+      } else {
+        let list4 = $[0];
+        _block = prepend(order, list4);
+      }
+      let current_item_orders_list = _block;
+      return insert(acc, order.type_id, current_item_orders_list);
+    }
+  );
+  return map_values(
+    r,
+    (_, orders2) => {
+      let ordered_orders = sort(
+        orders2,
+        (order_1, order_2) => {
+          return compare(order_1.price, order_2.price);
+        }
+      );
+      return fold(
+        ordered_orders,
+        toList([]),
+        (new_orders, order) => {
+          return guard(
+            is_empty(new_orders),
+            toList([order]),
+            () => {
+              if (!new_orders.atLeastLength(1)) {
+                throw makeError(
+                  "let_assert",
+                  "arbitrage",
+                  267,
+                  "",
+                  "Pattern match failed, no pattern matched the value.",
+                  { value: new_orders }
+                );
+              }
+              let top = new_orders.head;
+              let rest = new_orders.tail;
+              let $ = merge_orders(top, order);
+              if (!$.isOk()) {
+                return prepend(order, prepend(top, rest));
+              } else {
+                let merged_order = $[0];
+                return prepend(merged_order, rest);
+              }
+            }
+          );
+        }
+      );
+    }
+  );
+}
+function recurse_compute_trades_from_item_orders(sell_orders, buy_orders, acc) {
+  return guard(
+    is_empty(sell_orders) || is_empty(buy_orders),
+    acc,
+    () => {
+      if (!sell_orders.atLeastLength(1)) {
+        throw makeError(
+          "let_assert",
+          "arbitrage",
+          328,
+          "",
+          "Pattern match failed, no pattern matched the value.",
+          { value: sell_orders }
+        );
+      }
+      let top_sell_order = sell_orders.head;
+      let rest_sell_orders = sell_orders.tail;
+      if (!buy_orders.atLeastLength(1)) {
+        throw makeError(
+          "let_assert",
+          "arbitrage",
+          329,
+          "",
+          "Pattern match failed, no pattern matched the value.",
+          { value: buy_orders }
+        );
+      }
+      let top_buy_order = buy_orders.head;
+      let rest_buy_orders = buy_orders.tail;
+      let $ = compare2(
+        top_sell_order.volume_remain,
+        top_buy_order.volume_remain
+      );
+      if ($ instanceof Eq) {
+        let trade = new RawTrade(
+          top_sell_order.location_id,
+          top_buy_order.location_id,
+          top_sell_order.type_id,
+          top_sell_order.volume_remain,
+          top_buy_order.price,
+          top_sell_order.price,
+          top_buy_order.price - top_sell_order.price
+        );
+        return recurse_compute_trades_from_item_orders(
+          rest_sell_orders,
+          rest_buy_orders,
+          prepend(trade, acc)
+        );
+      } else if ($ instanceof Gt) {
+        let trade = new RawTrade(
+          top_sell_order.location_id,
+          top_buy_order.location_id,
+          top_sell_order.type_id,
+          top_buy_order.volume_remain,
+          top_buy_order.price,
+          top_sell_order.price,
+          top_buy_order.price - top_sell_order.price
+        );
+        let remaining_top_sell_order = drain_order(
+          top_sell_order,
+          top_buy_order.volume_remain
+        );
+        return recurse_compute_trades_from_item_orders(
+          prepend(remaining_top_sell_order, rest_sell_orders),
+          rest_buy_orders,
+          prepend(trade, acc)
+        );
+      } else {
+        let trade = new RawTrade(
+          top_sell_order.location_id,
+          top_buy_order.location_id,
+          top_sell_order.type_id,
+          top_sell_order.volume_remain,
+          top_buy_order.price,
+          top_sell_order.price,
+          top_buy_order.price - top_sell_order.price
+        );
+        let remaining_top_buy_order = drain_order(
+          top_buy_order,
+          top_sell_order.volume_remain
+        );
+        return recurse_compute_trades_from_item_orders(
+          rest_sell_orders,
+          prepend(remaining_top_buy_order, rest_buy_orders),
+          prepend(trade, acc)
+        );
+      }
+    }
+  );
+}
+function compute_trades(sell_orders, buy_orders, tax_rate) {
+  let tax_rate$1 = 1 - divideFloat(tax_rate, 100);
+  let sell_orders$1 = merge_orders2(sell_orders);
+  let buy_orders$1 = merge_orders2(buy_orders);
+  let sell_orders_items = keys(sell_orders$1);
+  let buy_orders_items = keys(buy_orders$1);
+  let tradeable_items = filter(
+    sell_orders_items,
+    (_capture) => {
+      return contains(buy_orders_items, _capture);
+    }
+  );
+  let _pipe = map2(
+    tradeable_items,
+    (item) => {
+      let $ = map_get(sell_orders$1, item);
+      if (!$.isOk()) {
+        throw makeError(
+          "let_assert",
+          "arbitrage",
+          291,
+          "",
+          "Pattern match failed, no pattern matched the value.",
+          { value: $ }
+        );
+      }
+      let item_sell_orders = $[0];
+      let $1 = map_get(buy_orders$1, item);
+      if (!$1.isOk()) {
+        throw makeError(
+          "let_assert",
+          "arbitrage",
+          292,
+          "",
+          "Pattern match failed, no pattern matched the value.",
+          { value: $1 }
+        );
+      }
+      let item_buy_orders = $1[0];
+      let sorted_item_sell_orders = sort(
+        item_sell_orders,
+        (order_1, order_2) => {
+          return compare(order_1.price, order_2.price);
+        }
+      );
+      let sorted_item_buy_orders = sort(
+        item_buy_orders,
+        (order_1, order_2) => {
+          return compare(order_2.price, order_1.price);
+        }
+      );
+      return recurse_compute_trades_from_item_orders(
+        sorted_item_sell_orders,
+        sorted_item_buy_orders,
+        toList([])
+      );
+    }
+  );
+  let _pipe$1 = flatten(_pipe);
+  let _pipe$2 = map2(
+    _pipe$1,
+    (raw_trade) => {
+      let buy_price_with_taxes = raw_trade.unit_buy_price * tax_rate$1;
+      let _record = raw_trade;
+      return new RawTrade(
+        _record.source,
+        _record.destination,
+        _record.item,
+        _record.amount,
+        buy_price_with_taxes,
+        _record.unit_sell_price,
+        buy_price_with_taxes - raw_trade.unit_sell_price
+      );
+    }
+  );
+  return filter(
+    _pipe$2,
+    (raw_trade) => {
+      return raw_trade.unit_profit > 0;
+    }
+  );
+}
+function multibuy_from_purchases(purchases) {
+  let $ = fold(
+    purchases,
+    [0, 0],
+    (input2, purchase) => {
+      let price = input2[0];
+      let profit = input2[1];
+      return [price + purchase.total_price, profit + purchase.total_profit];
+    }
+  );
+  let total_price = $[0];
+  let total_profit = $[1];
+  return new Multibuy(purchases, total_price, total_profit);
+}
+function selected_trades_to_multibuys(from2) {
+  let _pipe = fold(
+    from2,
+    new_map(),
+    (split_trades, current_trade) => {
+      return upsert(
+        split_trades,
+        current_trade.item,
+        (optional_found_trades) => {
+          let _pipe2 = unwrap(optional_found_trades, toList([]));
+          return prepend2(_pipe2, current_trade);
+        }
+      );
+    }
+  );
+  let _pipe$1 = values(_pipe);
+  let _pipe$2 = sort(
+    _pipe$1,
+    (trades_1, trades_2) => {
+      return compare2(
+        (() => {
+          let _pipe$22 = trades_2;
+          return length(_pipe$22);
+        })(),
+        (() => {
+          let _pipe$22 = trades_1;
+          return length(_pipe$22);
+        })()
+      );
+    }
+  );
+  let _pipe$3 = transpose(_pipe$2);
+  let _pipe$4 = map2(
+    _pipe$3,
+    (list_of_trades) => {
+      let _pipe$42 = list_of_trades;
+      return map2(_pipe$42, trade_to_purchase);
+    }
+  );
+  return map2(_pipe$4, multibuy_from_purchases);
+}
+function trades_to_multibuys(trades, collateral, holds) {
+  let sorted_trades = sort(
+    trades,
+    (trade_1, trade_2) => {
+      return compare(
+        trade_2.profit_per_volume,
+        trade_1.profit_per_volume
+      );
+    }
+  );
+  let _block;
+  let _pipe = collateral * 1e6;
+  _block = identity(_pipe);
+  let collateral$1 = _block;
+  let $ = fold(
+    holds,
+    [toList([]), sorted_trades, collateral$1],
+    (input2, hold) => {
+      let old_selected_trades = input2[0];
+      let leftover_trades = input2[1];
+      let remaining_collateral = input2[2];
+      let $1 = pick_trades_for_hold(hold, remaining_collateral, leftover_trades);
+      let new_selected_trades = $1[0];
+      let leftover_trades$1 = $1[1];
+      let remaining_collateral$1 = $1[2];
+      let current_selected_trades = append(
+        new_selected_trades,
+        old_selected_trades
+      );
+      return [
+        current_selected_trades,
+        leftover_trades$1,
+        remaining_collateral$1
+      ];
+    }
+  );
+  let selected_trades = $[0];
+  return selected_trades_to_multibuys(selected_trades);
+}
+function get_multibuy_purchases(multibuy) {
+  return multibuy.purchases;
+}
+function get_multibuy_total_price(multibuy) {
+  return multibuy.total_price;
+}
+function get_multibuy_total_profit(multibuy) {
+  return multibuy.total_profit;
+}
+function purchase_to_string(purchase) {
+  return purchase.item_name + "	" + to_string(purchase.amount) + "	" + float_to_string(
+    purchase.unit_price
+  ) + "	" + float_to_string(purchase.total_price);
+}
+function multibuy_to_string(multibuy) {
+  let _pipe = map2(
+    multibuy.purchases,
+    (purchase) => {
+      return purchase_to_string(purchase) + "\n";
+    }
+  );
+  let _pipe$1 = concat2(_pipe);
+  return drop_end(_pipe$1, 1);
+}
+var base_tax_rate = 7.5;
+var tax_reduction_per_accounting_level = 11;
+function tax_percent_from_accounting_level(accounting_level) {
+  let accounting_tax_percent_reduction = (() => {
+    let _pipe = accounting_level;
+    return identity(_pipe);
+  })() * tax_reduction_per_accounting_level;
+  let remaining_tax_ratio = 1 - divideFloat(
+    accounting_tax_percent_reduction,
+    100
+  );
+  let effective_tax_rate = base_tax_rate * remaining_tax_ratio;
+  return effective_tax_rate;
+}
+
 // build/dev/javascript/eve_arbitrage/storage_ffi.mjs
 function localStorage() {
   try {
@@ -61393,7 +61393,7 @@ function removeManyItems(storage, pattern) {
 
 // build/dev/javascript/eve_arbitrage/mvu.mjs
 var Model = class extends CustomType {
-  constructor(storage, ships, current_ship, count_ship_index, count_hold_index, systems, source, destination, accounting_level, language, sidebar_expanded, collateral, trades) {
+  constructor(storage, ships, current_ship, count_ship_index, count_hold_index, systems, source, destination, accounting_level, language, sidebar_expanded, collateral, multibuys) {
     super();
     this.storage = storage;
     this.ships = ships;
@@ -61407,13 +61407,7 @@ var Model = class extends CustomType {
     this.language = language;
     this.sidebar_expanded = sidebar_expanded;
     this.collateral = collateral;
-    this.trades = trades;
-  }
-};
-var Multibuy2 = class extends CustomType {
-  constructor(multibuy) {
-    super();
-    this.multibuy = multibuy;
+    this.multibuys = multibuys;
   }
 };
 var ShipEntry = class extends CustomType {
@@ -61489,6 +61483,12 @@ var UserClickedCopyMultibuy = class extends CustomType {
   constructor(multibuy) {
     super();
     this.multibuy = multibuy;
+  }
+};
+var AppFinishedComputingMultibuys = class extends CustomType {
+  constructor(x0) {
+    super();
+    this[0] = x0;
   }
 };
 var UserClickedExpandSidebar = class extends CustomType {
@@ -61682,26 +61682,65 @@ function write(text4) {
   );
 }
 
-// build/dev/javascript/eve_arbitrage/mvu/update/side_effects/fetch_esi.mjs
-function get_query_sell_orders_side_effect(location, from2, page) {
-  let query_handler = expect_json(
-    sell_orders_decoder(),
-    (_capture) => {
-      return new EsiReturnedSellOrders(_capture, from2, page);
+// build/dev/javascript/eve_arbitrage/mvu/update/side_effects/compute_multibuys.mjs
+function get_compute_multibuys_side_effect(source, dest, selected_ship, collateral, accounting_level) {
+  return from(
+    (dispatch) => {
+      let _block;
+      let _pipe = compute_trades(
+        source.sell_orders,
+        dest.buy_orders,
+        (() => {
+          let _pipe2 = accounting_level;
+          return tax_percent_from_accounting_level(_pipe2);
+        })()
+      );
+      _block = map2(
+        _pipe,
+        (raw_trade) => {
+          let $ = key_find(items, raw_trade.item);
+          if (!$.isOk()) {
+            throw makeError(
+              "let_assert",
+              "mvu/update/side_effects/compute_multibuys",
+              24,
+              "",
+              "Pattern match failed, no pattern matched the value.",
+              { value: $ }
+            );
+          }
+          let name2 = $[0][0];
+          let volume = $[0][1];
+          let $1 = raw_trade_to_trade(
+            raw_trade,
+            new Type(raw_trade.item, volume, name2)
+          );
+          if (!$1.isOk()) {
+            throw makeError(
+              "let_assert",
+              "mvu/update/side_effects/compute_multibuys",
+              26,
+              "",
+              "Pattern match failed, no pattern matched the value.",
+              { value: $1 }
+            );
+          }
+          let trade = $1[0];
+          return trade;
+        }
+      );
+      let trades = _block;
+      let multibuys = trades_to_multibuys(
+        trades,
+        collateral,
+        (() => {
+          let _pipe$1 = selected_ship.ship.holds;
+          return values(_pipe$1);
+        })()
+      );
+      return dispatch(new AppFinishedComputingMultibuys(multibuys));
     }
   );
-  let url = get_market_orders_url(location, false, page);
-  return get2(url, query_handler);
-}
-function get_query_buy_orders_side_effect(location, from2, page) {
-  let query_handler = expect_json(
-    buy_orders_decoder(),
-    (_capture) => {
-      return new EsiReturnedBuyOrders(_capture, from2, page);
-    }
-  );
-  let url = get_market_orders_url(location, true, page);
-  return get2(url, query_handler);
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/update/multibuys.mjs
@@ -61727,7 +61766,7 @@ function user_clicked_compute_multibuys(model) {
         throw makeError(
           "let_assert",
           "mvu/update/multibuys",
-          36,
+          32,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $ }
@@ -61739,7 +61778,7 @@ function user_clicked_compute_multibuys(model) {
         throw makeError(
           "let_assert",
           "mvu/update/multibuys",
-          37,
+          33,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $1 }
@@ -61751,7 +61790,7 @@ function user_clicked_compute_multibuys(model) {
         throw makeError(
           "let_assert",
           "mvu/update/multibuys",
-          38,
+          34,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $2 }
@@ -61763,132 +61802,80 @@ function user_clicked_compute_multibuys(model) {
         throw makeError(
           "let_assert",
           "mvu/update/multibuys",
-          39,
+          35,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $3 }
         );
       }
       let dest$1 = $3[0];
-      let _block;
-      let _pipe = compute_trades(
-        source$1.sell_orders,
-        dest$1.buy_orders,
-        (() => {
-          let _pipe2 = model.accounting_level;
-          return tax_percent_from_accounting_level(_pipe2);
-        })()
-      );
-      _block = map2(
-        _pipe,
-        (raw_trade) => {
-          let $4 = key_find(items, raw_trade.item);
-          if (!$4.isOk()) {
-            throw makeError(
-              "let_assert",
-              "mvu/update/multibuys",
-              48,
-              "",
-              "Pattern match failed, no pattern matched the value.",
-              { value: $4 }
-            );
-          }
-          let name2 = $4[0][0];
-          let volume = $4[0][1];
-          let $5 = raw_trade_to_trade(
-            raw_trade,
-            new Type(raw_trade.item, volume, name2)
-          );
-          if (!$5.isOk()) {
-            throw makeError(
-              "let_assert",
-              "mvu/update/multibuys",
-              49,
-              "",
-              "Pattern match failed, no pattern matched the value.",
-              { value: $5 }
-            );
-          }
-          let trade = $5[0];
-          return trade;
-        }
-      );
-      let trades = _block;
-      let _block$1;
-      {
-        let $4 = model.current_ship;
-        if (!($4 instanceof Some)) {
-          throw makeError(
-            "let_assert",
-            "mvu/update/multibuys",
-            58,
-            "",
-            "Pattern match failed, no pattern matched the value.",
-            { value: $4 }
-          );
-        }
-        let current_ship = $4[0];
-        let $5 = model.collateral;
-        if (!($5 instanceof Some)) {
-          throw makeError(
-            "let_assert",
-            "mvu/update/multibuys",
-            59,
-            "",
-            "Pattern match failed, no pattern matched the value.",
-            { value: $5 }
-          );
-        }
-        let collateral = $5[0];
-        let $6 = map_get(model.ships, current_ship);
-        if (!$6.isOk()) {
-          throw makeError(
-            "let_assert",
-            "mvu/update/multibuys",
-            60,
-            "",
-            "Pattern match failed, no pattern matched the value.",
-            { value: $6 }
-          );
-        }
-        let selected_ship = $6[0];
-        let _pipe$1 = trades_to_multibuys(
-          trades,
-          collateral,
-          (() => {
-            let _pipe$12 = selected_ship.ship.holds;
-            return values(_pipe$12);
-          })()
-        );
-        _block$1 = map2(
-          _pipe$1,
-          (var0) => {
-            return new Multibuy2(var0);
-          }
+      let $4 = model.current_ship;
+      if (!($4 instanceof Some)) {
+        throw makeError(
+          "let_assert",
+          "mvu/update/multibuys",
+          36,
+          "",
+          "Pattern match failed, no pattern matched the value.",
+          { value: $4 }
         );
       }
-      let multibuys = _block$1;
-      let _block$2;
-      let _record = model;
-      _block$2 = new Model(
-        _record.storage,
-        _record.ships,
-        _record.current_ship,
-        _record.count_ship_index,
-        _record.count_hold_index,
-        _record.systems,
-        _record.source,
-        _record.destination,
-        _record.accounting_level,
-        _record.language,
-        _record.sidebar_expanded,
-        _record.collateral,
-        multibuys
+      let current_ship = $4[0];
+      let $5 = model.collateral;
+      if (!($5 instanceof Some)) {
+        throw makeError(
+          "let_assert",
+          "mvu/update/multibuys",
+          37,
+          "",
+          "Pattern match failed, no pattern matched the value.",
+          { value: $5 }
+        );
+      }
+      let collateral = $5[0];
+      let $6 = map_get(model.ships, current_ship);
+      if (!$6.isOk()) {
+        throw makeError(
+          "let_assert",
+          "mvu/update/multibuys",
+          38,
+          "",
+          "Pattern match failed, no pattern matched the value.",
+          { value: $6 }
+        );
+      }
+      let selected_ship = $6[0];
+      let effect = get_compute_multibuys_side_effect(
+        source$1,
+        dest$1,
+        selected_ship,
+        collateral,
+        model.accounting_level
       );
-      let model$1 = _block$2;
-      return [model$1, none()];
+      return [model, effect];
     }
   );
+}
+function app_finished_computing_multibuys(model, multibuys) {
+  let _block;
+  let _record = model;
+  _block = new Model(
+    _record.storage,
+    _record.ships,
+    _record.current_ship,
+    _record.count_ship_index,
+    _record.count_hold_index,
+    _record.systems,
+    _record.source,
+    _record.destination,
+    _record.accounting_level,
+    _record.language,
+    _record.sidebar_expanded,
+    _record.collateral,
+    new Some(multibuys)
+  );
+  let model$1 = _block;
+  return [model$1, none()];
 }
 
 // build/dev/javascript/eve_arbitrage/util/numbers.mjs
@@ -62317,7 +62304,7 @@ function user_selected_ship(selected_ship, model) {
     _record.language,
     _record.sidebar_expanded,
     _record.collateral,
-    _record.trades
+    _record.multibuys
   );
   let model$1 = _block;
   let _block$1;
@@ -62376,7 +62363,7 @@ function user_created_ship(model) {
     _record.language,
     _record.sidebar_expanded,
     _record.collateral,
-    _record.trades
+    _record.multibuys
   );
   let model$1 = _block;
   let _block$1;
@@ -62456,7 +62443,7 @@ function user_deleted_ship(model, deleted_ship) {
     _record.language,
     _record.sidebar_expanded,
     _record.collateral,
-    _record.trades
+    _record.multibuys
   );
   let model$1 = _block$1;
   let _block$2;
@@ -62555,7 +62542,7 @@ function user_updated_ship_hold_kind(model, hold_kind, hold_id, ship_id) {
     _record$3.language,
     _record$3.sidebar_expanded,
     _record$3.collateral,
-    _record$3.trades
+    _record$3.multibuys
   );
   let model$1 = _block$3;
   let _block$4;
@@ -62614,7 +62601,7 @@ function user_added_hold_to_ship(model, ship_id) {
     _record$2.language,
     _record$2.sidebar_expanded,
     _record$2.collateral,
-    _record$2.trades
+    _record$2.multibuys
   );
   let model$1 = _block$2;
   let _block$3;
@@ -62700,7 +62687,7 @@ function user_deleted_hold_from_ship(model, hold_id, ship_id) {
     _record$2.language,
     _record$2.sidebar_expanded,
     _record$2.collateral,
-    _record$2.trades
+    _record$2.multibuys
   );
   let model$1 = _block$2;
   let _block$3;
@@ -62764,7 +62751,7 @@ function user_collapsed_ship(model, ship_id) {
     _record$1.language,
     _record$1.sidebar_expanded,
     _record$1.collateral,
-    _record$1.trades
+    _record$1.multibuys
   );
   let model$1 = _block$1;
   return [model$1, none()];
@@ -62802,7 +62789,7 @@ function user_expanded_ship(model, ship_id) {
     _record$1.language,
     _record$1.sidebar_expanded,
     _record$1.collateral,
-    _record$1.trades
+    _record$1.multibuys
   );
   let model$1 = _block$1;
   return [model$1, none()];
@@ -62883,7 +62870,7 @@ function user_updated_ship_name(model, id2) {
       _record$2.language,
       _record$2.sidebar_expanded,
       _record$2.collateral,
-      _record$2.trades
+      _record$2.multibuys
     );
   }
   let model$1 = _block;
@@ -62959,7 +62946,7 @@ function user_updated_ship_hold_name(model, hold_id, ship_id) {
     _record$3.language,
     _record$3.sidebar_expanded,
     _record$3.collateral,
-    _record$3.trades
+    _record$3.multibuys
   );
   let model$1 = _block$3;
   let _block$4;
@@ -63058,7 +63045,7 @@ function user_updated_ship_hold_capacity(model, hold_id, ship_id) {
     _record$3.language,
     _record$3.sidebar_expanded,
     _record$3.collateral,
-    _record$3.trades
+    _record$3.multibuys
   );
   let model$1 = _block$3;
   let _block$4;
@@ -63095,7 +63082,7 @@ function user_clicked_collapse_sidebar(model) {
     _record.language,
     false,
     _record.collateral,
-    _record.trades
+    _record.multibuys
   );
   let model$1 = _block;
   return [model$1, none()];
@@ -63116,7 +63103,7 @@ function user_clicked_expand_sidebar(model) {
     _record.language,
     true,
     _record.collateral,
-    _record.trades
+    _record.multibuys
   );
   let model$1 = _block;
   return [model$1, none()];
@@ -63137,7 +63124,7 @@ function user_updated_collateral(model, value3) {
     _record.language,
     _record.sidebar_expanded,
     value3,
-    _record.trades
+    _record.multibuys
   );
   let model$1 = _block;
   let _block$1;
@@ -63167,7 +63154,7 @@ function user_updated_accounting_level(model, level) {
     _record.language,
     _record.sidebar_expanded,
     _record.collateral,
-    _record.trades
+    _record.multibuys
   );
   let model$1 = _block;
   let _block$1;
@@ -63204,7 +63191,7 @@ function init_load_storage(model, storage) {
     _record.language,
     _record.sidebar_expanded,
     _record.collateral,
-    _record.trades
+    _record.multibuys
   );
   let model$1 = _block;
   let effect = batch(
@@ -63239,7 +63226,7 @@ function store_read_ship_name(model, name2, id2) {
       throw makeError(
         "let_assert",
         "mvu/update/store",
-        65,
+        63,
         "store_read_ship_name",
         "Pattern match failed, no pattern matched the value.",
         { value: $ }
@@ -63269,7 +63256,7 @@ function store_read_ship_name(model, name2, id2) {
       _record$2.language,
       _record$2.sidebar_expanded,
       _record$2.collateral,
-      _record$2.trades
+      _record$2.multibuys
     );
   }
   let model$1 = _block;
@@ -63291,7 +63278,7 @@ function store_read_accounting_level(model, accounting_level) {
     _record.language,
     _record.sidebar_expanded,
     _record.collateral,
-    _record.trades
+    _record.multibuys
   );
   let model$1 = _block;
   return [model$1, none()];
@@ -63312,7 +63299,7 @@ function store_read_collateral(model, collateral) {
     _record.language,
     _record.sidebar_expanded,
     collateral,
-    _record.trades
+    _record.multibuys
   );
   let model$1 = _block;
   return [model$1, none()];
@@ -63323,7 +63310,7 @@ function store_read_hold_capacity(model, capacity, ship_id, hold_id) {
     throw makeError(
       "let_assert",
       "mvu/update/store",
-      96,
+      94,
       "store_read_hold_capacity",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -63336,7 +63323,7 @@ function store_read_hold_capacity(model, capacity, ship_id, hold_id) {
     throw makeError(
       "let_assert",
       "mvu/update/store",
-      98,
+      96,
       "store_read_hold_capacity",
       "Pattern match failed, no pattern matched the value.",
       { value: $1 }
@@ -63372,7 +63359,7 @@ function store_read_hold_capacity(model, capacity, ship_id, hold_id) {
     _record$3.language,
     _record$3.sidebar_expanded,
     _record$3.collateral,
-    _record$3.trades
+    _record$3.multibuys
   );
   let model$1 = _block$3;
   return [model$1, none()];
@@ -63415,7 +63402,7 @@ function store_read_hold_indices(model, hold_indices) {
       _record.language,
       _record.sidebar_expanded,
       _record.collateral,
-      _record.trades
+      _record.multibuys
     );
     let model$1 = _block;
     let _block$1;
@@ -63466,7 +63453,7 @@ function store_read_hold_kind(model, hold_kind, ship_id, hold_id) {
     throw makeError(
       "let_assert",
       "mvu/update/store",
-      158,
+      156,
       "store_read_hold_kind",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -63479,7 +63466,7 @@ function store_read_hold_kind(model, hold_kind, ship_id, hold_id) {
     throw makeError(
       "let_assert",
       "mvu/update/store",
-      160,
+      158,
       "store_read_hold_kind",
       "Pattern match failed, no pattern matched the value.",
       { value: $1 }
@@ -63515,7 +63502,7 @@ function store_read_hold_kind(model, hold_kind, ship_id, hold_id) {
     _record$3.language,
     _record$3.sidebar_expanded,
     _record$3.collateral,
-    _record$3.trades
+    _record$3.multibuys
   );
   let model$1 = _block$3;
   return [model$1, none()];
@@ -63526,7 +63513,7 @@ function store_read_hold_name(model, hold_name, ship_id, hold_id) {
     throw makeError(
       "let_assert",
       "mvu/update/store",
-      176,
+      174,
       "store_read_hold_name",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -63539,7 +63526,7 @@ function store_read_hold_name(model, hold_name, ship_id, hold_id) {
     throw makeError(
       "let_assert",
       "mvu/update/store",
-      178,
+      176,
       "store_read_hold_name",
       "Pattern match failed, no pattern matched the value.",
       { value: $1 }
@@ -63575,7 +63562,7 @@ function store_read_hold_name(model, hold_name, ship_id, hold_id) {
     _record$3.language,
     _record$3.sidebar_expanded,
     _record$3.collateral,
-    _record$3.trades
+    _record$3.multibuys
   );
   let model$1 = _block$3;
   return [model$1, none()];
@@ -63596,10 +63583,32 @@ function store_read_selected_ship(model, ship_id) {
     _record.language,
     _record.sidebar_expanded,
     _record.collateral,
-    _record.trades
+    _record.multibuys
   );
   let model$1 = _block;
   return [model$1, none()];
+}
+
+// build/dev/javascript/eve_arbitrage/mvu/update/side_effects/fetch_esi.mjs
+function get_query_sell_orders_side_effect(location, from2, page) {
+  let query_handler = expect_json(
+    sell_orders_decoder(),
+    (_capture) => {
+      return new EsiReturnedSellOrders(_capture, from2, page);
+    }
+  );
+  let url = get_market_orders_url(location, false, page);
+  return get2(url, query_handler);
+}
+function get_query_buy_orders_side_effect(location, from2, page) {
+  let query_handler = expect_json(
+    buy_orders_decoder(),
+    (_capture) => {
+      return new EsiReturnedBuyOrders(_capture, from2, page);
+    }
+  );
+  let url = get_market_orders_url(location, true, page);
+  return get2(url, query_handler);
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/update/systems.mjs
@@ -63619,7 +63628,7 @@ function user_selected_source(new_source, model) {
     _record.language,
     _record.sidebar_expanded,
     _record.collateral,
-    _record.trades
+    _record.multibuys
   );
   let model$1 = _block;
   let side_effect = none();
@@ -63642,7 +63651,7 @@ function user_selected_destination(new_dest, model) {
     _record.language,
     _record.sidebar_expanded,
     _record.collateral,
-    _record.trades
+    _record.multibuys
   );
   let model$1 = _block;
   let side_effect = none();
@@ -63728,7 +63737,7 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
       _record$1.language,
       _record$1.sidebar_expanded,
       _record$1.collateral,
-      _record$1.trades
+      _record$1.multibuys
     );
     let model$1 = _block$1;
     return [model$1, none()];
@@ -63809,7 +63818,7 @@ function esi_returned_sell_orders(model, esi_response, from2, page) {
           _record.language,
           _record.sidebar_expanded,
           _record.collateral,
-          _record.trades
+          _record.multibuys
         );
       })(),
       get_query_sell_orders_side_effect(
@@ -63899,7 +63908,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
       _record$1.language,
       _record$1.sidebar_expanded,
       _record$1.collateral,
-      _record$1.trades
+      _record$1.multibuys
     );
     let model$1 = _block$1;
     return [model$1, none()];
@@ -63975,7 +63984,7 @@ function esi_returned_buy_orders(model, esi_response, from2, page) {
           _record.language,
           _record.sidebar_expanded,
           _record.collateral,
-          _record.trades
+          _record.multibuys
         );
       })(),
       get_query_buy_orders_side_effect(
@@ -64052,7 +64061,7 @@ function user_loaded_source(model, from2) {
       _record$1.language,
       _record$1.sidebar_expanded,
       _record$1.collateral,
-      _record$1.trades
+      _record$1.multibuys
     );
   } else {
     _block$1 = model;
@@ -64074,7 +64083,7 @@ function user_loaded_source(model, from2) {
         _record$1.language,
         _record$1.sidebar_expanded,
         _record$1.collateral,
-        _record$1.trades
+        _record$1.multibuys
       );
     })(),
     side_effect
@@ -64146,7 +64155,7 @@ function user_loaded_destination(model, to) {
       _record$1.language,
       _record$1.sidebar_expanded,
       _record$1.collateral,
-      _record$1.trades
+      _record$1.multibuys
     );
   } else {
     _block$1 = model;
@@ -64168,7 +64177,7 @@ function user_loaded_destination(model, to) {
         _record$1.language,
         _record$1.sidebar_expanded,
         _record$1.collateral,
-        _record$1.trades
+        _record$1.multibuys
       );
     })(),
     side_effect
@@ -64212,6 +64221,9 @@ function run2(model, msg) {
     return user_clicked_copy_multibuy(model, multibuy);
   } else if (msg instanceof UserClickedComputeMultibuys) {
     return user_clicked_compute_multibuys(model);
+  } else if (msg instanceof AppFinishedComputingMultibuys) {
+    let multibuys = msg[0];
+    return app_finished_computing_multibuys(model, multibuys);
   } else if (msg instanceof UserClickedCollapseSidebar) {
     return user_clicked_collapse_sidebar(model);
   } else if (msg instanceof UserClickedExpandSidebar) {
@@ -64367,6 +64379,50 @@ function on_blur(msg) {
 }
 
 // build/dev/javascript/eve_arbitrage/mvu/view/multibuys.mjs
+function get_no_multibuys_profits_div() {
+  return div(
+    toList([
+      class$(
+        "mb-6 bg-white rounded-lg shadow-md p-4 border-l-4 border-gray-400"
+      )
+    ]),
+    toList([
+      div(
+        toList([class$("flex justify-between items-center")]),
+        toList([
+          div(
+            toList([]),
+            toList([
+              h3(
+                toList([
+                  class$("text-lg font-semibold text-gray-800")
+                ]),
+                toList([text3("Total Projected Profits")])
+              ),
+              p(
+                toList([class$("text-sm text-gray-500")]),
+                toList([text3("Based on current market data")])
+              )
+            ])
+          ),
+          div(
+            toList([class$("text-right")]),
+            toList([
+              span(
+                toList([class$("text-2xl font-bold text-gray-600")]),
+                toList([text3("No profitable trades")])
+              ),
+              p(
+                toList([class$("text-sm text-gray-500")]),
+                toList([text3("Try different systems or items")])
+              )
+            ])
+          )
+        ])
+      )
+    ])
+  );
+}
 function get_active_compute_multibuys_button() {
   return div(
     toList([class$("flex justify-center my-8")]),
@@ -64607,19 +64663,8 @@ function get_projected_profits(profit, roi) {
 }
 function get_section(model) {
   let _block;
-  let _pipe = map2(
-    model.trades,
-    (trade) => {
-      if (trade instanceof Multibuy2) {
-        let multibuy = trade.multibuy;
-        return new Ok(multibuy);
-      } else {
-        return new Error(void 0);
-      }
-    }
-  );
-  let _pipe$1 = all(_pipe);
-  _block = unwrap2(_pipe$1, toList([]));
+  let _pipe = model.multibuys;
+  _block = unwrap(_pipe, toList([]));
   let multibuys = _block;
   let multibuys_divs = map2(multibuys, get_multibuy);
   let $ = fold(
@@ -64637,9 +64682,11 @@ function get_section(model) {
   let total_profit = $[0];
   let total_cost = $[1];
   let roi = divideFloat(total_profit, total_cost) * 100;
-  let hidden2 = is_empty(multibuys);
   let _block$1;
-  if (!hidden2) {
+  let $1 = model.multibuys;
+  if ($1 instanceof Some && $1[0].hasLength(0)) {
+    _block$1 = get_no_multibuys_profits_div();
+  } else if ($1 instanceof Some) {
     _block$1 = get_projected_profits(total_profit, roi);
   } else {
     _block$1 = div(toList([hidden(true)]), toList([]));
@@ -64648,7 +64695,7 @@ function get_section(model) {
   return section(
     toList([]),
     (() => {
-      let _pipe$2 = toList([
+      let _pipe$1 = toList([
         get_compute_multibuy_button(
           model.current_ship,
           model.collateral,
@@ -64657,7 +64704,7 @@ function get_section(model) {
         ),
         projected_profits
       ]);
-      return append(_pipe$2, multibuys_divs);
+      return append(_pipe$1, multibuys_divs);
     })()
   );
 }
@@ -64713,7 +64760,7 @@ function get_section2(level) {
                     throw makeError(
                       "let_assert",
                       "mvu/view/sidebar/accounting",
-                      44,
+                      41,
                       "",
                       "Pattern match failed, no pattern matched the value.",
                       { value: $ }
@@ -65423,7 +65470,7 @@ function get_ship_selected_icon(ship_entry) {
     throw makeError(
       "let_assert",
       "mvu/view/sidebar",
-      246,
+      245,
       "get_ship_selected_icon",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }
@@ -65476,7 +65523,7 @@ function get_collapsed_sidebar(model) {
       throw makeError(
         "let_assert",
         "mvu/view/sidebar",
-        92,
+        91,
         "get_collapsed_sidebar",
         "Pattern match failed, no pattern matched the value.",
         { value: $1 }
@@ -65804,7 +65851,7 @@ function get_selected_system(name2, system, is_source_system) {
     throw makeError(
       "panic",
       "mvu/view/systems_lists",
-      97,
+      96,
       "get_selected_system",
       "should not be able to select an empty system",
       {}
@@ -65817,7 +65864,7 @@ function get_selected_system(name2, system, is_source_system) {
     throw makeError(
       "panic",
       "mvu/view/systems_lists",
-      101,
+      100,
       "get_selected_system",
       "should not be able to select an empty system",
       {}
@@ -66056,7 +66103,7 @@ function init(_) {
       default_language,
       false,
       new None(),
-      toList([])
+      new None()
     ),
     effect
   ];
@@ -66068,7 +66115,7 @@ function main() {
     throw makeError(
       "let_assert",
       "eve_arbitrage",
-      20,
+      19,
       "main",
       "Pattern match failed, no pattern matched the value.",
       { value: $ }

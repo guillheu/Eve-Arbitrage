@@ -1,10 +1,8 @@
 import config/sde
 import gleam/dict.{type Dict}
-import gleam/int
 import gleam/io
 import gleam/list
 import gleam/option.{type Option, Some}
-import gleam/result
 import lustre/effect
 import mvu
 import mvu/update/side_effects/config_to_storage
