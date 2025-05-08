@@ -76,7 +76,16 @@ pub fn trades_to_multibuys(
     |> int.to_float
 
   let #(selected_trades, _leftover_trades, _leftover_collateral) =
-    list.fold(holds, #([], sorted_trades, collateral), fn(input, hold) {
+    holds
+    |> list.sort(fn(hold1, hold2) {
+      case hold1.kind, hold2.kind {
+        sde.Generic, sde.Infrastructure -> order.Gt
+        sde.Infrastructure, sde.Generic -> order.Lt
+        sde.Generic, sde.Generic -> order.Eq
+        sde.Infrastructure, sde.Infrastructure -> order.Eq
+      }
+    })
+    |> list.fold(#([], sorted_trades, collateral), fn(input, hold) {
       let #(old_selected_trades, leftover_trades, remaining_collateral) = input
       let #(new_selected_trades, leftover_trades, remaining_collateral) =
         pick_trades_for_hold(hold, remaining_collateral, leftover_trades)

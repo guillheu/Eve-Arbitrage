@@ -60878,7 +60878,7 @@ function split_trade_to_fit(trade, collateral, capacity) {
     throw makeError(
       "panic",
       "arbitrage",
-      184,
+      193,
       "split_trade_to_fit",
       "negative capacity ? negative collateral ?",
       {}
@@ -61021,7 +61021,7 @@ function merge_orders2(orders) {
                 throw makeError(
                   "let_assert",
                   "arbitrage",
-                  267,
+                  276,
                   "",
                   "Pattern match failed, no pattern matched the value.",
                   { value: new_orders }
@@ -61052,7 +61052,7 @@ function recurse_compute_trades_from_item_orders(sell_orders, buy_orders, acc) {
         throw makeError(
           "let_assert",
           "arbitrage",
-          328,
+          337,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: sell_orders }
@@ -61064,7 +61064,7 @@ function recurse_compute_trades_from_item_orders(sell_orders, buy_orders, acc) {
         throw makeError(
           "let_assert",
           "arbitrage",
-          329,
+          338,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: buy_orders }
@@ -61153,7 +61153,7 @@ function compute_trades(sell_orders, buy_orders, tax_rate) {
         throw makeError(
           "let_assert",
           "arbitrage",
-          291,
+          300,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $ }
@@ -61165,7 +61165,7 @@ function compute_trades(sell_orders, buy_orders, tax_rate) {
         throw makeError(
           "let_assert",
           "arbitrage",
-          292,
+          301,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $1 }
@@ -61284,8 +61284,26 @@ function trades_to_multibuys(trades, collateral, holds) {
   let _pipe = collateral * 1e6;
   _block = identity(_pipe);
   let collateral$1 = _block;
-  let $ = fold(
-    holds,
+  let _block$1;
+  let _pipe$1 = holds;
+  let _pipe$2 = sort(
+    _pipe$1,
+    (hold1, hold2) => {
+      let $1 = hold1.kind;
+      let $2 = hold2.kind;
+      if ($1 instanceof Generic && $2 instanceof Infrastructure) {
+        return new Gt();
+      } else if ($1 instanceof Infrastructure && $2 instanceof Generic) {
+        return new Lt();
+      } else if ($1 instanceof Generic && $2 instanceof Generic) {
+        return new Eq();
+      } else {
+        return new Eq();
+      }
+    }
+  );
+  _block$1 = fold(
+    _pipe$2,
     [toList([]), sorted_trades, collateral$1],
     (input2, hold) => {
       let old_selected_trades = input2[0];
@@ -61306,6 +61324,7 @@ function trades_to_multibuys(trades, collateral, holds) {
       ];
     }
   );
+  let $ = _block$1;
   let selected_trades = $[0];
   return selected_trades_to_multibuys(selected_trades);
 }
@@ -61766,7 +61785,7 @@ function user_clicked_compute_multibuys(model) {
         throw makeError(
           "let_assert",
           "mvu/update/multibuys",
-          32,
+          29,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $ }
@@ -61778,7 +61797,7 @@ function user_clicked_compute_multibuys(model) {
         throw makeError(
           "let_assert",
           "mvu/update/multibuys",
-          33,
+          30,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $1 }
@@ -61790,7 +61809,7 @@ function user_clicked_compute_multibuys(model) {
         throw makeError(
           "let_assert",
           "mvu/update/multibuys",
-          34,
+          31,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $2 }
@@ -61802,7 +61821,7 @@ function user_clicked_compute_multibuys(model) {
         throw makeError(
           "let_assert",
           "mvu/update/multibuys",
-          35,
+          32,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $3 }
@@ -61814,7 +61833,7 @@ function user_clicked_compute_multibuys(model) {
         throw makeError(
           "let_assert",
           "mvu/update/multibuys",
-          36,
+          33,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $4 }
@@ -61826,7 +61845,7 @@ function user_clicked_compute_multibuys(model) {
         throw makeError(
           "let_assert",
           "mvu/update/multibuys",
-          37,
+          34,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $5 }
@@ -61838,7 +61857,7 @@ function user_clicked_compute_multibuys(model) {
         throw makeError(
           "let_assert",
           "mvu/update/multibuys",
-          38,
+          35,
           "",
           "Pattern match failed, no pattern matched the value.",
           { value: $6 }

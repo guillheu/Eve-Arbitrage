@@ -2,7 +2,6 @@ import arbitrage
 import gleam/float
 import gleam/list
 import gleam/option.{type Option, None, Some}
-import gleam/result
 import lustre/attribute.{attribute}
 import lustre/element
 import lustre/element/html
