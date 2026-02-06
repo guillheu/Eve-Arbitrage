@@ -2,5 +2,8 @@
 *.ez
 /build
 erl_crash.dump
-/sde
+
 /export
+#Added automatically by Lustre Dev Tools
+/.lustre
+/dist
