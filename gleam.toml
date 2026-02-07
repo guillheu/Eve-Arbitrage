@@ -30,3 +30,6 @@ simplifile = ">= 2.3.2 and < 3.0.0"
 [tools.lustre.bin]
 bun = "system"
 tailwindcss = "system"
+
+[tools.lustre.build]
+minify = true
