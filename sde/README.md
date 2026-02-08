@@ -1,24 +1,11 @@
-# sde
+# SDE
 
-[![Package Version](https://img.shields.io/hexpm/v/sde)](https://hex.pm/packages/sde)
-[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/sde/)
+The Eve Arbitrage tool has hard-coded types metadata. This sub-project generates the code snippet that can then be pasted into the source code of the tool for convenience.
 
-```sh
-gleam add sde@1
-```
-```gleam
-import sde
+This sub-project will format the types from an expected `types.yaml` file into a gleam-compatible `types.txt` file that can be pasted directly into the gleam source of the project.
 
-pub fn main() -> Nil {
-  // TODO: An example of the project in use
-}
-```
-
-Further documentation can be found at <https://hexdocs.pm/sde>.
-
-## Development
-
-```sh
-gleam run   # Run the project
-gleam test  # Run the tests
-```
+## How to use
+- Download and extract the Eve Online SDE archive from [https://developers.eveonline.com/static-data](https://developers.eveonline.com/static-data)
+- Copy the `types.yaml` file inte the `/sde` directory
+- `cd sde && gleam run`
+- Copy the contents of the generated `types.txt` into your Gleam source code.
