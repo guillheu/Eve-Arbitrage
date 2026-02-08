@@ -33,3 +33,23 @@ tailwindcss = "system"
 
 [tools.lustre.build]
 minify = true
+
+[tools.lustre.html]
+title = "Eve Arbitrage"
+lang = "en"
+meta = [
+    { name = "description", content = "An Eve Online Arbitrage WebApp. Configure your collateral, accounting level and available ships, select your start and destination systems, then compute the most optimal trades for this route and generate the multibuys for convenience!" },
+
+    # Facebook meta tags
+    { property = "og:url", content = "https://eve-arbitrage.guillheu.dev/" },
+    { property = "og:type", content = "website" },
+    { property = "og:title", content = "Eve Arbitrage" },
+    { property = "og:description", content = "description", content = "An Eve Online Arbitrage WebApp. Configure your collateral, accounting level and available ships, select your start and destination systems, then compute the most optimal trades for this route and generate the multibuys for convenience!" },
+
+    # Twitter meta tags
+    { property = "twitter:card", content = "summary_large_image" },
+    { property = "twitter:domain", content = "eve-arbitrage.guillheu.dev" },
+    { property = "twitter:url", content = "https://eve-arbitrage.guillheu.dev/" },
+    { property = "twitter:title", content = "Eve Arbitrage" },
+    { property = "twitter:description", content = "description", content = "An Eve Online Arbitrage WebApp. Configure your collateral, accounting level and available ships, select your start and destination systems, then compute the most optimal trades for this route and generate the multibuys for convenience!" },
+]
