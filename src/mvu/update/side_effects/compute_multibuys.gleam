@@ -3,7 +3,9 @@ import config/esi
 import config/sde
 import gleam/dict
 import gleam/int
+import gleam/io
 import gleam/list
+import gleam/result
 import lustre/effect
 import mvu
 
@@ -21,14 +23,18 @@ pub fn get_compute_multibuys_side_effect(
         dest.buy_orders,
         accounting_level |> arbitrage.tax_percent_from_accounting_level,
       )
-      |> list.map(fn(raw_trade) {
-        let assert Ok(#(name, volume)) =
+      |> list.filter_map(fn(raw_trade) {
+        use #(name, volume) <- result.map(
           list.key_find(sde.items, raw_trade.item)
-          as {
-            "Failed to find item ID #"
-            <> raw_trade.item |> int.to_string
-            <> " in metadata. Try updating the SDE."
-          }
+          |> result.replace_error(fn() {
+            io.println_error(
+              "Failed to find type ID #"
+              <> int.to_string(raw_trade.item)
+              <> ", update the SDE!",
+            )
+          }),
+        )
+
         let assert Ok(trade) =
           arbitrage.raw_trade_to_trade(
             raw_trade,
