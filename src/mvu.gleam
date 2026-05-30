@@ -58,12 +58,12 @@ pub type Msg {
   UserLoadedSource(source: String)
   UserLoadedDestination(destination: String)
   EsiReturnedBuyOrders(
-    Result(List(esi.Order(esi.Buy)), rsvp.Error),
+    Result(List(esi.Order(esi.Buy)), rsvp.Error(String)),
     location: String,
     page: Int,
   )
   EsiReturnedSellOrders(
-    Result(List(esi.Order(esi.Sell)), rsvp.Error),
+    Result(List(esi.Order(esi.Sell)), rsvp.Error(String)),
     location: String,
     page: Int,
   )

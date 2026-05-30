@@ -2,6 +2,7 @@ import arbitrage
 import config/esi
 import config/sde
 import gleam/dict
+import gleam/int
 import gleam/list
 import lustre/effect
 import mvu
@@ -23,6 +24,11 @@ pub fn get_compute_multibuys_side_effect(
       |> list.map(fn(raw_trade) {
         let assert Ok(#(name, volume)) =
           list.key_find(sde.items, raw_trade.item)
+          as {
+            "Failed to find item ID #"
+            <> raw_trade.item |> int.to_string
+            <> " in metadata. Try updating the SDE."
+          }
         let assert Ok(trade) =
           arbitrage.raw_trade_to_trade(
             raw_trade,

@@ -34,7 +34,7 @@ pub fn user_selected_destination(
 
 pub fn esi_returned_sell_orders(
   model: mvu.Model,
-  esi_response: Result(List(esi.Order(esi.Sell)), rsvp.Error),
+  esi_response: Result(List(esi.Order(esi.Sell)), rsvp.Error(String)),
   from: String,
   page: Int,
 ) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
@@ -105,7 +105,7 @@ pub fn esi_returned_sell_orders(
 
 pub fn esi_returned_buy_orders(
   model: mvu.Model,
-  esi_response: Result(List(esi.Order(esi.Buy)), rsvp.Error),
+  esi_response: Result(List(esi.Order(esi.Buy)), rsvp.Error(String)),
   from: String,
   page: Int,
 ) -> #(mvu.Model, effect.Effect(mvu.Msg)) {
